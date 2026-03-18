@@ -395,6 +395,35 @@ function calcularClassificacao(state) {
     return a.nome.localeCompare(b.nome);
   });
 
+  // Resolve remaining ties by confronto direto (two-team ties only)
+  for (let i = 0; i < tabela.length - 1; i++) {
+    let j = i + 1;
+    while (j < tabela.length &&
+      tabela[j].pontos === tabela[i].pontos &&
+      tabela[j].vitorias === tabela[i].vitorias &&
+      tabela[j].saldoGols === tabela[i].saldoGols &&
+      tabela[j].golsMarcados === tabela[i].golsMarcados) {
+      j++;
+    }
+    if (j - i === 2) {
+      const a = tabela[i];
+      const b = tabela[i + 1];
+      const directMatch = partidas.find(p =>
+        (p.timeA === a.id && p.timeB === b.id) ||
+        (p.timeA === b.id && p.timeB === a.id)
+      );
+      if (directMatch) {
+        const aIsHome = directMatch.timeA === a.id;
+        const aGols = aIsHome ? directMatch.golsA : directMatch.golsB;
+        const bGols = aIsHome ? directMatch.golsB : directMatch.golsA;
+        if (bGols > aGols) {
+          [tabela[i], tabela[i + 1]] = [tabela[i + 1], tabela[i]];
+        }
+      }
+    }
+    i = j - 1;
+  }
+
   return tabela;
 }
 
