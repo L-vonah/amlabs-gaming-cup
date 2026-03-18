@@ -233,6 +233,14 @@ function getTimeById(state, id) {
  * Generates a round-robin schedule (single round) for all teams.
  * Uses the standard "circle" algorithm to minimize byes.
  */
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 function gerarRodadasRoundRobin(times) {
   if (times.length < 2) return [];
 
@@ -240,8 +248,8 @@ function gerarRodadasRoundRobin(times) {
   const numRodadas = n - 1;
   const partidas = [];
 
-  // Create indexed list, add dummy if odd number of teams
-  const lista = [...times.map(t => t.id)];
+  // Shuffle teams so order and matchups are randomized
+  const lista = shuffle([...times.map(t => t.id)]);
   if (times.length % 2 !== 0) lista.push('BYE');
 
   const fixed = lista[0];
@@ -251,20 +259,23 @@ function gerarRodadasRoundRobin(times) {
     const current = [fixed, ...rotating];
 
     for (let i = 0; i < n / 2; i++) {
-      const home = current[i];
-      const away = current[n - 1 - i];
+      let home = current[i];
+      let away = current[n - 1 - i];
 
-      if (home !== 'BYE' && away !== 'BYE') {
-        partidas.push({
-          id: `rr_${rodada + 1}_${i}`,
-          rodada: rodada + 1,
-          timeA: home,
-          timeB: away,
-          golsA: null,
-          golsB: null,
-          status: 'pendente' // pendente | concluida
-        });
-      }
+      if (home === 'BYE' || away === 'BYE') continue;
+
+      // Randomize home/away
+      if (Math.random() < 0.5) [home, away] = [away, home];
+
+      partidas.push({
+        id: `rr_${rodada + 1}_${i}`,
+        rodada: rodada + 1,
+        timeA: home,
+        timeB: away,
+        golsA: null,
+        golsB: null,
+        status: 'pendente'
+      });
     }
 
     // Rotate: move last element to position 1 (after fixed)
