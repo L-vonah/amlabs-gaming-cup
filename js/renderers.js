@@ -437,6 +437,12 @@ function renderBracket() {
   const container = document.getElementById('bracketContainer');
   if (!container) return;
 
+  const isMobile = window.innerWidth <= 768;
+  if (isMobile) {
+    renderBracketMobile(container, state);
+    return;
+  }
+
   if (state.campeonato.status === 'configuracao' || state.campeonato.status === 'grupos') {
     container.innerHTML = `
       <div class="empty-state">
@@ -510,6 +516,49 @@ function renderBracket() {
         <span><strong>Vantagem na Grande Final:</strong> O time que chegou pela Chave Superior (sem derrota) tem direito de escolher com qual time/configura&ccedil;&atilde;o deseja jogar.</span>
       </div>
     </div>`;
+}
+
+function renderBracketMobile(container, state) {
+  if (state.campeonato.status === 'configuracao' || state.campeonato.status === 'grupos') {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">&#127942;</div><div class="empty-title">Playoffs ainda nao iniciados</div><div class="empty-desc">Conclua a fase de grupos com pelo menos 4 times classificados.</div>' +
+      (state.campeonato.status === 'grupos' && canStartPlayoffs(state) ? '<button class="btn btn-primary mt-16" onclick="iniciarPlayoffs()">Iniciar Playoffs</button>' : '') + '</div>';
+    return;
+  }
+
+  const ub = state.playoffs.upperBracket;
+  const lb = state.playoffs.lowerBracket;
+  const gf = state.playoffs.grandFinal;
+
+  let html = '<div class="bracket-mobile-stack">';
+
+  // Upper bracket
+  html += '<div class="bracket-mobile-section" style="border-left:3px solid var(--color-upper)">';
+  html += '<div class="bracket-mobile-section-title" style="color:var(--color-upper)">&#9733; Chave Superior</div>';
+  html += renderBracketMatch(ub.sf1, state, 'upper');
+  html += renderBracketMatch(ub.sf2, state, 'upper');
+  html += '<div style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--color-border)">';
+  html += '<div style="font-size:.65rem;font-weight:700;color:var(--color-text-dim);margin-bottom:8px;text-transform:uppercase;letter-spacing:.08em">Final Superior</div>';
+  html += renderBracketMatch(ub.final, state, 'upper');
+  html += '</div></div>';
+
+  // Lower bracket
+  html += '<div class="bracket-mobile-section" style="border-left:3px solid var(--color-lower)">';
+  html += '<div class="bracket-mobile-section-title" style="color:var(--color-lower)">&#8595; Chave Inferior</div>';
+  html += renderBracketMatch(lb.sf, state, 'lower');
+  html += '<div style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--color-border)">';
+  html += '<div style="font-size:.65rem;font-weight:700;color:var(--color-text-dim);margin-bottom:8px;text-transform:uppercase;letter-spacing:.08em">Final Inferior</div>';
+  html += renderBracketMatch(lb.final, state, 'lower');
+  html += '</div></div>';
+
+  // Grand final
+  html += '<div class="bracket-mobile-section" style="border-left:3px solid var(--color-champion);background:var(--color-champion-bg)">';
+  html += '<div class="bracket-mobile-section-title" style="color:var(--color-champion)">&#127942; Grande Final</div>';
+  html += renderGrandFinalBracket(gf, state);
+  html += '<div style="font-size:.7rem;color:var(--color-champion);margin-top:8px">&#9733; Chave Superior tem vantagem de escolha de time</div>';
+  html += '</div>';
+
+  html += '</div>';
+  container.innerHTML = html;
 }
 
 function renderBracketMatch(m, state, tipo) {
