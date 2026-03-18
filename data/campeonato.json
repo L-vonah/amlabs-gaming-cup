@@ -1,0 +1,40 @@
+{
+  "campeonato": {
+    "nome": "1º Campeonato FC Football AMLabs",
+    "edicao": 1,
+    "temporada": "2026",
+    "status": "configuracao"
+  },
+  "config": {
+    "pontosPorVitoria": 3,
+    "pontosPorEmpate": 1,
+    "pontosPorDerrota": 0,
+    "classificadosPorGrupo": 4,
+    "criteriosDesempate": ["pontos", "vitorias", "saldoGols", "golsMarcados", "confrontoDireto"]
+  },
+  "times": [],
+  "faseGrupos": {
+    "status": "aguardando",
+    "partidas": []
+  },
+  "playoffs": {
+    "status": "aguardando",
+    "upperBracket": {
+      "semifinal1": { "timeA": null, "timeB": null, "golsA": null, "golsB": null, "vencedor": null },
+      "semifinal2": { "timeA": null, "timeB": null, "golsA": null, "golsB": null, "vencedor": null },
+      "final": { "timeA": null, "timeB": null, "golsA": null, "golsB": null, "vencedor": null }
+    },
+    "lowerBracket": {
+      "semifinal": { "timeA": null, "timeB": null, "golsA": null, "golsB": null, "vencedor": null },
+      "final": { "timeA": null, "timeB": null, "golsA": null, "golsB": null, "vencedor": null }
+    },
+    "grandFinal": {
+      "timeUpper": null,
+      "timeLower": null,
+      "golsUpper": null,
+      "golsLower": null,
+      "vencedor": null,
+      "vantagem": "upper"
+    }
+  }
+}

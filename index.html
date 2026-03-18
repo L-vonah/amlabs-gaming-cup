@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>1&ordm; Campeonato FC Football AMLabs 2026</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- ===============================================================
+     HEADER
+     =============================================================== -->
+<header class="site-header">
+  <div class="header-inner">
+    <a class="site-logo" onclick="UI.navigateTo('home')" style="cursor:pointer">
+      <span class="logo-icon">&#9917;</span>
+      <span class="logo-text">FC Football <span>AMLabs</span> <span class="logo-year">2026</span></span>
+    </a>
+
+    <nav class="main-nav">
+      <button class="nav-link active" data-nav="home" onclick="UI.navigateTo('home')">In&iacute;cio</button>
+      <button class="nav-link" data-nav="times" onclick="UI.navigateTo('times')">Times</button>
+      <button class="nav-link" data-nav="classificacao" onclick="UI.navigateTo('classificacao')">Classifica&ccedil;&atilde;o</button>
+      <button class="nav-link" data-nav="partidas" onclick="UI.navigateTo('partidas')">Partidas</button>
+      <button class="nav-link" data-nav="registrar" onclick="UI.navigateTo('registrar')">Resultados</button>
+      <button class="nav-link" data-nav="bracket" onclick="UI.navigateTo('bracket')">Chaveamento</button>
+      <button class="nav-link" data-nav="estatisticas" onclick="UI.navigateTo('estatisticas')">Estat&iacute;sticas</button>
+      <button class="nav-link" data-nav="regras" onclick="UI.navigateTo('regras')">Regras</button>
+      <button class="nav-link" data-nav="historico" onclick="UI.navigateTo('historico')">Hist&oacute;rico</button>
+    </nav>
+
+    <div class="header-badge">
+      <span class="badge-status configuracao" id="headerStatusBadge">Configura&ccedil;&atilde;o</span>
+    </div>
+  </div>
+</header>
+
+<!-- ===============================================================
+     MAIN CONTENT
+     =============================================================== -->
+<main class="main-content">
+
+  <!-- ---------------------------------------------------------------
+       LIFECYCLE BAR (shown on most pages)
+       --------------------------------------------------------------- -->
+  <div class="lifecycle-bar" id="lifecycleBar">
+    <div class="lifecycle-step active" data-step="configuracao">
+      <div class="lifecycle-step-dot">1</div>
+      <span class="lifecycle-step-label">Configura&ccedil;&atilde;o</span>
+    </div>
+    <div class="lifecycle-line" data-after="configuracao"></div>
+    <div class="lifecycle-step" data-step="grupos">
+      <div class="lifecycle-step-dot">2</div>
+      <span class="lifecycle-step-label">Fase de Grupos</span>
+    </div>
+    <div class="lifecycle-line" data-after="grupos"></div>
+    <div class="lifecycle-step" data-step="playoffs">
+      <div class="lifecycle-step-dot">3</div>
+      <span class="lifecycle-step-label">Playoffs</span>
+    </div>
+    <div class="lifecycle-line" data-after="playoffs"></div>
+    <div class="lifecycle-step" data-step="encerrado">
+      <div class="lifecycle-step-dot">4</div>
+      <span class="lifecycle-step-label">Encerrado</span>
+    </div>
+  </div>
+
+  <!-- ---------------------------------------------------------------
+       HOME
+       --------------------------------------------------------------- -->
+  <section id="section-home" class="page-section active">
+
+    <!-- Champion banner — only visible when tournament is finished -->
+    <div id="championBanner" style="display:none"></div>
+
+    <div class="hero">
+      <div class="hero-badge">1&ordf; Edi&ccedil;&atilde;o &bull; 2026</div>
+      <h1 class="hero-title">1&ordm; Campeonato FC Football<br><span class="highlight">AMLabs 2026</span></h1>
+      <p class="hero-subtitle">Fase de grupos todos contra todos + Playoffs com Dupla Elimina&ccedil;&atilde;o (Chave Superior &amp; Inferior)</p>
+
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-value" id="homeStatTimes">0</div>
+          <div class="hero-stat-label">Times</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-value" id="homeStatPartidas">0</div>
+          <div class="hero-stat-label">Partidas</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-value" id="homeStatConcluidas">0</div>
+          <div class="hero-stat-label">Conclu&iacute;das</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-value" id="homeStatGols">0</div>
+          <div class="hero-stat-label">Gols</div>
+        </div>
+      </div>
+
+      <div class="hero-actions">
+        <button class="btn btn-primary" onclick="UI.navigateTo('times')">Gerenciar Times</button>
+        <button class="btn btn-secondary" onclick="UI.navigateTo('classificacao')">Ver Classifica&ccedil;&atilde;o</button>
+        <button class="btn btn-secondary" onclick="UI.navigateTo('bracket')">Ver Chaveamento</button>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <!-- Leader -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">
+            <span class="section-title-icon icon-bg-yellow">&#9733;</span>
+            L&iacute;der da Classifica&ccedil;&atilde;o
+          </span>
+        </div>
+        <div id="homeLeader"></div>
+      </div>
+
+      <!-- Last results -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">
+            <span class="section-title-icon icon-bg-green">&#10003;</span>
+            &Uacute;ltimos Resultados
+          </span>
+          <button class="btn btn-sm btn-secondary" onclick="UI.navigateTo('partidas')">Ver todos</button>
+        </div>
+        <div class="card-body" id="homeLastResults"></div>
+      </div>
+    </div>
+
+    <!-- Quick actions -->
+    <div class="card mt-24">
+      <div class="card-header">
+        <span class="card-title">
+          <span class="section-title-icon icon-bg-blue">&#9881;</span>
+          A&ccedil;&otilde;es R&aacute;pidas
+        </span>
+      </div>
+      <div class="card-body" style="display:flex;gap:12px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="UI.navigateTo('times');setTimeout(()=>document.getElementById('inputNomeTimo').focus(),100)">+ Adicionar Time</button>
+        <button class="btn btn-secondary" id="quickGerarGrupos" onclick="gerarFaseGrupos()">Gerar Fase de Grupos</button>
+        <button class="btn btn-secondary" id="quickIniciarPlayoffs" onclick="iniciarPlayoffs()">Iniciar Playoffs</button>
+        <button class="btn btn-secondary" onclick="exportData()">Exportar Dados</button>
+        <label class="btn btn-secondary" style="cursor:pointer">
+          Importar Dados
+          <input type="file" accept=".json" onchange="importData(event)" style="display:none">
+        </label>
+        <button class="btn btn-danger btn-sm" onclick="confirmReset()" style="margin-left:auto">Reset Campeonato</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------------
+       TIMES
+       --------------------------------------------------------------- -->
+  <section id="section-times" class="page-section">
+    <div class="section-header">
+      <h2 class="section-title">
+        <span class="section-title-icon icon-bg-blue">&#128101;</span>
+        Times Participantes
+        <span class="text-dim text-sm font-bold" id="timesCount" style="font-size:.85rem;color:var(--color-text-dim)">0 times</span>
+      </h2>
+    </div>
+
+    <div class="manage-layout">
+      <!-- Teams list -->
+      <div>
+        <div class="teams-grid" id="timesGrid"></div>
+
+        <div class="mt-24" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-primary" id="btnGerarGrupos" onclick="gerarFaseGrupos()" disabled>
+            Gerar Fase de Grupos
+          </button>
+          <span class="text-dim text-sm" id="gerarGruposHint">Adicione os times e clique para gerar o calend&aacute;rio round-robin</span>
+        </div>
+      </div>
+
+      <!-- Add team form -->
+      <div class="card" style="position:sticky;top:80px">
+        <div class="card-header">
+          <span class="card-title">Adicionar Time</span>
+        </div>
+        <div class="card-body">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="form-group">
+              <label class="form-label" for="inputNomeTimo">Nome do Time *</label>
+              <input class="form-input" type="text" id="inputNomeTimo" placeholder="Ex: Real Madras"
+                onkeydown="if(event.key==='Enter')submitAddTime()">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="inputAbrevTimo">Abrevia&ccedil;&atilde;o (3-4 letras)</label>
+              <input class="form-input" type="text" id="inputAbrevTimo" placeholder="Ex: RMA" maxlength="4"
+                style="text-transform:uppercase"
+                onkeydown="if(event.key==='Enter')submitAddTime()">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Cor do Time</label>
+              <div class="color-picker-wrapper">
+                <input type="color" id="inputCorTimo" value="#6c5ce7">
+                <span style="font-size:.8rem;color:var(--color-text-muted)">Escolha a cor do escudo</span>
+              </div>
+              <!-- Color presets -->
+              <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+                <script>
+                  document.addEventListener('DOMContentLoaded', () => {
+                    const presetContainer = document.currentScript.parentElement;
+                    UI.PRESET_COLORS.forEach(c => {
+                      const btn = document.createElement('button');
+                      btn.style.cssText = `width:22px;height:22px;border-radius:50%;background:${c};border:2px solid transparent;cursor:pointer;transition:.15s`;
+                      btn.onclick = () => {
+                        document.getElementById('inputCorTimo').value = c;
+                        presetContainer.querySelectorAll('button').forEach(b => b.style.borderColor = 'transparent');
+                        btn.style.borderColor = '#fff';
+                      };
+                      presetContainer.appendChild(btn);
+                    });
+                  });
+                </script>
+              </div>
+            </div>
+
+            <button class="btn btn-primary w-full" onclick="submitAddTime()">Adicionar Time</button>
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="text-dim text-xs">Times s&oacute; podem ser removidos antes do in&iacute;cio da fase de grupos.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------------
+       CLASSIFICACAO
+       --------------------------------------------------------------- -->
+  <section id="section-classificacao" class="page-section">
+    <div class="section-header">
+      <h2 class="section-title">
+        <span class="section-title-icon icon-bg-yellow">&#128202;</span>
+        Classifica&ccedil;&atilde;o &mdash; Fase de Grupos
+      </h2>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm btn-secondary" onclick="renderClassificacao()">Atualizar</button>
+        <button class="btn btn-sm btn-primary" onclick="iniciarPlayoffs()" id="btnIniciarPlayoffs" style="display:none">Iniciar Playoffs</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div id="tabelaClassificacao"></div>
+    </div>
+
+    <div class="mt-16" style="font-size:.8rem;color:var(--color-text-dim)">
+      Os 4 primeiros colocados se classificam para os Playoffs (Dupla Elimina&ccedil;&atilde;o).
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------------
+       PARTIDAS
+       --------------------------------------------------------------- -->
+  <section id="section-partidas" class="page-section">
+    <div class="section-header">
+      <h2 class="section-title">
+        <span class="section-title-icon icon-bg-purple">&#128197;</span>
+        Calend&aacute;rio de Partidas
+      </h2>
+    </div>
+
+    <div id="partidasContainer"></div>
+  </section>
+
+  <!-- ---------------------------------------------------------------
+       RESULTADOS
+       --------------------------------------------------------------- -->
+  <section id="section-registrar" class="page-section">
+    <div class="section-header">
+      <h2 class="section-title">
+        <span class="section-title-icon icon-bg-green">&#9999;</span>
+        Registrar Resultados
+      </h2>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tabGrupos" onclick="switchResultTab('grupos')">Fase de Grupos</button>
+      <button class="tab-btn" id="tabPlayoffs" onclick="switchResultTab('playoffs')">Playoffs</button>
+    </div>
+
+    <!-- Aba Grupos -->
+    <div id="resultTabGrupos">
+      <div id="gruposFormContainer"></div>
+    </div>
+
+    <!-- Aba Playoffs -->
+    <div id="resultTabPlayoffs" style="display:none">
+      <div id="playoffResultsContainer"></div>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------------
+       CHAVEAMENTO (Bracket)
+       --------------------------------------------------------------- -->
+  <section id="section-bracket" class="page-section">
+    <div class="section-header">
+      <h2 class="section-title">
+        <span class="section-title-icon icon-bg-purple">&#127942;</span>
+        Chaveamento &mdash; Dupla Elimina&ccedil;&atilde;o
+      </h2>
+      <button class="btn btn-sm btn-secondary" onclick="renderBracket()">Atualizar</button>
+    </div>
+
+    <div id="bracketContainer"></div>
+  </section>
+
+  <!-- ---------------------------------------------------------------
+       ESTATISTICAS
+       --------------------------------------------------------------- -->
+  <section id="section-estatisticas" class="page-section">
+    <div class="section-header">
+      <h2 class="section-title">
+        <span class="section-title-icon icon-bg-blue">&#128200;</span>
+        Estat&iacute;sticas do Campeonato
+      </h2>
+    </div>
+
+    <!-- Overview -->
+    <div class="stats-overview">
+      <div class="stat-card">
+        <div class="stat-card-value" id="statTotalTimes">0</div>
+        <div class="stat-card-label">Times</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-value" id="statTotalPartidas">0</div>
+        <div class="stat-card-label">Partidas</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-value" id="statTotalGols">0</div>
+        <div class="stat-card-label">Gols Marcados</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-value" id="statMediaGols">0</div>
+        <div class="stat-card-label">M&eacute;dia Gols/Partida</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <!-- Top goleadores -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">
+            <span class="section-title-icon icon-bg-orange">&#9917;</span>
+            Times Mais Goleadores
+          </span>
+        </div>
+        <div class="card-body">
+          <div class="top-list" id="statTopGols"></div>
+        </div>
+      </div>
+
+      <!-- Melhores defesas -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">
+            <span class="section-title-icon icon-bg-green">&#128737;</span>
+            Melhores Defesas
+          </span>
+        </div>
+        <div class="card-body">
+          <div class="top-list" id="statTopDef"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Maior goleada -->
+    <div class="card mt-24">
+      <div class="card-header">
+        <span class="card-title">
+          <span class="section-title-icon icon-bg-yellow">&#9733;</span>
+          Maior Goleada do Campeonato
+        </span>
+      </div>
+      <div class="card-body" id="statGoleada"></div>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------------
+       REGRAS
+       --------------------------------------------------------------- -->
+  <section id="section-regras" class="page-section">
+    <div class="section-header">
+      <h2 class="section-title">
+        <span class="section-title-icon icon-bg-blue">&#128203;</span>
+        Regras do Campeonato
+      </h2>
+    </div>
+
+    <div class="rules-grid">
+
+      <!-- Fase de grupos -->
+      <div class="rule-card">
+        <div class="rule-card-header">
+          <div class="rule-icon icon-bg-blue" style="width:40px;height:40px;border-radius:var(--radius)">&#9917;</div>
+          <h3 class="rule-card-title">Fase de Grupos</h3>
+        </div>
+        <ul class="rule-list">
+          <li>Todos os times participam em um &uacute;nico grupo, jogando em sistema todos contra todos (round-robin).</li>
+          <li>Turno &uacute;nico: cada par de times se enfrenta uma vez.</li>
+          <li>Vit&oacute;ria vale <strong>3 pontos</strong>, empate vale <strong>1 ponto</strong> para cada time, derrota vale <strong>0 pontos</strong>.</li>
+          <li>Os <strong>4 melhores colocados</strong> se classificam para os Playoffs.</li>
+        </ul>
+      </div>
+
+      <!-- Criterios de desempate -->
+      <div class="rule-card">
+        <div class="rule-card-header">
+          <div class="rule-icon icon-bg-yellow" style="width:40px;height:40px;border-radius:var(--radius)">&#9878;</div>
+          <h3 class="rule-card-title">Crit&eacute;rios de Desempate</h3>
+        </div>
+        <ul class="rule-list">
+          <li>1&ordm; crit&eacute;rio: <strong>Pontos</strong></li>
+          <li>2&ordm; crit&eacute;rio: <strong>N&uacute;mero de Vit&oacute;rias</strong></li>
+          <li>3&ordm; crit&eacute;rio: <strong>Saldo de Gols</strong> (gols marcados menos sofridos)</li>
+          <li>4&ordm; crit&eacute;rio: <strong>Gols Marcados</strong></li>
+          <li>5&ordm; crit&eacute;rio: <strong>Confronto Direto</strong> (se dois times estiverem empatados)</li>
+        </ul>
+      </div>
+
+      <!-- Chave Superior -->
+      <div class="rule-card">
+        <div class="rule-card-header">
+          <div class="rule-icon icon-bg-purple" style="width:40px;height:40px;border-radius:var(--radius)">&#9733;</div>
+          <h3 class="rule-card-title">Chave Superior (sem derrota)</h3>
+        </div>
+        <ul class="rule-list">
+          <li>Os 4 classificados entram diretamente na Chave Superior.</li>
+          <li><strong>Semifinal 1:</strong> 1&ordm; colocado vs 4&ordm; colocado</li>
+          <li><strong>Semifinal 2:</strong> 2&ordm; colocado vs 3&ordm; colocado</li>
+          <li>Os vencedores das semifinais disputam a <strong>Final Superior</strong>.</li>
+          <li>O vencedor da Final Superior avan&ccedil;a diretamente para a <strong>Grande Final</strong> sem ter sofrido nenhuma derrota.</li>
+          <li>Os perdedores caem para a <strong>Chave Inferior</strong>.</li>
+        </ul>
+      </div>
+
+      <!-- Chave Inferior -->
+      <div class="rule-card">
+        <div class="rule-card-header">
+          <div class="rule-icon icon-bg-orange" style="width:40px;height:40px;border-radius:var(--radius)">&#8595;</div>
+          <h3 class="rule-card-title">Chave Inferior (Segunda Chance)</h3>
+        </div>
+        <ul class="rule-list">
+          <li>Os <strong>perdedores das semifinais da Chave Superior</strong> disputam a Semifinal Inferior.</li>
+          <li>O vencedor da Semifinal Inferior enfrenta o <strong>perdedor da Final Superior</strong> na Final Inferior.</li>
+          <li>O vencedor da Final Inferior conquista sua vaga na <strong>Grande Final</strong>.</li>
+          <li>Qualquer derrota na Chave Inferior elimina o time definitivamente.</li>
+        </ul>
+        <div class="highlight-box">
+          <span>!</span>
+          <span>Os confrontos na Chave Inferior s&atilde;o definidos para evitar que dois times se enfrentem novamente antes da Grande Final.</span>
+        </div>
+      </div>
+
+      <!-- Grande Final + Potes -->
+      <div class="rule-card">
+        <div class="rule-card-header">
+          <div class="rule-icon icon-bg-yellow" style="width:40px;height:40px;border-radius:var(--radius)">&#127942;</div>
+          <h3 class="rule-card-title">Grande Final &amp; Vantagem de Potes</h3>
+        </div>
+        <ul class="rule-list">
+          <li>Disputa entre o vencedor da <strong>Chave Superior</strong> e o vencedor da <strong>Chave Inferior</strong>.</li>
+          <li>Jogo &uacute;nico, sem empate (prorroga&ccedil;&atilde;o/p&ecirc;naltis se necess&aacute;rio).</li>
+        </ul>
+        <div class="highlight-box" style="margin-top:12px">
+          <span>&#9733;</span>
+          <span><strong>Vantagem da Chave Superior:</strong> O time que chegou &agrave; Grande Final sem perder escolhe seu time (personagem/equipe do jogo) do <strong>pote superior</strong>. O adversário (Chave Inferior) escolhe do <strong>pote inferior</strong>.</span>
+        </div>
+      </div>
+
+      <!-- Formato dos Playoffs -->
+      <div class="rule-card">
+        <div class="rule-card-header">
+          <div class="rule-icon icon-bg-green" style="width:40px;height:40px;border-radius:var(--radius)">&#128204;</div>
+          <h3 class="rule-card-title">Formato Geral dos Playoffs</h3>
+        </div>
+        <ul class="rule-list">
+          <li>Todos os jogos dos playoffs s&atilde;o decididos em jogo &uacute;nico.</li>
+          <li><strong>Empates n&atilde;o s&atilde;o permitidos</strong> nos playoffs. Em caso de empate ap&oacute;s 90 minutos, utiliza-se prorroga&ccedil;&atilde;o e/ou p&ecirc;naltis para definir o vencedor.</li>
+          <li>A ordem dos jogos &eacute;: Semifinais Superiores &rarr; Semifinal Inferior &rarr; Final Superior &rarr; Final Inferior &rarr; Grande Final.</li>
+          <li>Um time s&oacute; &eacute; eliminado ap&oacute;s acumular <strong>2 derrotas</strong> (exceto na Grande Final onde uma derrota elimina).</li>
+        </ul>
+      </div>
+
+    </div>
+
+    <!-- Potes configuration -->
+    <div class="card mt-24">
+      <div class="card-header">
+        <span class="card-title">
+          <span class="section-title-icon icon-bg-yellow">&#127922;</span>
+          Configura&ccedil;&atilde;o de Potes &mdash; Grande Final
+        </span>
+      </div>
+      <div class="card-body">
+        <p style="font-size:.875rem;color:var(--color-text-muted);margin-bottom:16px">
+          Defina quais times pertencem ao <strong style="color:var(--color-upper)">pote superior</strong> (dispon&iacute;veis para o campe&atilde;o da Chave Superior escolher) e quais pertencem ao <strong style="color:var(--color-lower)">pote inferior</strong> (dispon&iacute;veis para o campe&atilde;o da Chave Inferior). Deixe como "Nenhum" para times n&atilde;o definidos ainda.
+        </p>
+        <div id="potesConfigContainer">
+          <div class="text-dim text-sm">Carregando...</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------------
+       HISTORICO (Audit Log)
+       --------------------------------------------------------------- -->
+  <section id="section-historico" class="page-section">
+    <div class="section-header">
+      <h2 class="section-title">
+        <span class="section-title-icon icon-bg-purple">&#128203;</span>
+        Hist&oacute;rico de Altera&ccedil;&otilde;es
+      </h2>
+      <button class="btn btn-sm btn-secondary" onclick="renderHistorico()">Atualizar</button>
+    </div>
+
+    <div class="card">
+      <div class="card-body" style="padding:0">
+        <div id="historicoContainer"></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ===============================================================
+     MODAL - RESET
+     =============================================================== -->
+<div class="modal-overlay" id="modalReset">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Confirmar Reset</span>
+      <button class="btn-icon" onclick="UI.closeModal('modalReset')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--color-text-muted);font-size:.9rem">Tem certeza que deseja <strong style="color:var(--color-loss)">resetar completamente</strong> o campeonato? Todos os times, resultados, histórico e configurações serão perdidos. Esta ação não pode ser desfeita.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="UI.closeModal('modalReset')">Cancelar</button>
+      <button class="btn btn-danger" onclick="executeReset()">Sim, resetar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===============================================================
+     TOAST CONTAINER
+     =============================================================== -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ===============================================================
+     SCRIPTS
+     =============================================================== -->
+<script src="js/state.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/renderers.js"></script>
+<script src="js/actions.js"></script>
+
+<script>
+  // ------------------------------------------------------------------
+  // App initialization
+  // ------------------------------------------------------------------
+
+  function switchResultTab(tab) {
+    document.getElementById('resultTabGrupos').style.display = tab === 'grupos' ? 'block' : 'none';
+    document.getElementById('resultTabPlayoffs').style.display = tab === 'playoffs' ? 'block' : 'none';
+    document.getElementById('tabGrupos').classList.toggle('active', tab === 'grupos');
+    document.getElementById('tabPlayoffs').classList.toggle('active', tab === 'playoffs');
+
+    if (tab === 'playoffs') {
+      renderRegistrar();
+    }
+  }
+
+  // Override renderRegistrar to also update classificacao button visibility
+  const _origRenderRegistrar = Renderers.registrar;
+  Renderers.registrar = function() {
+    _origRenderRegistrar();
+
+    // Show/hide "start playoffs" button on classificacao page
+    const state = AppState.load();
+    const btnPlayoffs = document.getElementById('btnIniciarPlayoffs');
+    if (btnPlayoffs) {
+      const pending = state.faseGrupos.partidas.filter(p => p.status === 'pendente').length;
+      const tabela = AppState.calcularClassificacao(state);
+      btnPlayoffs.style.display = (pending === 0 && tabela.length >= 4 && state.campeonato.status === 'grupos') ? 'block' : 'none';
+    }
+  };
+
+  // Also update home quick action buttons based on state
+  function updateQuickActions() {
+    const state = AppState.load();
+    const btnGerar = document.getElementById('quickGerarGrupos');
+    const btnPlayoffs = document.getElementById('quickIniciarPlayoffs');
+    if (btnGerar) btnGerar.disabled = state.campeonato.status !== 'configuracao' || state.times.length < 2;
+    if (btnPlayoffs) {
+      const pending = state.faseGrupos.partidas.filter(p => p.status === 'pendente').length;
+      const tabela = AppState.calcularClassificacao(state);
+      btnPlayoffs.disabled = !(pending === 0 && tabela.length >= 4 && state.campeonato.status === 'grupos');
+    }
+  }
+
+  const _origRenderHome = Renderers.home;
+  Renderers.home = function() {
+    _origRenderHome();
+    updateQuickActions();
+  };
+
+  // Valid section names including new historico
+  const VALID_SECTIONS = ['home', 'times', 'classificacao', 'partidas', 'registrar', 'bracket', 'estatisticas', 'regras', 'historico'];
+
+  // Hash-based navigation
+  function initNavFromHash() {
+    const hash = window.location.hash.replace('#', '');
+    if (hash && VALID_SECTIONS.includes(hash)) {
+      UI.navigateTo(hash);
+    } else {
+      UI.navigateTo('home');
+    }
+  }
+
+  // Boot
+  document.addEventListener('DOMContentLoaded', () => {
+    initNavFromHash();
+  });
+
+  window.addEventListener('hashchange', () => {
+    const hash = window.location.hash.replace('#', '');
+    if (hash && VALID_SECTIONS.includes(hash)) {
+      document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+      const target = document.getElementById('section-' + hash);
+      if (target) target.classList.add('active');
+      const navLink = document.querySelector(`[data-nav="${hash}"]`);
+      if (navLink) navLink.classList.add('active');
+      if (window.Renderers && window.Renderers[hash]) {
+        window.Renderers[hash]();
+      }
+    }
+  });
+</script>
+
+</body>
+</html>

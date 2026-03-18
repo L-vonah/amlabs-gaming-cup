@@ -1,0 +1,456 @@
+/**
+ * State Manager — 1o Campeonato FC Football AMLabs
+ * Centralized data layer using localStorage for persistence
+ */
+
+const STATE_KEY = 'campeonato_amlabs_v1';
+const AUDIT_LOG_KEY = 'campeonato_amlabs_audit_v1';
+const POTES_KEY = 'campeonato_amlabs_potes_v1';
+
+const DEFAULT_STATE = {
+  campeonato: {
+    nome: '1º Campeonato FC Football AMLabs 2026',
+    edicao: 1,
+    temporada: '2026',
+    status: 'configuracao' // configuracao | grupos | playoffs | encerrado
+  },
+  config: {
+    pontosPorVitoria: 3,
+    pontosPorEmpate: 1,
+    pontosPorDerrota: 0,
+    classificadosPorGrupo: 4,
+    criteriosDesempate: ['pontos', 'vitorias', 'saldoGols', 'golsMarcados', 'confrontoDireto']
+  },
+  times: [],
+  faseGrupos: {
+    status: 'aguardando', // aguardando | andamento | concluida
+    partidas: []
+  },
+  playoffs: {
+    status: 'aguardando', // aguardando | andamento | concluido
+    upperBracket: {
+      // Semifinais: 1o vs 4o e 2o vs 3o
+      sf1: { id: 'ub-sf1', fase: 'Semifinal da Chave Superior 1', label: '1º vs 4º', timeA: null, timeB: null, golsA: null, golsB: null, vencedor: null, perdedor: null },
+      sf2: { id: 'ub-sf2', fase: 'Semifinal da Chave Superior 2', label: '2º vs 3º', timeA: null, timeB: null, golsA: null, golsB: null, vencedor: null, perdedor: null },
+      // Final da Chave Superior: vencedores das semis
+      final: { id: 'ub-final', fase: 'Final da Chave Superior', label: 'Final Superior', timeA: null, timeB: null, golsA: null, golsB: null, vencedor: null, perdedor: null }
+    },
+    lowerBracket: {
+      // Semifinal Inferior: os 2 perdedores das semis do upper
+      sf: { id: 'lb-sf', fase: 'Semifinal da Chave Inferior', label: 'Semifinal Inferior', timeA: null, timeB: null, golsA: null, golsB: null, vencedor: null, perdedor: null },
+      // Final Inferior: vencedor da LB Semi vs perdedor da UB Final
+      final: { id: 'lb-final', fase: 'Final da Chave Inferior', label: 'Final Inferior', timeA: null, timeB: null, golsA: null, golsB: null, vencedor: null, perdedor: null }
+    },
+    grandFinal: {
+      id: 'grand-final',
+      fase: 'Grande Final',
+      label: 'Grande Final',
+      timeUpper: null, // vem da chave superior (tem vantagem de potes)
+      timeLower: null, // vem da chave inferior
+      golsUpper: null,
+      golsLower: null,
+      vencedor: null,
+      vantagem: 'upper' // o time da chave superior escolhe do pote superior
+    }
+  }
+};
+
+// ------------------------------------------------------------------
+// Load / Save State
+// ------------------------------------------------------------------
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STATE_KEY);
+    if (!raw) return JSON.parse(JSON.stringify(DEFAULT_STATE));
+    return JSON.parse(raw);
+  } catch (e) {
+    console.error('Erro ao carregar estado:', e);
+    return JSON.parse(JSON.stringify(DEFAULT_STATE));
+  }
+}
+
+function saveState(state) {
+  try {
+    localStorage.setItem(STATE_KEY, JSON.stringify(state));
+    return true;
+  } catch (e) {
+    console.error('Erro ao salvar estado:', e);
+    return false;
+  }
+}
+
+function resetState() {
+  localStorage.removeItem(STATE_KEY);
+  localStorage.removeItem(AUDIT_LOG_KEY);
+  localStorage.removeItem(POTES_KEY);
+  return JSON.parse(JSON.stringify(DEFAULT_STATE));
+}
+
+// ------------------------------------------------------------------
+// Audit Log
+// ------------------------------------------------------------------
+
+/**
+ * Adds an entry to the audit log.
+ * @param {string} usuario - Name of the user making the change
+ * @param {string} acao - Short description of the action
+ * @param {object} [detalhes] - Optional extra details
+ */
+function addAuditLog(usuario, acao, detalhes) {
+  try {
+    const raw = localStorage.getItem(AUDIT_LOG_KEY);
+    const logs = raw ? JSON.parse(raw) : [];
+    logs.push({
+      id: 'log_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+      timestamp: new Date().toISOString(),
+      usuario: usuario || 'Anônimo',
+      acao,
+      detalhes: detalhes || null
+    });
+    // Keep up to 500 entries
+    if (logs.length > 500) logs.splice(0, logs.length - 500);
+    localStorage.setItem(AUDIT_LOG_KEY, JSON.stringify(logs));
+  } catch (e) {
+    console.error('Erro ao gravar log de auditoria:', e);
+  }
+}
+
+function loadAuditLog() {
+  try {
+    const raw = localStorage.getItem(AUDIT_LOG_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+// ------------------------------------------------------------------
+// Potes (team pools for Grand Final)
+// ------------------------------------------------------------------
+
+const DEFAULT_POTES = {
+  superior: [], // team ids in upper pool (Grand Final advantage)
+  inferior: []  // team ids in lower pool
+};
+
+function loadPotes() {
+  try {
+    const raw = localStorage.getItem(POTES_KEY);
+    return raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(DEFAULT_POTES));
+  } catch (e) {
+    return JSON.parse(JSON.stringify(DEFAULT_POTES));
+  }
+}
+
+function savePotes(potes) {
+  try {
+    localStorage.setItem(POTES_KEY, JSON.stringify(potes));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// ------------------------------------------------------------------
+// Teams
+// ------------------------------------------------------------------
+
+function addTime(state, { nome, abreviacao, cor }) {
+  const id = 'time_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+  const time = { id, nome, abreviacao: abreviacao.toUpperCase().slice(0, 4), cor };
+  state.times.push(time);
+  return time;
+}
+
+function removeTime(state, id) {
+  state.times = state.times.filter(t => t.id !== id);
+}
+
+function getTimeById(state, id) {
+  return state.times.find(t => t.id === id) || null;
+}
+
+// ------------------------------------------------------------------
+// Round-Robin Schedule Generation
+// ------------------------------------------------------------------
+
+/**
+ * Generates a round-robin schedule (single round) for all teams.
+ * Uses the standard "circle" algorithm to minimize byes.
+ */
+function gerarRodadasRoundRobin(times) {
+  if (times.length < 2) return [];
+
+  const n = times.length % 2 === 0 ? times.length : times.length + 1;
+  const numRodadas = n - 1;
+  const partidas = [];
+
+  // Create indexed list, add dummy if odd number of teams
+  const lista = [...times.map(t => t.id)];
+  if (times.length % 2 !== 0) lista.push('BYE');
+
+  const fixed = lista[0];
+  const rotating = lista.slice(1);
+
+  for (let rodada = 0; rodada < numRodadas; rodada++) {
+    const current = [fixed, ...rotating];
+
+    for (let i = 0; i < n / 2; i++) {
+      const home = current[i];
+      const away = current[n - 1 - i];
+
+      if (home !== 'BYE' && away !== 'BYE') {
+        partidas.push({
+          id: `rr_${rodada + 1}_${i}`,
+          rodada: rodada + 1,
+          timeA: home,
+          timeB: away,
+          golsA: null,
+          golsB: null,
+          status: 'pendente' // pendente | concluida
+        });
+      }
+    }
+
+    // Rotate: move last element to position 1 (after fixed)
+    rotating.unshift(rotating.pop());
+  }
+
+  return partidas;
+}
+
+function gerarFaseGrupos(state) {
+  if (state.times.length < 2) return false;
+  state.faseGrupos.partidas = gerarRodadasRoundRobin(state.times);
+  state.faseGrupos.status = 'andamento';
+  state.campeonato.status = 'grupos';
+  return true;
+}
+
+// ------------------------------------------------------------------
+// Standings Calculation
+// ------------------------------------------------------------------
+
+function calcularClassificacao(state) {
+  const times = state.times;
+  const partidas = state.faseGrupos.partidas.filter(p => p.status === 'concluida');
+
+  const tabela = times.map(t => ({
+    id: t.id,
+    nome: t.nome,
+    abreviacao: t.abreviacao,
+    cor: t.cor,
+    jogos: 0,
+    vitorias: 0,
+    empates: 0,
+    derrotas: 0,
+    golsMarcados: 0,
+    golsSofridos: 0,
+    saldoGols: 0,
+    pontos: 0,
+    forma: [] // last 5
+  }));
+
+  const idx = {};
+  tabela.forEach((t, i) => { idx[t.id] = i; });
+
+  partidas.forEach(p => {
+    const ia = idx[p.timeA];
+    const ib = idx[p.timeB];
+    if (ia === undefined || ib === undefined) return;
+
+    const a = tabela[ia];
+    const b = tabela[ib];
+
+    a.jogos++;
+    b.jogos++;
+    a.golsMarcados += p.golsA;
+    a.golsSofridos += p.golsB;
+    b.golsMarcados += p.golsB;
+    b.golsSofridos += p.golsA;
+
+    if (p.golsA > p.golsB) {
+      a.vitorias++;
+      a.pontos += state.config.pontosPorVitoria;
+      b.derrotas++;
+      b.pontos += state.config.pontosPorDerrota;
+      a.forma.push('V');
+      b.forma.push('D');
+    } else if (p.golsA < p.golsB) {
+      b.vitorias++;
+      b.pontos += state.config.pontosPorVitoria;
+      a.derrotas++;
+      a.pontos += state.config.pontosPorDerrota;
+      b.forma.push('V');
+      a.forma.push('D');
+    } else {
+      a.empates++;
+      b.empates++;
+      a.pontos += state.config.pontosPorEmpate;
+      b.pontos += state.config.pontosPorEmpate;
+      a.forma.push('E');
+      b.forma.push('E');
+    }
+  });
+
+  tabela.forEach(t => {
+    t.saldoGols = t.golsMarcados - t.golsSofridos;
+    t.forma = t.forma.slice(-5); // keep last 5
+  });
+
+  // Sort by criteria
+  tabela.sort((a, b) => {
+    if (b.pontos !== a.pontos) return b.pontos - a.pontos;
+    if (b.vitorias !== a.vitorias) return b.vitorias - a.vitorias;
+    if (b.saldoGols !== a.saldoGols) return b.saldoGols - a.saldoGols;
+    if (b.golsMarcados !== a.golsMarcados) return b.golsMarcados - a.golsMarcados;
+    return a.nome.localeCompare(b.nome);
+  });
+
+  return tabela;
+}
+
+// ------------------------------------------------------------------
+// Stats
+// ------------------------------------------------------------------
+
+function calcularEstatisticas(state) {
+  const partidas = state.faseGrupos.partidas.filter(p => p.status === 'concluida');
+  const totalPartidas = partidas.length;
+  const totalGols = partidas.reduce((s, p) => s + p.golsA + p.golsB, 0);
+  const mediaGols = totalPartidas > 0 ? (totalGols / totalPartidas).toFixed(2) : 0;
+  const maiorGoleada = partidas.reduce((best, p) => {
+    const diff = Math.abs(p.golsA - p.golsB);
+    return diff > best.diff ? { diff, partida: p } : best;
+  }, { diff: 0, partida: null });
+
+  // Top scorers per team (team total goals)
+  const tabela = calcularClassificacao(state);
+  const topGoleadores = [...tabela].sort((a, b) => b.golsMarcados - a.golsMarcados).slice(0, 5);
+  const menosVazados = [...tabela].sort((a, b) => a.golsSofridos - b.golsSofridos).slice(0, 5);
+
+  return { totalPartidas, totalGols, mediaGols, maiorGoleada, topGoleadores, menosVazados };
+}
+
+// ------------------------------------------------------------------
+// Playoffs Population
+// ------------------------------------------------------------------
+
+function popularPlayoffs(state) {
+  const tabela = calcularClassificacao(state);
+  if (tabela.length < 4) return false;
+
+  const [p1, p2, p3, p4] = tabela;
+
+  // Upper bracket: 1 vs 4, 2 vs 3
+  state.playoffs.upperBracket.sf1.timeA = p1.id;
+  state.playoffs.upperBracket.sf1.timeB = p4.id;
+  state.playoffs.upperBracket.sf2.timeA = p2.id;
+  state.playoffs.upperBracket.sf2.timeB = p3.id;
+
+  state.playoffs.status = 'andamento';
+  state.campeonato.status = 'playoffs';
+  return true;
+}
+
+// ------------------------------------------------------------------
+// Playoffs Result Registration
+// ------------------------------------------------------------------
+
+function registrarResultadoPlayoff(state, matchId, golsA, golsB) {
+  const ub = state.playoffs.upperBracket;
+  const lb = state.playoffs.lowerBracket;
+
+  const allMatches = [ub.sf1, ub.sf2, ub.final, lb.sf, lb.final];
+  const match = allMatches.find(m => m.id === matchId);
+
+  if (!match) return false;
+  if (golsA === golsB) return false; // no draws in playoffs
+
+  match.golsA = golsA;
+  match.golsB = golsB;
+  match.vencedor = golsA > golsB ? match.timeA : match.timeB;
+  match.perdedor = golsA > golsB ? match.timeB : match.timeA;
+
+  // Cascade results through bracket
+  _propagarResultadoPlayoff(state);
+  return true;
+}
+
+function _propagarResultadoPlayoff(state) {
+  const ub = state.playoffs.upperBracket;
+  const lb = state.playoffs.lowerBracket;
+  const gf = state.playoffs.grandFinal;
+
+  // After UB SF1 and SF2: populate UB Final and LB SF
+  if (ub.sf1.vencedor && ub.sf2.vencedor) {
+    ub.final.timeA = ub.sf1.vencedor;
+    ub.final.timeB = ub.sf2.vencedor;
+  }
+  if (ub.sf1.perdedor && ub.sf2.perdedor) {
+    // Intelligent matchup: avoid repeat — since both came from different UB SFs this is always a new matchup
+    lb.sf.timeA = ub.sf1.perdedor;
+    lb.sf.timeB = ub.sf2.perdedor;
+  }
+
+  // After LB SF: populate LB Final (winner of LB SF vs loser of UB Final)
+  if (lb.sf.vencedor && ub.final.perdedor) {
+    lb.final.timeA = lb.sf.vencedor;
+    lb.final.timeB = ub.final.perdedor;
+  }
+
+  // After UB Final: populate Grand Final (upper side)
+  if (ub.final.vencedor) {
+    gf.timeUpper = ub.final.vencedor;
+  }
+
+  // After LB Final: populate Grand Final (lower side)
+  if (lb.final.vencedor) {
+    gf.timeLower = lb.final.vencedor;
+  }
+
+  // Check if grand final is complete
+  if (gf.golsUpper !== null && gf.golsLower !== null) {
+    gf.vencedor = gf.golsUpper > gf.golsLower ? gf.timeUpper : gf.timeLower;
+    state.playoffs.status = 'concluido';
+    state.campeonato.status = 'encerrado';
+  }
+}
+
+function registrarResultadoGrandFinal(state, golsUpper, golsLower) {
+  const gf = state.playoffs.grandFinal;
+  if (!gf.timeUpper || !gf.timeLower) return false;
+  if (golsUpper === golsLower) return false; // no draw
+
+  gf.golsUpper = golsUpper;
+  gf.golsLower = golsLower;
+  gf.vencedor = golsUpper > golsLower ? gf.timeUpper : gf.timeLower;
+  state.playoffs.status = 'concluido';
+  state.campeonato.status = 'encerrado';
+  return true;
+}
+
+// ------------------------------------------------------------------
+// Export
+// ------------------------------------------------------------------
+
+window.AppState = {
+  DEFAULT_STATE,
+  load: loadState,
+  save: saveState,
+  reset: resetState,
+  addAuditLog,
+  loadAuditLog,
+  loadPotes,
+  savePotes,
+  addTime,
+  removeTime,
+  getTimeById,
+  gerarFaseGrupos,
+  calcularClassificacao,
+  calcularEstatisticas,
+  popularPlayoffs,
+  registrarResultadoPlayoff,
+  registrarResultadoGrandFinal
+};
