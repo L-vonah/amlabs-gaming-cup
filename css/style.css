@@ -1795,27 +1795,15 @@ body {
   flex-shrink: 0;
 }
 
-.hero-title-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 24px;
-  margin-bottom: 16px;
-}
-
 .hero-logo {
-  height: 90px;
+  height: 100px;
   width: auto;
-  flex-shrink: 0;
+  margin-bottom: 20px;
 }
 
 @media (max-width: 768px) {
-  .hero-title-row {
-    flex-direction: column;
-    gap: 12px;
-  }
   .hero-logo {
-    height: 64px;
+    height: 72px;
   }
 }
 
