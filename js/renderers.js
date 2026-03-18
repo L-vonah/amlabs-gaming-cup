@@ -930,6 +930,85 @@ function renderHistorico() {
 }
 
 // ------------------------------------------------------------------
+// INSCRICOES (Public Registration)
+// ------------------------------------------------------------------
+
+async function renderInscricoes() {
+  const state = AppState.load();
+  const container = document.getElementById('inscricoesContainer');
+  if (!container) return;
+
+  const registrations = await FirestoreService.loadRegistrations();
+  const pendentes = registrations.filter(r => r.status === 'pendente');
+  const aprovados = registrations.filter(r => r.status === 'aprovado');
+  const rejeitados = registrations.filter(r => r.status === 'rejeitado');
+  const isOpen = state.campeonato.status === 'configuracao';
+  const admin = typeof isAdmin === 'function' && isAdmin();
+
+  let html = '';
+
+  // Status banner
+  if (isOpen) {
+    html += '<div style="background:var(--color-win-bg);border:1px solid rgba(0,184,148,0.3);border-radius:var(--radius);padding:12px 16px;margin-bottom:24px;font-size:.875rem;color:var(--color-win);font-weight:600;display:flex;align-items:center;gap:8px"><span>&#9989;</span> Inscricoes abertas! Cadastre seu time abaixo.</div>';
+  } else {
+    html += '<div style="background:var(--color-loss-bg);border:1px solid rgba(232,67,147,0.3);border-radius:var(--radius);padding:12px 16px;margin-bottom:24px;font-size:.875rem;color:var(--color-loss);font-weight:600;display:flex;align-items:center;gap:8px"><span>&#128683;</span> Inscricoes encerradas. O campeonato ja comecou.</div>';
+  }
+
+  // Pending requests
+  if (pendentes.length > 0) {
+    html += '<div class="section-header"><h3 class="section-title"><span class="section-title-icon icon-bg-yellow">&#9203;</span> Aguardando Aprovacao (' + pendentes.length + ')</h3></div>';
+    html += '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px">';
+    html += pendentes.map(r => renderRegistrationCard(r, 'pendente', admin)).join('');
+    html += '</div>';
+  }
+
+  // Enrolled teams
+  if (state.times.length > 0) {
+    html += '<div class="section-header"><h3 class="section-title"><span class="section-title-icon icon-bg-green">&#9989;</span> Times Inscritos (' + state.times.length + ')</h3></div>';
+    html += '<div class="teams-grid mb-24">';
+    html += state.times.map(t => '<div class="team-card"><div style="display:flex;align-items:center;gap:12px">' + UI.renderAvatar(t, 36) + '<div><div class="team-card-name">' + t.nome + '</div><div class="team-card-abbr">' + t.abreviacao + '</div></div></div></div>').join('');
+    html += '</div>';
+  } else if (pendentes.length === 0) {
+    html += '<div class="empty-state"><div class="empty-icon">&#128101;</div><div class="empty-title">Nenhum time inscrito ainda</div><div class="empty-desc">Seja o primeiro a inscrever seu time!</div></div>';
+  }
+
+  // Rejected (admin only)
+  if (admin && rejeitados.length > 0) {
+    html += '<div class="section-header"><h3 class="section-title" style="font-size:.9rem;color:var(--color-text-dim)">Rejeitados (' + rejeitados.length + ')</h3></div>';
+    html += '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px">';
+    html += rejeitados.map(r => renderRegistrationCard(r, 'rejeitado', false)).join('');
+    html += '</div>';
+  }
+
+  container.innerHTML = html;
+
+  // Hide form when closed
+  const formCard = document.getElementById('inscricaoFormCard');
+  if (formCard) {
+    formCard.style.display = isOpen ? '' : 'none';
+  }
+}
+
+function renderRegistrationCard(r, status, showActions) {
+  const statusColors = {
+    pendente: { bg: 'var(--color-draw-bg)', color: '#b8860b', border: 'rgba(253,203,110,0.4)', label: 'Aguardando' },
+    aprovado: { bg: 'var(--color-win-bg)', color: 'var(--color-win)', border: 'rgba(0,184,148,0.3)', label: 'Aprovado' },
+    rejeitado: { bg: 'var(--color-loss-bg)', color: 'var(--color-loss)', border: 'rgba(232,67,147,0.3)', label: 'Rejeitado' }
+  };
+  const s = statusColors[status];
+  const avatar = { nome: r.nome, abreviacao: r.abreviacao, cor: r.cor };
+
+  return '<div style="background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius);padding:14px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">'
+    + UI.renderAvatar(avatar, 36)
+    + '<div style="flex:1;min-width:120px"><div style="font-weight:700;font-size:.9rem">' + r.nome + '</div><div style="font-size:.75rem;color:var(--color-text-dim)">' + r.abreviacao + ' &bull; ' + new Date(r.criadoEm).toLocaleDateString('pt-BR') + '</div></div>'
+    + '<span style="font-size:.7rem;font-weight:700;padding:3px 10px;border-radius:10px;background:' + s.bg + ';color:' + s.color + ';border:1px solid ' + s.border + '">' + s.label + '</span>'
+    + (showActions
+      ? '<div style="display:flex;gap:6px"><button class="btn btn-sm btn-success" onclick="approveRegistration(\'' + r.id + '\')">Aprovar</button><button class="btn btn-sm btn-secondary" onclick="rejectRegistration(\'' + r.id + '\')">Rejeitar</button></div>'
+      : '')
+    + '</div>';
+}
+
+// ------------------------------------------------------------------
 // Export
 // ------------------------------------------------------------------
 
@@ -942,7 +1021,8 @@ window.Renderers = {
   bracket: renderBracket,
   estatisticas: renderEstatisticas,
   regras: renderRegras,
-  historico: renderHistorico
+  historico: renderHistorico,
+  inscricoes: renderInscricoes
 };
 
 // Helpers used by actions
