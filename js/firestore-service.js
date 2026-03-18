@@ -66,6 +66,14 @@ const FirestoreService = {
     _firestoreListenerUnsubscribe = docRef.onSnapshot((doc) => {
       if (doc.exists) {
         _firestoreCache = doc.data();
+        // Sync to localStorage so AppState.load() returns fresh data for visitors
+        if (window.AppState && window.AppState.convertFirestoreToState) {
+          const legacyState = window.AppState.convertFirestoreToState(_firestoreCache);
+          if (legacyState) {
+            localStorage.setItem('campeonato_amlabs_v1', JSON.stringify(legacyState));
+            if (window.AppState.invalidateCache) window.AppState.invalidateCache();
+          }
+        }
       } else {
         _firestoreCache = null;
       }

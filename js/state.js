@@ -59,11 +59,23 @@ const DEFAULT_STATE = {
 // Load / Save State
 // ------------------------------------------------------------------
 
+// In-memory cache to avoid repeated JSON.parse on every render
+let _stateCache = null;
+
+function invalidateCache() {
+  _stateCache = null;
+}
+
 function loadState() {
   try {
+    if (_stateCache) return JSON.parse(JSON.stringify(_stateCache));
     const raw = localStorage.getItem(STATE_KEY);
-    if (!raw) return JSON.parse(JSON.stringify(DEFAULT_STATE));
-    return JSON.parse(raw);
+    if (!raw) {
+      _stateCache = JSON.parse(JSON.stringify(DEFAULT_STATE));
+      return JSON.parse(JSON.stringify(_stateCache));
+    }
+    _stateCache = JSON.parse(raw);
+    return JSON.parse(JSON.stringify(_stateCache));
   } catch (e) {
     console.error('Erro ao carregar estado:', e);
     return JSON.parse(JSON.stringify(DEFAULT_STATE));
@@ -72,6 +84,7 @@ function loadState() {
 
 function saveState(state) {
   try {
+    _stateCache = JSON.parse(JSON.stringify(state));
     localStorage.setItem(STATE_KEY, JSON.stringify(state));
 
     // Sync to Firestore if configured and admin
@@ -529,6 +542,7 @@ window.AppState = {
   registrarResultadoGrandFinal,
   convertStateToFirestore,
   convertFirestoreToState,
+  invalidateCache,
   isFirestoreMode() {
     return typeof FirestoreService !== 'undefined' && FirestoreService.isActive();
   }
