@@ -180,6 +180,11 @@
         <div class="card-body">
           <div style="display:flex;flex-direction:column;gap:16px">
             <div class="form-group">
+              <label class="form-label" for="inputInscParticipante">Quem vai jogar? (seu nome) *</label>
+              <input class="form-input" type="text" id="inputInscParticipante" placeholder="Seu nome ou apelido"
+                onkeydown="if(event.key==='Enter')submitPublicRegistration()">
+            </div>
+            <div class="form-group">
               <label class="form-label" for="inputInscNome">Nome do Time *</label>
               <input class="form-input" type="text" id="inputInscNome" placeholder="Ex: S&atilde;o Paulo FC"
                 onkeydown="if(event.key==='Enter')submitPublicRegistration()">
@@ -237,6 +242,11 @@
         </div>
         <div class="card-body">
           <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="form-group">
+              <label class="form-label" for="inputPartTimo">Participante *</label>
+              <input class="form-input" type="text" id="inputPartTimo" placeholder="Ex: Jo&atilde;o"
+                onkeydown="if(event.key==='Enter')submitAddTime()">
+            </div>
             <div class="form-group">
               <label class="form-label" for="inputNomeTimo">Nome do Time *</label>
               <input class="form-input" type="text" id="inputNomeTimo" placeholder="Ex: S&atilde;o Paulo FC"
@@ -627,6 +637,43 @@
         <span class="mobile-more-icon">&#128275;</span>
         <span>Sair</span>
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===============================================================
+     MODAL - EDIT TEAM
+     =============================================================== -->
+<div class="modal-overlay" id="modalEditTeam">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <span class="modal-title">Editar Time</span>
+      <button class="btn-icon" onclick="UI.closeModal('modalEditTeam')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editTeamId">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="form-group">
+          <label class="form-label">Participante *</label>
+          <input class="form-input" type="text" id="editTeamParticipante" placeholder="Nome do participante">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nome do Time *</label>
+          <input class="form-input" type="text" id="editTeamNome">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Abrevia&ccedil;&atilde;o</label>
+          <input class="form-input" type="text" id="editTeamAbrev" maxlength="4" style="text-transform:uppercase">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cor</label>
+          <input type="color" id="editTeamCor">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="UI.closeModal('modalEditTeam')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveEditTeam()">Salvar</button>
     </div>
   </div>
 </div>

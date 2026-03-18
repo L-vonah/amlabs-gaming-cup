@@ -65,9 +65,15 @@ function getAuditUser() {
 
 function submitAddTime() {
   if (typeof isAdmin === 'function' && !isAdmin()) { showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
+  const participante = UI.getFormValue('inputPartTimo');
   const nome = UI.getFormValue('inputNomeTimo');
   let abrev = UI.getFormValue('inputAbrevTimo');
   const cor = document.getElementById('inputCorTimo') ? document.getElementById('inputCorTimo').value : UI.getRandomColor();
+
+  if (!participante) {
+    UI.showToast('Informe o nome do participante.', 'error');
+    return;
+  }
 
   if (!nome) {
     UI.showToast('Informe o nome do time.', 'error');
@@ -75,27 +81,26 @@ function submitAddTime() {
   }
 
   if (!abrev) {
-    // Auto-generate abbreviation from first 3 consonants or first 3 letters
     abrev = nome.replace(/[aeiouAEIOU\s]/g, '').slice(0, 3).toUpperCase() || nome.slice(0, 3).toUpperCase();
   }
 
   const state = AppState.load();
 
   if (state.campeonato.status !== 'configuracao') {
-    UI.showToast('Não é possível adicionar times após o início do campeonato.', 'error');
+    UI.showToast('Nao e possivel adicionar times apos o inicio do campeonato.', 'error');
     return;
   }
 
   if (state.times.some(t => t.nome.toLowerCase() === nome.toLowerCase())) {
-    UI.showToast('Já existe um time com esse nome.', 'error');
+    UI.showToast('Ja existe um time com esse nome.', 'error');
     return;
   }
 
-  AppState.addTime(state, { nome, abreviacao: abrev, cor });
+  AppState.addTime(state, { nome, abreviacao: abrev, cor, participante });
   AppState.save(state);
-  AppState.addAuditLog(getAuditUser(), `Adicionou o time "${nome}"`, { abreviacao: abrev, cor });
+  AppState.addAuditLog(getAuditUser(), `Adicionou o time "${nome}" (${participante})`, { abreviacao: abrev, cor, participante });
 
-  UI.clearForm('inputNomeTimo', 'inputAbrevTimo');
+  UI.clearForm('inputPartTimo', 'inputNomeTimo', 'inputAbrevTimo');
   // Reset color to default primary
   const colorInput = document.getElementById('inputCorTimo');
   if (colorInput) colorInput.value = '#6c5ce7';
@@ -121,6 +126,56 @@ function deleteTime(id) {
   UI.showToast(`Time "${time.nome}" removido.`, 'info');
   Renderers.times();
 }
+
+// ------------------------------------------------------------------
+// Edit Team
+// ------------------------------------------------------------------
+
+function openEditTeamModal(id) {
+  if (typeof isAdmin === 'function' && !isAdmin()) { showToast('Apenas o admin pode editar.', 'error'); return; }
+  const state = AppState.load();
+  const time = AppState.getTimeById(state, id);
+  if (!time) return;
+
+  document.getElementById('editTeamId').value = id;
+  document.getElementById('editTeamParticipante').value = time.participante || '';
+  document.getElementById('editTeamNome').value = time.nome;
+  document.getElementById('editTeamAbrev').value = time.abreviacao;
+  document.getElementById('editTeamCor').value = time.cor || '#6c5ce7';
+  UI.openModal('modalEditTeam');
+}
+window.openEditTeamModal = openEditTeamModal;
+
+function saveEditTeam() {
+  if (typeof isAdmin === 'function' && !isAdmin()) return;
+  const id = document.getElementById('editTeamId').value;
+  const participante = document.getElementById('editTeamParticipante').value.trim();
+  const nome = document.getElementById('editTeamNome').value.trim();
+  const abrev = document.getElementById('editTeamAbrev').value.trim().toUpperCase().slice(0, 4);
+  const cor = document.getElementById('editTeamCor').value;
+
+  if (!participante || !nome) {
+    UI.showToast('Participante e nome do time sao obrigatorios.', 'error');
+    return;
+  }
+
+  const state = AppState.load();
+  const time = state.times.find(t => t.id === id);
+  if (!time) return;
+
+  const oldName = time.nome;
+  time.participante = participante;
+  time.nome = nome;
+  time.abreviacao = abrev || time.abreviacao;
+  time.cor = cor;
+
+  AppState.save(state);
+  AppState.addAuditLog(getAuditUser(), 'Editou time "' + oldName + '"', { novoNome: nome, participante });
+  UI.closeModal('modalEditTeam');
+  UI.showToast('Time atualizado!', 'success');
+  Renderers.times();
+}
+window.saveEditTeam = saveEditTeam;
 
 // ------------------------------------------------------------------
 // Phase Management
@@ -454,11 +509,17 @@ function exportData() {
 // ------------------------------------------------------------------
 
 async function submitPublicRegistration() {
+  const participante = UI.getFormValue('inputInscParticipante');
   const nome = UI.getFormValue('inputInscNome');
   let abrev = UI.getFormValue('inputInscAbrev');
   const cor = document.getElementById('inputInscCor')
     ? document.getElementById('inputInscCor').value
     : UI.getRandomColor();
+
+  if (!participante) {
+    UI.showToast('Informe seu nome para identificacao.', 'error');
+    return;
+  }
 
   if (!nome) {
     UI.showToast('Informe o nome do time.', 'error');
@@ -475,7 +536,6 @@ async function submitPublicRegistration() {
     return;
   }
 
-  // Check duplicates
   const registrations = await FirestoreService.loadRegistrations();
   const allNames = [
     ...state.times.map(t => t.nome.toLowerCase()),
@@ -487,14 +547,15 @@ async function submitPublicRegistration() {
   }
 
   await FirestoreService.submitRegistration({
+    participante,
     nome,
     abreviacao: abrev.toUpperCase().slice(0, 4),
     cor
   });
 
-  AppState.addAuditLog(getAuditUser(), 'Solicitou inscricao: ' + nome, { abreviacao: abrev, cor });
+  AppState.addAuditLog(getAuditUser(), 'Solicitou inscricao: ' + nome + ' (' + participante + ')', { abreviacao: abrev, participante });
 
-  UI.clearForm('inputInscNome', 'inputInscAbrev');
+  UI.clearForm('inputInscParticipante', 'inputInscNome', 'inputInscAbrev');
   const colorInput = document.getElementById('inputInscCor');
   if (colorInput) colorInput.value = '#6c5ce7';
 
@@ -513,7 +574,7 @@ async function approveRegistration(id) {
   if (!reg) return;
 
   const state = AppState.load();
-  AppState.addTime(state, { nome: reg.nome, abreviacao: reg.abreviacao, cor: reg.cor });
+  AppState.addTime(state, { nome: reg.nome, abreviacao: reg.abreviacao, cor: reg.cor, participante: reg.participante || '' });
   AppState.save(state);
 
   await FirestoreService.updateRegistration(id, {
