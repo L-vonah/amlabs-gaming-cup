@@ -275,6 +275,17 @@ function renderPartidas() {
   container.innerHTML = html;
 }
 
+let _currentRound = 1;
+
+function navigateRound(delta) {
+  const state = AppState.load();
+  const rounds = [...new Set(state.faseGrupos.partidas.map(p => p.rodada))].sort((a, b) => a - b);
+  const idx = rounds.indexOf(_currentRound) + delta;
+  if (idx < 0 || idx >= rounds.length) return;
+  _currentRound = rounds[idx];
+  renderPartidas();
+}
+
 function renderPartidasGrupos(state, admin) {
   const partidas = state.faseGrupos.partidas;
   const byRound = {};
@@ -283,8 +294,18 @@ function renderPartidasGrupos(state, admin) {
     byRound[p.rodada].push(p);
   });
 
+  const rounds = Object.keys(byRound).map(Number).sort((a, b) => a - b);
+  if (rounds.length === 0) return '';
+
+  if (!rounds.includes(_currentRound)) _currentRound = rounds[0];
+
   const doneCount = partidas.filter(p => p.status === 'concluida').length;
   const pendingCount = partidas.length - doneCount;
+  const curIdx = rounds.indexOf(_currentRound);
+  const isFirst = curIdx === 0;
+  const isLast = curIdx === rounds.length - 1;
+  const matches = byRound[_currentRound];
+  const roundDone = matches.filter(p => p.status === 'concluida').length;
 
   let html = `<div class="stats-counter-row">
     <span style="font-size:.8rem;color:var(--color-text-muted)">${doneCount} de ${partidas.length} partidas conclu&iacute;das</span>
@@ -293,14 +314,18 @@ function renderPartidasGrupos(state, admin) {
       : ''}
   </div>`;
 
-  Object.entries(byRound).forEach(([rodada, matches]) => {
-    html += `<div class="round-group">
-      <div class="round-header">Rodada ${rodada}</div>
-      <div class="matches-grid">
-        ${matches.map(p => renderMatchCardWithAction(p, state, admin)).join('')}
-      </div>
-    </div>`;
-  });
+  html += `<div class="round-pagination">
+    <button class="btn-round-nav" onclick="navigateRound(-1)" ${isFirst ? 'disabled' : ''} title="Rodada anterior">&#9664;</button>
+    <div class="round-pagination-info">
+      <span class="round-pagination-title">Rodada ${_currentRound}</span>
+      <span class="round-pagination-sub">${roundDone} de ${matches.length} conclu&iacute;das</span>
+    </div>
+    <button class="btn-round-nav" onclick="navigateRound(1)" ${isLast ? 'disabled' : ''} title="Pr&oacute;xima rodada">&#9654;</button>
+  </div>`;
+
+  html += `<div class="matches-grid">
+    ${matches.map(p => renderMatchCardWithAction(p, state, admin)).join('')}
+  </div>`;
 
   return html;
 }
