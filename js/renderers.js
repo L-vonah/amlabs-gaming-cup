@@ -107,9 +107,10 @@ function renderTimes() {
       ${UI.renderAvatar(t, 44, 'team-card-avatar')}
       <div class="team-card-info">
         <div class="team-card-name">${t.nome}</div>
-        <div class="team-card-abbr">${t.abreviacao}</div>
+        <div class="team-card-abbr">${t.abreviacao}${t.participante ? ' &bull; ' + t.participante : ''}</div>
       </div>
       <div class="team-card-actions admin-only">
+        <button class="btn-icon" onclick="openEditTeamModal('${t.id}')" title="Editar time">&#9998;</button>
         <button class="btn-icon" onclick="deleteTime('${t.id}')" title="Remover time">&#x2715;</button>
       </div>
     </div>`).join('');
@@ -376,6 +377,9 @@ function renderMatchCardWithAction(p, state, admin) {
   const concluded = p.status === 'concluida';
   const sc = concluded ? UI.scoreClass(p.golsA, p.golsB) : '';
 
+  const partA = tA && tA.participante ? `<span style="font-size:.65rem;color:var(--color-text-dim);font-weight:400">${tA.participante}</span>` : '';
+  const partB = tB && tB.participante ? `<span style="font-size:.65rem;color:var(--color-text-dim);font-weight:400">${tB.participante}</span>` : '';
+
   let actionBtn = '';
   if (admin) {
     actionBtn = `<button class="btn btn-sm ${concluded ? 'btn-secondary' : 'btn-success'} admin-only"
@@ -387,7 +391,7 @@ function renderMatchCardWithAction(p, state, admin) {
       <div class="match-round-badge">Rod. ${p.rodada}</div>
       <div class="match-teams">
         <div class="match-team home">
-          <span class="team-name-text">${nameA}</span>
+          <div style="text-align:right"><span class="team-name-text">${nameA}</span><br>${partA}</div>
           ${UI.renderAvatar(tA, 24)}
         </div>
         <div class="match-score ${sc}">
@@ -397,7 +401,7 @@ function renderMatchCardWithAction(p, state, admin) {
         </div>
         <div class="match-team away">
           ${UI.renderAvatar(tB, 24)}
-          <span class="team-name-text">${nameB}</span>
+          <div><span class="team-name-text">${nameB}</span><br>${partB}</div>
         </div>
       </div>
       ${actionBtn}
@@ -1097,7 +1101,7 @@ async function renderInscricoes() {
   if (state.times.length > 0) {
     html += '<div class="section-header"><h3 class="section-title"><span class="section-title-icon icon-bg-green">&#9989;</span> Times Inscritos (' + state.times.length + ')</h3></div>';
     html += '<div class="teams-grid mb-24">';
-    html += state.times.map(t => '<div class="team-card"><div style="display:flex;align-items:center;gap:12px">' + UI.renderAvatar(t, 36) + '<div><div class="team-card-name">' + t.nome + '</div><div class="team-card-abbr">' + t.abreviacao + '</div></div></div></div>').join('');
+    html += state.times.map(t => '<div class="team-card"><div style="display:flex;align-items:center;gap:12px">' + UI.renderAvatar(t, 36) + '<div><div class="team-card-name">' + t.nome + '</div><div class="team-card-abbr">' + t.abreviacao + (t.participante ? ' &bull; ' + t.participante : '') + '</div></div></div></div>').join('');
     html += '</div>';
   } else if (pendentes.length === 0) {
     html += '<div class="empty-state"><div class="empty-icon">&#128101;</div><div class="empty-title">Nenhum time inscrito ainda</div><div class="empty-desc">Seja o primeiro a inscrever seu time!</div></div>';
@@ -1131,7 +1135,7 @@ function renderRegistrationCard(r, status, showActions) {
 
   return '<div style="background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius);padding:14px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">'
     + UI.renderAvatar(avatar, 36)
-    + '<div style="flex:1;min-width:120px"><div style="font-weight:700;font-size:.9rem">' + r.nome + '</div><div style="font-size:.75rem;color:var(--color-text-dim)">' + r.abreviacao + ' &bull; ' + new Date(r.criadoEm).toLocaleDateString('pt-BR') + '</div></div>'
+    + '<div style="flex:1;min-width:120px"><div style="font-weight:700;font-size:.9rem">' + r.nome + '</div><div style="font-size:.75rem;color:var(--color-text-dim)">' + r.abreviacao + (r.participante ? ' &bull; ' + r.participante : '') + ' &bull; ' + new Date(r.criadoEm).toLocaleDateString('pt-BR') + '</div></div>'
     + '<span style="font-size:.7rem;font-weight:700;padding:3px 10px;border-radius:10px;background:' + s.bg + ';color:' + s.color + ';border:1px solid ' + s.border + '">' + s.label + '</span>'
     + (showActions
       ? '<div style="display:flex;gap:6px"><button class="btn btn-sm btn-success" onclick="approveRegistration(\'' + r.id + '\')">Aprovar</button><button class="btn btn-sm btn-secondary" onclick="rejectRegistration(\'' + r.id + '\')">Rejeitar</button></div>'

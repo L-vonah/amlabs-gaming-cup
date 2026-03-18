@@ -230,9 +230,9 @@ function savePotes(potes) {
 // Teams
 // ------------------------------------------------------------------
 
-function addTime(state, { nome, abreviacao, cor }) {
+function addTime(state, { nome, abreviacao, cor, participante }) {
   const id = 'time_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
-  const time = { id, nome, abreviacao: abreviacao.toUpperCase().slice(0, 4), cor };
+  const time = { id, nome, abreviacao: abreviacao.toUpperCase().slice(0, 4), cor, participante: participante || '' };
   state.times.push(time);
   return time;
 }
