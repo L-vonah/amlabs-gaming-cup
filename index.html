@@ -23,6 +23,7 @@
 
     <nav class="main-nav">
       <button class="nav-link active" data-nav="home" onclick="UI.navigateTo('home')">In&iacute;cio</button>
+      <button class="nav-link" data-nav="inscricoes" onclick="UI.navigateTo('inscricoes')">Inscri&ccedil;&otilde;es</button>
       <button class="nav-link" data-nav="times" onclick="UI.navigateTo('times')">Times</button>
       <button class="nav-link" data-nav="classificacao" onclick="UI.navigateTo('classificacao')">Classifica&ccedil;&atilde;o</button>
       <button class="nav-link" data-nav="partidas" onclick="UI.navigateTo('partidas')">Partidas</button>
@@ -151,6 +152,55 @@
           <input type="file" accept=".json" onchange="importData(event)" style="display:none">
         </label>
         <button class="btn btn-danger btn-sm" onclick="confirmReset()" style="margin-left:auto">Reset Campeonato</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------------
+       TIMES
+       --------------------------------------------------------------- -->
+  <!-- ---------------------------------------------------------------
+       INSCRICOES (Public Registration)
+       --------------------------------------------------------------- -->
+  <section id="section-inscricoes" class="page-section">
+    <div class="section-header">
+      <h2 class="section-title">
+        <span class="section-title-icon icon-bg-purple">&#128221;</span>
+        Inscri&ccedil;&otilde;es
+      </h2>
+    </div>
+
+    <div class="manage-layout">
+      <div id="inscricoesContainer"></div>
+
+      <div class="card" id="inscricaoFormCard" style="position:sticky;top:80px">
+        <div class="card-header">
+          <span class="card-title">Inscrever meu Time</span>
+        </div>
+        <div class="card-body">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="form-group">
+              <label class="form-label" for="inputInscNome">Nome do Time *</label>
+              <input class="form-input" type="text" id="inputInscNome" placeholder="Ex: Real Madras"
+                onkeydown="if(event.key==='Enter')submitPublicRegistration()">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inputInscAbrev">Abrevia&ccedil;&atilde;o (3-4 letras)</label>
+              <input class="form-input" type="text" id="inputInscAbrev" placeholder="Ex: RMA" maxlength="4"
+                style="text-transform:uppercase"
+                onkeydown="if(event.key==='Enter')submitPublicRegistration()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Cor do Time</label>
+              <div class="color-picker-wrapper">
+                <input type="color" id="inputInscCor" value="#6c5ce7">
+                <span style="font-size:.8rem;color:var(--color-text-muted)">Escolha a cor do escudo</span>
+              </div>
+            </div>
+            <button class="btn btn-primary w-full" onclick="submitPublicRegistration()">Enviar Inscri&ccedil;&atilde;o</button>
+            <p style="font-size:.75rem;color:var(--color-text-dim);text-align:center;margin-top:-4px">Sua inscri&ccedil;&atilde;o ser&aacute; analisada pelo administrador</p>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -643,7 +693,7 @@
   };
 
   // Valid section names including new historico
-  const VALID_SECTIONS = ['home', 'times', 'classificacao', 'partidas', 'registrar', 'bracket', 'estatisticas', 'regras', 'historico'];
+  const VALID_SECTIONS = ['home', 'inscricoes', 'times', 'classificacao', 'partidas', 'registrar', 'bracket', 'estatisticas', 'regras', 'historico'];
 
   // Hash-based navigation
   function initNavFromHash() {
