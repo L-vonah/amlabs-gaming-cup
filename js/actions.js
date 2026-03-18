@@ -230,8 +230,7 @@ function iniciarPlayoffs() {
 // ------------------------------------------------------------------
 
 /**
- * Saves a result directly from the inline calendar form.
- * Called by the inline buttons rendered in renderRegistrar().
+ * Saves a group stage result. Called by the score modal (submitScoreModal).
  * @param {string} partidaId
  */
 function saveInlineResult(partidaId) {
@@ -274,7 +273,6 @@ function saveInlineResult(partidaId) {
   UI.showToast(`Resultado salvo: ${scoreStr}`, 'success');
 
   // Re-render relevant sections
-  Renderers.registrar();
   Renderers.classificacao();
 
   // Check if all matches done — suggest starting playoffs
@@ -286,60 +284,6 @@ function saveInlineResult(partidaId) {
   }
 }
 
-/**
- * Legacy saveResult kept for backward compatibility if called from old markup.
- * Now delegates to the inline approach.
- */
-function saveResult() {
-  const partidaId = UI.getFormValue('selectPartida');
-  if (!partidaId) {
-    UI.showToast('Selecione uma partida.', 'error');
-    return;
-  }
-  const golsAEl = document.getElementById('inputGolsA');
-  const golsBEl = document.getElementById('inputGolsB');
-
-  if (!golsAEl || !golsBEl) return;
-
-  // Temporarily map to inline IDs for reuse
-  const golsA = parseInt(golsAEl.value);
-  const golsB = parseInt(golsBEl.value);
-
-  if (isNaN(golsA) || isNaN(golsB) || golsA < 0 || golsB < 0) {
-    UI.showToast('Informe placar válido (números não negativos).', 'error');
-    return;
-  }
-
-  const state = AppState.load();
-  const partida = state.faseGrupos.partidas.find(p => p.id === partidaId);
-  if (!partida) {
-    UI.showToast('Partida não encontrada.', 'error');
-    return;
-  }
-
-  const tA = AppState.getTimeById(state, partida.timeA);
-  const tB = AppState.getTimeById(state, partida.timeB);
-
-  partida.golsA = golsA;
-  partida.golsB = golsB;
-  partida.status = 'concluida';
-
-  AppState.save(state);
-
-  const scoreStr = `${tA ? tA.nome : '?'} ${golsA} x ${golsB} ${tB ? tB.nome : '?'}`;
-  AppState.addAuditLog(getAuditUser(), `Registrou resultado: ${scoreStr}`, { partidaId, golsA, golsB, rodada: partida.rodada });
-  UI.showToast(`Resultado salvo: ${scoreStr}`, 'success');
-
-  Renderers.registrar();
-  Renderers.classificacao();
-
-  const pending = state.faseGrupos.partidas.filter(p => p.status === 'pendente').length;
-  if (pending === 0 && state.times.length >= 4) {
-    setTimeout(() => {
-      UI.showToast('Todos os jogos concluídos! Você pode iniciar os Playoffs.', 'info', 5000);
-    }, 500);
-  }
-}
 
 // ------------------------------------------------------------------
 // Playoff Results
@@ -391,7 +335,6 @@ function savePlayoffResult(matchId) {
   const scoreStr = `${tA ? tA.nome : '?'} ${golsA} x ${golsB} ${tB ? tB.nome : '?'}`;
   AppState.addAuditLog(getAuditUser(), `Registrou resultado de playoff: ${scoreStr}`, { matchId, fase: faseLabel, golsA, golsB });
   UI.showToast('Resultado de playoff salvo!', 'success');
-  Renderers.registrar();
   Renderers.bracket();
 }
 
@@ -433,40 +376,12 @@ function saveGrandFinalResult() {
   AppState.addAuditLog(getAuditUser(), `Registrou resultado da Grande Final: ${scoreStr} — Campeão: ${winner ? winner.nome : '?'}`, { golsUpper, golsLower, campeao: winner ? winner.id : null });
   UI.showToast(`\u{1F3C6} ${winner ? winner.nome : '?'} \u00E9 CAMPE\u00C3O!`, 'success', 6000);
 
-  Renderers.registrar();
   Renderers.bracket();
   Renderers.home();
   UI.updateHeaderBadge('encerrado');
   UI.updateLifecycleBar('encerrado');
 }
 
-// ------------------------------------------------------------------
-// Potes (team pools for Grand Final advantage)
-// ------------------------------------------------------------------
-
-function savePotesConfig() {
-  if (typeof isAdmin === 'function' && !isAdmin()) { showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
-  const potes = AppState.loadPotes();
-  const state = AppState.load();
-
-  // Read checked checkboxes for each pool
-  const novosSuperior = [];
-  const novosInferior = [];
-
-  state.times.forEach(t => {
-    const radioSup = document.getElementById(`pote_sup_${t.id}`);
-    const radioInf = document.getElementById(`pote_inf_${t.id}`);
-    if (radioSup && radioSup.checked) novosSuperior.push(t.id);
-    else if (radioInf && radioInf.checked) novosInferior.push(t.id);
-  });
-
-  potes.superior = novosSuperior;
-  potes.inferior = novosInferior;
-  AppState.savePotes(potes);
-  AppState.addAuditLog(getAuditUser(), 'Potes de times configurados', { poteSuperior: novosSuperior.length, poteInferior: novosInferior.length });
-  UI.showToast('Potes configurados com sucesso!', 'success');
-  Renderers.regras();
-}
 
 // ------------------------------------------------------------------
 // Reset

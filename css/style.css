@@ -1479,7 +1479,6 @@ body {
    ============================================= */
 
 /* Hidden on desktop */
-.mobile-menu-toggle { display: none; }
 .mobile-bottom-bar { display: none; }
 .mobile-more-overlay { display: none; }
 
@@ -1494,7 +1493,6 @@ body {
   .logo-img { height: 24px; }
   .main-nav { display: none !important; /* hidden — replaced by bottom bar */ }
   .header-badge { display: none; }
-  .mobile-menu-toggle { display: none !important; }
 
   /* ----- Bottom Tab Bar ----- */
   .mobile-bottom-bar {

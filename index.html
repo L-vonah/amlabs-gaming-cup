@@ -21,7 +21,6 @@
       <span class="logo-text">FC Football <span>AMLabs</span> <span class="logo-year">2026</span></span>
     </a>
 
-    <button class="mobile-menu-toggle" id="mobileMenuToggle" onclick="toggleMobileMenu()">&#9776;</button>
     <nav class="main-nav" id="mainNav">
       <button class="nav-link active" data-nav="home" onclick="UI.navigateTo('home')">In&iacute;cio</button>
       <button class="nav-link inscricoes-only" data-nav="inscricoes" onclick="UI.navigateTo('inscricoes')">Inscri&ccedil;&otilde;es</button>
@@ -332,33 +331,6 @@
     </div>
 
     <div id="partidasContainer"></div>
-  </section>
-
-  <!-- ---------------------------------------------------------------
-       RESULTADOS
-       --------------------------------------------------------------- -->
-  <section id="section-registrar" class="page-section">
-    <div class="section-header">
-      <h2 class="section-title">
-        <span class="section-title-icon icon-bg-green">&#9999;</span>
-        Registrar Resultados
-      </h2>
-    </div>
-
-    <div class="tab-bar">
-      <button class="tab-btn active" id="tabGrupos" onclick="switchResultTab('grupos')">Fase de Grupos</button>
-      <button class="tab-btn" id="tabPlayoffs" onclick="switchResultTab('playoffs')">Playoffs</button>
-    </div>
-
-    <!-- Aba Grupos -->
-    <div id="resultTabGrupos">
-      <div id="gruposFormContainer"></div>
-    </div>
-
-    <!-- Aba Playoffs -->
-    <div id="resultTabPlayoffs" style="display:none">
-      <div id="playoffResultsContainer"></div>
-    </div>
   </section>
 
   <!-- ---------------------------------------------------------------
@@ -870,32 +842,6 @@
   }
   window.submitScoreModal = submitScoreModal;
 
-  function switchResultTab(tab) {
-    document.getElementById('resultTabGrupos').style.display = tab === 'grupos' ? 'block' : 'none';
-    document.getElementById('resultTabPlayoffs').style.display = tab === 'playoffs' ? 'block' : 'none';
-    document.getElementById('tabGrupos').classList.toggle('active', tab === 'grupos');
-    document.getElementById('tabPlayoffs').classList.toggle('active', tab === 'playoffs');
-
-    if (tab === 'playoffs') {
-      renderRegistrar();
-    }
-  }
-
-  // Override renderRegistrar to also update classificacao button visibility
-  const _origRenderRegistrar = Renderers.registrar;
-  Renderers.registrar = function() {
-    _origRenderRegistrar();
-
-    // Show/hide "start playoffs" button on classificacao page
-    const state = AppState.load();
-    const btnPlayoffs = document.getElementById('btnIniciarPlayoffs');
-    if (btnPlayoffs) {
-      const pending = state.faseGrupos.partidas.filter(p => p.status === 'pendente').length;
-      const tabela = AppState.calcularClassificacao(state);
-      btnPlayoffs.style.display = (pending === 0 && tabela.length >= 4 && state.campeonato.status === 'grupos') ? 'block' : 'none';
-    }
-  };
-
   // Also update home quick action buttons based on state
   function updateQuickActions() {
     const state = AppState.load();
@@ -916,7 +862,7 @@
   };
 
   // Valid section names including new historico
-  const VALID_SECTIONS = ['home', 'inscricoes', 'times', 'classificacao', 'partidas', 'registrar', 'bracket', 'estatisticas', 'regras', 'historico'];
+  const VALID_SECTIONS = ['home', 'inscricoes', 'times', 'classificacao', 'partidas', 'bracket', 'estatisticas', 'regras', 'historico'];
 
   // Hash-based navigation
   function initNavFromHash() {
@@ -983,6 +929,19 @@
   // Wrap renderers to update inscricoes visibility
   const _origHome2 = Renderers.home;
   Renderers.home = function() { _origHome2(); updateInscricoesVisibility(); };
+
+  // Update "Iniciar Playoffs" button visibility whenever classificacao is rendered
+  const _origRenderClassificacao = Renderers.classificacao;
+  Renderers.classificacao = function() {
+    _origRenderClassificacao();
+    const state = AppState.load();
+    const btnPlayoffs = document.getElementById('btnIniciarPlayoffs');
+    if (btnPlayoffs) {
+      const pending = state.faseGrupos.partidas.filter(p => p.status === 'pendente').length;
+      const tabela = AppState.calcularClassificacao(state);
+      btnPlayoffs.style.display = (pending === 0 && tabela.length >= 4 && state.campeonato.status === 'grupos') ? 'block' : 'none';
+    }
+  };
 
   // Boot
   document.addEventListener('DOMContentLoaded', () => {
