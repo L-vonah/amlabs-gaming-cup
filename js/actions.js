@@ -167,7 +167,7 @@ function saveEditTeam() {
   const id = document.getElementById('editTeamId').value;
   const participante = document.getElementById('editTeamParticipante').value.trim();
   const nome = document.getElementById('editTeamNome').value.trim();
-  const abrev = document.getElementById('editTeamAbrev').value.trim().toUpperCase().slice(0, 4);
+  const abrev = document.getElementById('editTeamAbrev').value.trim().toUpperCase().slice(0, 3);
   const cor = document.getElementById('editTeamCor').value;
 
   if (!participante || !nome) {
@@ -498,7 +498,7 @@ async function submitPublicRegistration() {
     await FirestoreService.submitRegistration({
       participante,
       nome,
-      abreviacao: abrev.toUpperCase().slice(0, 4),
+      abreviacao: abrev.toUpperCase().slice(0, 3),
       cor
     });
 
