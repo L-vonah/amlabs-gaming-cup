@@ -422,8 +422,7 @@ function executeReset() {
 function exportData() {
   const state = AppState.load();
   const auditLog = AppState.loadAuditLog();
-  const potes = AppState.loadPotes();
-  const json = JSON.stringify({ state, auditLog, potes }, null, 2);
+  const json = JSON.stringify({ state, auditLog }, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
