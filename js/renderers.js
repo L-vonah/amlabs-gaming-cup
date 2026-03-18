@@ -212,45 +212,175 @@ function renderClassificacao() {
 
 function renderPartidas() {
   const state = AppState.load();
-  const partidas = state.faseGrupos.partidas;
   const container = document.getElementById('partidasContainer');
   if (!container) return;
 
-  if (partidas.length === 0) {
+  const admin = typeof isAdmin === 'function' && isAdmin();
+  const hasGrupos = state.faseGrupos.partidas.length > 0;
+  const hasPlayoffs = state.campeonato.status === 'playoffs' || state.campeonato.status === 'encerrado';
+
+  if (!hasGrupos) {
     container.innerHTML = `
       <div class="empty-state">
         <div class="empty-icon">&#128197;</div>
         <div class="empty-title">Nenhuma partida gerada</div>
-        <div class="empty-desc">Cadastre os times e inicie a fase de grupos para gerar o calendário.</div>
+        <div class="empty-desc">Cadastre os times e inicie a fase de grupos para gerar o calend&aacute;rio.</div>
       </div>`;
     return;
   }
 
-  // Group by round
+  // Tabs if playoffs exist
+  let html = '';
+  if (hasPlayoffs) {
+    html += `<div class="tab-bar" style="margin-bottom:20px">
+      <button class="tab-btn active" id="tabPartGrupos" onclick="switchPartidaTab('grupos')">Fase de Grupos</button>
+      <button class="tab-btn" id="tabPartPlayoffs" onclick="switchPartidaTab('playoffs')">Playoffs</button>
+    </div>`;
+  }
+
+  // Grupos
+  html += '<div id="partidaTabGrupos">';
+  html += renderPartidasGrupos(state, admin);
+  html += '</div>';
+
+  // Playoffs
+  if (hasPlayoffs) {
+    html += '<div id="partidaTabPlayoffs" style="display:none">';
+    html += renderPartidasPlayoffs(state, admin);
+    html += '</div>';
+  }
+
+  container.innerHTML = html;
+}
+
+function renderPartidasGrupos(state, admin) {
+  const partidas = state.faseGrupos.partidas;
   const byRound = {};
   partidas.forEach(p => {
     if (!byRound[p.rodada]) byRound[p.rodada] = [];
     byRound[p.rodada].push(p);
   });
 
-  container.innerHTML = Object.entries(byRound).map(([rodada, matches]) => `
-    <div style="margin-bottom:24px">
+  const doneCount = partidas.filter(p => p.status === 'concluida').length;
+  const pendingCount = partidas.length - doneCount;
+
+  let html = `<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+    <span style="font-size:.8rem;color:var(--color-text-muted)">${doneCount} de ${partidas.length} partidas conclu&iacute;das</span>
+    ${pendingCount === 0
+      ? '<span style="font-size:.8rem;font-weight:700;color:var(--color-win);background:var(--color-win-bg);padding:3px 10px;border-radius:10px;border:1px solid rgba(0,184,148,0.3)">Fase de Grupos Conclu&iacute;da!</span>'
+      : ''}
+  </div>`;
+
+  Object.entries(byRound).forEach(([rodada, matches]) => {
+    html += `<div style="margin-bottom:24px">
       <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--color-text-dim);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--color-border)">
         Rodada ${rodada}
       </div>
       <div class="matches-grid">
-        ${matches.map(p => renderMatchCard(p, state)).join('')}
+        ${matches.map(p => renderMatchCardWithAction(p, state, admin)).join('')}
       </div>
-    </div>`).join('');
+    </div>`;
+  });
+
+  return html;
 }
 
-function renderMatchCard(p, state) {
+function renderPartidasPlayoffs(state, admin) {
+  const ub = state.playoffs.upperBracket;
+  const lb = state.playoffs.lowerBracket;
+  const gf = state.playoffs.grandFinal;
+
+  const allMatches = [
+    { ...ub.sf1, tipo: 'upper' },
+    { ...ub.sf2, tipo: 'upper' },
+    { ...ub.final, tipo: 'upper' },
+    { ...lb.sf, tipo: 'lower' },
+    { ...lb.final, tipo: 'lower' }
+  ].filter(m => m.timeA && m.timeB);
+
+  let html = '';
+
+  // Grand final
+  if (gf.timeUpper && gf.timeLower) {
+    const tU = AppState.getTimeById(state, gf.timeUpper);
+    const tL = AppState.getTimeById(state, gf.timeLower);
+    const concluded = gf.vencedor !== null;
+
+    html += `<div style="margin-bottom:24px">
+      <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--color-champion);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(249,168,37,0.3)">
+        &#127942; Grande Final
+      </div>
+      <div class="match-card" style="border-left:3px solid var(--color-champion)">
+        <div class="match-round-badge" style="color:var(--color-champion)">Final</div>
+        <div class="match-teams">
+          <div class="match-team home">
+            <span class="team-name-text">${tU ? tU.nome : '?'}</span>
+            ${UI.renderAvatar(tU, 24)}
+          </div>
+          <div class="match-score ${concluded ? UI.scoreClass(gf.golsUpper, gf.golsLower) : ''}">
+            <span class="score-val">${concluded ? gf.golsUpper : '-'}</span>
+            <span class="dash">:</span>
+            <span class="score-val">${concluded ? gf.golsLower : '-'}</span>
+          </div>
+          <div class="match-team away">
+            ${UI.renderAvatar(tL, 24)}
+            <span class="team-name-text">${tL ? tL.nome : '?'}</span>
+          </div>
+        </div>
+        ${admin && !concluded ? '<button class="btn btn-sm btn-success admin-only" onclick="openScoreModal(\'grand-final\',\'' + (tU?tU.nome:'?') + '\',\'' + (tL?tL.nome:'?') + '\',true)">Registrar</button>' : ''}
+        ${concluded ? '<span class="match-status-badge concluida">Conclu&iacute;da</span>' : '<span class="match-status-badge pendente">Pendente</span>'}
+      </div>
+    </div>`;
+  }
+
+  // Other playoff matches
+  if (allMatches.length > 0) {
+    html += allMatches.map(m => {
+      const tA = AppState.getTimeById(state, m.timeA);
+      const tB = AppState.getTimeById(state, m.timeB);
+      const concluded = m.vencedor !== null;
+      const colorVar = m.tipo === 'upper' ? 'var(--color-upper)' : 'var(--color-lower)';
+      const label = m.tipo === 'upper' ? 'CS' : 'CI';
+
+      return `<div class="match-card" style="border-left:3px solid ${colorVar};margin-bottom:8px">
+        <div class="match-round-badge" style="font-size:.6rem">${m.fase}</div>
+        <div class="match-teams">
+          <div class="match-team home">
+            <span class="team-name-text">${tA ? tA.nome : '?'}</span>
+            ${UI.renderAvatar(tA, 24)}
+          </div>
+          <div class="match-score ${concluded ? UI.scoreClass(m.golsA, m.golsB) : ''}">
+            <span class="score-val">${concluded ? m.golsA : '-'}</span>
+            <span class="dash">:</span>
+            <span class="score-val">${concluded ? m.golsB : '-'}</span>
+          </div>
+          <div class="match-team away">
+            ${UI.renderAvatar(tB, 24)}
+            <span class="team-name-text">${tB ? tB.nome : '?'}</span>
+          </div>
+        </div>
+        ${admin && !concluded ? '<button class="btn btn-sm btn-success admin-only" onclick="openScoreModal(\'' + m.id + '\',\'' + (tA?tA.nome:'?') + '\',\'' + (tB?tB.nome:'?') + '\',false)">Registrar</button>' : ''}
+        ${concluded ? '<span class="match-status-badge concluida">Conclu&iacute;da</span>' : (m.timeA && m.timeB ? '<span class="match-status-badge pendente">Pendente</span>' : '')}
+      </div>`;
+    }).join('');
+  }
+
+  return html || '<div class="empty-state"><div class="empty-icon">&#9203;</div><div class="empty-title">Aguardando propaga&ccedil;&atilde;o</div></div>';
+}
+
+function renderMatchCardWithAction(p, state, admin) {
   const tA = AppState.getTimeById(state, p.timeA);
   const tB = AppState.getTimeById(state, p.timeB);
   const nameA = tA ? tA.nome : 'Time A';
   const nameB = tB ? tB.nome : 'Time B';
   const concluded = p.status === 'concluida';
   const sc = concluded ? UI.scoreClass(p.golsA, p.golsB) : '';
+
+  let actionBtn = '';
+  if (admin) {
+    actionBtn = `<button class="btn btn-sm ${concluded ? 'btn-secondary' : 'btn-success'} admin-only"
+      onclick="openScoreModal('${p.id}','${nameA.replace(/'/g,"\\'")}','${nameB.replace(/'/g,"\\'")}',false)">${concluded ? 'Editar' : 'Registrar'}</button>`;
+  }
 
   return `
     <div class="match-card">
@@ -270,7 +400,8 @@ function renderMatchCard(p, state) {
           <span class="team-name-text">${nameB}</span>
         </div>
       </div>
-      <span class="match-status-badge ${p.status}">${concluded ? 'Conclul&#237;da' : 'Pendente'}</span>
+      ${actionBtn}
+      <span class="match-status-badge ${p.status}">${concluded ? 'Conclu&iacute;da' : 'Pendente'}</span>
     </div>`;
 }
 
