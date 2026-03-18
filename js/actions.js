@@ -60,6 +60,22 @@ function getAuditUser() {
 }
 
 // ------------------------------------------------------------------
+// Loading state helper
+// ------------------------------------------------------------------
+
+function setLoading(btn, loading) {
+  if (!btn) return;
+  if (loading) {
+    btn.classList.add('btn-loading');
+    btn.disabled = true;
+    btn._origText = btn.textContent;
+  } else {
+    btn.classList.remove('btn-loading');
+    btn.disabled = false;
+  }
+}
+
+// ------------------------------------------------------------------
 // Teams
 // ------------------------------------------------------------------
 
@@ -465,31 +481,38 @@ async function submitPublicRegistration() {
     return;
   }
 
-  const registrations = await FirestoreService.loadRegistrations();
-  const allNames = [
-    ...state.times.map(t => t.nome.toLowerCase()),
-    ...registrations.filter(r => r.status === 'pendente').map(r => r.nome.toLowerCase())
-  ];
-  if (allNames.includes(nome.toLowerCase())) {
-    UI.showToast('Ja existe um time ou solicitacao com esse nome.', 'error');
-    return;
+  const submitBtn = document.querySelector('#inscricaoFormCard .btn-primary');
+  setLoading(submitBtn, true);
+
+  try {
+    const registrations = await FirestoreService.loadRegistrations();
+    const allNames = [
+      ...state.times.map(t => t.nome.toLowerCase()),
+      ...registrations.filter(r => r.status === 'pendente').map(r => r.nome.toLowerCase())
+    ];
+    if (allNames.includes(nome.toLowerCase())) {
+      UI.showToast('Ja existe um time ou solicitacao com esse nome.', 'error');
+      return;
+    }
+
+    await FirestoreService.submitRegistration({
+      participante,
+      nome,
+      abreviacao: abrev.toUpperCase().slice(0, 4),
+      cor
+    });
+
+    AppState.addAuditLog(getAuditUser(), 'Solicitou inscricao: ' + nome + ' (' + participante + ')', { abreviacao: abrev, participante });
+
+    UI.clearForm('inputInscParticipante', 'inputInscNome', 'inputInscAbrev');
+    const colorInput = document.getElementById('inputInscCor');
+    if (colorInput) colorInput.value = '#6c5ce7';
+
+    UI.showToast('Solicitacao enviada! Aguarde aprovacao do administrador.', 'success');
+    Renderers.inscricoes();
+  } finally {
+    setLoading(submitBtn, false);
   }
-
-  await FirestoreService.submitRegistration({
-    participante,
-    nome,
-    abreviacao: abrev.toUpperCase().slice(0, 4),
-    cor
-  });
-
-  AppState.addAuditLog(getAuditUser(), 'Solicitou inscricao: ' + nome + ' (' + participante + ')', { abreviacao: abrev, participante });
-
-  UI.clearForm('inputInscParticipante', 'inputInscNome', 'inputInscAbrev');
-  const colorInput = document.getElementById('inputInscCor');
-  if (colorInput) colorInput.value = '#6c5ce7';
-
-  UI.showToast('Solicitacao enviada! Aguarde aprovacao do administrador.', 'success');
-  Renderers.inscricoes();
 }
 
 async function approveRegistration(id) {
@@ -498,28 +521,35 @@ async function approveRegistration(id) {
     return;
   }
 
-  const registrations = await FirestoreService.loadRegistrations();
-  const reg = registrations.find(r => r.id === id);
-  if (!reg) return;
+  const actionBtns = document.querySelectorAll('.btn-approve, .btn-reject');
+  actionBtns.forEach(b => setLoading(b, true));
 
-  const state = AppState.load();
-  AppState.addTime(state, { nome: reg.nome, abreviacao: reg.abreviacao, cor: reg.cor, participante: reg.participante || '' });
-  AppState.save(state);
+  try {
+    const registrations = await FirestoreService.loadRegistrations();
+    const reg = registrations.find(r => r.id === id);
+    if (!reg) return;
 
-  await FirestoreService.updateRegistration(id, {
-    status: 'aprovado',
-    resolvidoEm: new Date().toISOString(),
-    resolvidoPor: currentUser ? currentUser.email : 'admin'
-  });
+    const state = AppState.load();
+    AppState.addTime(state, { nome: reg.nome, abreviacao: reg.abreviacao, cor: reg.cor, participante: reg.participante || '' });
+    AppState.save(state);
 
-  AppState.addAuditLog(
-    currentUser ? currentUser.email : getDeviceId(),
-    'Aprovou inscricao: ' + reg.nome
-  );
+    await FirestoreService.updateRegistration(id, {
+      status: 'aprovado',
+      resolvidoEm: new Date().toISOString(),
+      resolvidoPor: currentUser ? currentUser.email : 'admin'
+    });
 
-  UI.showToast('Time "' + reg.nome + '" aprovado e adicionado!', 'success');
-  Renderers.inscricoes();
-  Renderers.times();
+    AppState.addAuditLog(
+      currentUser ? currentUser.email : getDeviceId(),
+      'Aprovou inscricao: ' + reg.nome
+    );
+
+    UI.showToast('Time "' + reg.nome + '" aprovado e adicionado!', 'success');
+    Renderers.inscricoes();
+    Renderers.times();
+  } finally {
+    actionBtns.forEach(b => setLoading(b, false));
+  }
 }
 
 async function rejectRegistration(id) {
@@ -528,23 +558,30 @@ async function rejectRegistration(id) {
     return;
   }
 
-  const registrations = await FirestoreService.loadRegistrations();
-  const reg = registrations.find(r => r.id === id);
-  if (!reg) return;
+  const actionBtns = document.querySelectorAll('.btn-approve, .btn-reject');
+  actionBtns.forEach(b => setLoading(b, true));
 
-  await FirestoreService.updateRegistration(id, {
-    status: 'rejeitado',
-    resolvidoEm: new Date().toISOString(),
-    resolvidoPor: currentUser ? currentUser.email : 'admin'
-  });
+  try {
+    const registrations = await FirestoreService.loadRegistrations();
+    const reg = registrations.find(r => r.id === id);
+    if (!reg) return;
 
-  AppState.addAuditLog(
-    currentUser ? currentUser.email : getDeviceId(),
-    'Rejeitou inscricao: ' + reg.nome
-  );
+    await FirestoreService.updateRegistration(id, {
+      status: 'rejeitado',
+      resolvidoEm: new Date().toISOString(),
+      resolvidoPor: currentUser ? currentUser.email : 'admin'
+    });
 
-  UI.showToast('Inscricao de "' + reg.nome + '" rejeitada.', 'info');
-  Renderers.inscricoes();
+    AppState.addAuditLog(
+      currentUser ? currentUser.email : getDeviceId(),
+      'Rejeitou inscricao: ' + reg.nome
+    );
+
+    UI.showToast('Inscricao de "' + reg.nome + '" rejeitada.', 'info');
+    Renderers.inscricoes();
+  } finally {
+    actionBtns.forEach(b => setLoading(b, false));
+  }
 }
 
 // ------------------------------------------------------------------
