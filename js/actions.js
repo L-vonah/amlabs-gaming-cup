@@ -49,6 +49,16 @@ function getDeviceId() {
   return _cachedFingerprint;
 }
 
+/**
+ * Returns the best identifier for audit log: admin email if logged in, device fingerprint otherwise.
+ */
+function getAuditUser() {
+  if (typeof currentUser !== 'undefined' && currentUser && currentUser.email) {
+    return currentUser.email;
+  }
+  return getDeviceId();
+}
+
 // ------------------------------------------------------------------
 // Teams
 // ------------------------------------------------------------------
@@ -81,11 +91,9 @@ function submitAddTime() {
     return;
   }
 
-  const deviceId = getDeviceId();
-
   AppState.addTime(state, { nome, abreviacao: abrev, cor });
   AppState.save(state);
-  AppState.addAuditLog(deviceId, `Adicionou o time "${nome}"`, { abreviacao: abrev, cor });
+  AppState.addAuditLog(getAuditUser(), `Adicionou o time "${nome}"`, { abreviacao: abrev, cor });
 
   UI.clearForm('inputNomeTimo', 'inputAbrevTimo');
   // Reset color to default primary
@@ -109,7 +117,7 @@ function deleteTime(id) {
 
   AppState.removeTime(state, id);
   AppState.save(state);
-  AppState.addAuditLog(getDeviceId(), `Removeu o time "${time.nome}"`);
+  AppState.addAuditLog(getAuditUser(), `Removeu o time "${time.nome}"`);
   UI.showToast(`Time "${time.nome}" removido.`, 'info');
   Renderers.times();
 }
@@ -134,7 +142,7 @@ function gerarFaseGrupos() {
   }
 
   AppState.save(state);
-  AppState.addAuditLog(getDeviceId(), 'Fase de grupos gerada', { totalPartidas: state.faseGrupos.partidas.length, totalTimes: state.times.length });
+  AppState.addAuditLog(getAuditUser(), 'Fase de grupos gerada', { totalPartidas: state.faseGrupos.partidas.length, totalTimes: state.times.length });
   UI.showToast(`Fase de grupos gerada! ${state.faseGrupos.partidas.length} partidas criadas.`, 'success');
 
   // Navigate to classification
@@ -157,7 +165,7 @@ function iniciarPlayoffs() {
   }
 
   AppState.save(state);
-  AppState.addAuditLog(getDeviceId(), 'Playoffs iniciados com os 4 classificados');
+  AppState.addAuditLog(getAuditUser(), 'Playoffs iniciados com os 4 classificados');
   UI.showToast('Playoffs iniciados! Chaveamento gerado com os 4 classificados.', 'success');
   UI.navigateTo('bracket');
 }
@@ -207,7 +215,7 @@ function saveInlineResult(partidaId) {
   AppState.save(state);
 
   const scoreStr = `${tA ? tA.nome : '?'} ${golsA} x ${golsB} ${tB ? tB.nome : '?'}`;
-  AppState.addAuditLog(getDeviceId(), `Registrou resultado: ${scoreStr}`, { partidaId, golsA, golsB, rodada: partida.rodada });
+  AppState.addAuditLog(getAuditUser(), `Registrou resultado: ${scoreStr}`, { partidaId, golsA, golsB, rodada: partida.rodada });
   UI.showToast(`Resultado salvo: ${scoreStr}`, 'success');
 
   // Re-render relevant sections
@@ -264,7 +272,7 @@ function saveResult() {
   AppState.save(state);
 
   const scoreStr = `${tA ? tA.nome : '?'} ${golsA} x ${golsB} ${tB ? tB.nome : '?'}`;
-  AppState.addAuditLog(getDeviceId(), `Registrou resultado: ${scoreStr}`, { partidaId, golsA, golsB, rodada: partida.rodada });
+  AppState.addAuditLog(getAuditUser(), `Registrou resultado: ${scoreStr}`, { partidaId, golsA, golsB, rodada: partida.rodada });
   UI.showToast(`Resultado salvo: ${scoreStr}`, 'success');
 
   Renderers.registrar();
@@ -326,7 +334,7 @@ function savePlayoffResult(matchId) {
 
   const faseLabel = match ? match.fase : matchId;
   const scoreStr = `${tA ? tA.nome : '?'} ${golsA} x ${golsB} ${tB ? tB.nome : '?'}`;
-  AppState.addAuditLog(getDeviceId(), `Registrou resultado de playoff: ${scoreStr}`, { matchId, fase: faseLabel, golsA, golsB });
+  AppState.addAuditLog(getAuditUser(), `Registrou resultado de playoff: ${scoreStr}`, { matchId, fase: faseLabel, golsA, golsB });
   UI.showToast('Resultado de playoff salvo!', 'success');
   Renderers.registrar();
   Renderers.bracket();
@@ -367,7 +375,7 @@ function saveGrandFinalResult() {
 
   const winner = AppState.getTimeById(state, state.playoffs.grandFinal.vencedor);
   const scoreStr = `${tU ? tU.nome : '?'} ${golsUpper} x ${golsLower} ${tL ? tL.nome : '?'}`;
-  AppState.addAuditLog(getDeviceId(), `Registrou resultado da Grande Final: ${scoreStr} — Campeão: ${winner ? winner.nome : '?'}`, { golsUpper, golsLower, campeao: winner ? winner.id : null });
+  AppState.addAuditLog(getAuditUser(), `Registrou resultado da Grande Final: ${scoreStr} — Campeão: ${winner ? winner.nome : '?'}`, { golsUpper, golsLower, campeao: winner ? winner.id : null });
   UI.showToast(`\u{1F3C6} ${winner ? winner.nome : '?'} \u00E9 CAMPE\u00C3O!`, 'success', 6000);
 
   Renderers.registrar();
@@ -400,7 +408,7 @@ function savePotesConfig() {
   potes.superior = novosSuperior;
   potes.inferior = novosInferior;
   AppState.savePotes(potes);
-  AppState.addAuditLog(getDeviceId(), 'Potes de times configurados', { poteSuperior: novosSuperior.length, poteInferior: novosInferior.length });
+  AppState.addAuditLog(getAuditUser(), 'Potes de times configurados', { poteSuperior: novosSuperior.length, poteInferior: novosInferior.length });
   UI.showToast('Potes configurados com sucesso!', 'success');
   Renderers.regras();
 }
@@ -484,7 +492,7 @@ async function submitPublicRegistration() {
     cor
   });
 
-  AppState.addAuditLog(getDeviceId(), 'Solicitou inscricao: ' + nome, { abreviacao: abrev, cor });
+  AppState.addAuditLog(getAuditUser(), 'Solicitou inscricao: ' + nome, { abreviacao: abrev, cor });
 
   UI.clearForm('inputInscNome', 'inputInscAbrev');
   const colorInput = document.getElementById('inputInscCor');
