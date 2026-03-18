@@ -1795,11 +1795,28 @@ body {
   flex-shrink: 0;
 }
 
+.hero-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 16px;
+}
+
 .hero-logo {
-  height: 72px;
+  height: 90px;
   width: auto;
-  margin-bottom: 20px;
-  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .hero-title-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .hero-logo {
+    height: 64px;
+  }
 }
 
 /* =============================================
