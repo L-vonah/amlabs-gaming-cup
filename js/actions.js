@@ -60,6 +60,22 @@ function getAuditUser() {
 }
 
 // ------------------------------------------------------------------
+// Loading state helper
+// ------------------------------------------------------------------
+
+function setLoading(btn, loading) {
+  if (!btn) return;
+  if (loading) {
+    btn.classList.add('btn-loading');
+    btn.disabled = true;
+    btn._origText = btn.textContent;
+  } else {
+    btn.classList.remove('btn-loading');
+    btn.disabled = false;
+  }
+}
+
+// ------------------------------------------------------------------
 // Teams
 // ------------------------------------------------------------------
 
@@ -230,8 +246,7 @@ function iniciarPlayoffs() {
 // ------------------------------------------------------------------
 
 /**
- * Saves a result directly from the inline calendar form.
- * Called by the inline buttons rendered in renderRegistrar().
+ * Saves a group stage result. Called by the score modal (submitScoreModal).
  * @param {string} partidaId
  */
 function saveInlineResult(partidaId) {
@@ -249,6 +264,11 @@ function saveInlineResult(partidaId) {
 
   if (isNaN(golsA) || isNaN(golsB) || golsA < 0 || golsB < 0) {
     UI.showToast('Informe placar válido (números não negativos).', 'error');
+    return;
+  }
+
+  if (golsA > 99 || golsB > 99) {
+    UI.showToast('Placar maximo permitido: 99.', 'error');
     return;
   }
 
@@ -274,7 +294,6 @@ function saveInlineResult(partidaId) {
   UI.showToast(`Resultado salvo: ${scoreStr}`, 'success');
 
   // Re-render relevant sections
-  Renderers.registrar();
   Renderers.classificacao();
 
   // Check if all matches done — suggest starting playoffs
@@ -286,60 +305,6 @@ function saveInlineResult(partidaId) {
   }
 }
 
-/**
- * Legacy saveResult kept for backward compatibility if called from old markup.
- * Now delegates to the inline approach.
- */
-function saveResult() {
-  const partidaId = UI.getFormValue('selectPartida');
-  if (!partidaId) {
-    UI.showToast('Selecione uma partida.', 'error');
-    return;
-  }
-  const golsAEl = document.getElementById('inputGolsA');
-  const golsBEl = document.getElementById('inputGolsB');
-
-  if (!golsAEl || !golsBEl) return;
-
-  // Temporarily map to inline IDs for reuse
-  const golsA = parseInt(golsAEl.value);
-  const golsB = parseInt(golsBEl.value);
-
-  if (isNaN(golsA) || isNaN(golsB) || golsA < 0 || golsB < 0) {
-    UI.showToast('Informe placar válido (números não negativos).', 'error');
-    return;
-  }
-
-  const state = AppState.load();
-  const partida = state.faseGrupos.partidas.find(p => p.id === partidaId);
-  if (!partida) {
-    UI.showToast('Partida não encontrada.', 'error');
-    return;
-  }
-
-  const tA = AppState.getTimeById(state, partida.timeA);
-  const tB = AppState.getTimeById(state, partida.timeB);
-
-  partida.golsA = golsA;
-  partida.golsB = golsB;
-  partida.status = 'concluida';
-
-  AppState.save(state);
-
-  const scoreStr = `${tA ? tA.nome : '?'} ${golsA} x ${golsB} ${tB ? tB.nome : '?'}`;
-  AppState.addAuditLog(getAuditUser(), `Registrou resultado: ${scoreStr}`, { partidaId, golsA, golsB, rodada: partida.rodada });
-  UI.showToast(`Resultado salvo: ${scoreStr}`, 'success');
-
-  Renderers.registrar();
-  Renderers.classificacao();
-
-  const pending = state.faseGrupos.partidas.filter(p => p.status === 'pendente').length;
-  if (pending === 0 && state.times.length >= 4) {
-    setTimeout(() => {
-      UI.showToast('Todos os jogos concluídos! Você pode iniciar os Playoffs.', 'info', 5000);
-    }, 500);
-  }
-}
 
 // ------------------------------------------------------------------
 // Playoff Results
@@ -360,6 +325,11 @@ function savePlayoffResult(matchId) {
 
   if (isNaN(golsA) || isNaN(golsB) || golsA < 0 || golsB < 0) {
     UI.showToast('Informe placar válido.', 'error');
+    return;
+  }
+
+  if (golsA > 99 || golsB > 99) {
+    UI.showToast('Placar maximo permitido: 99.', 'error');
     return;
   }
 
@@ -391,7 +361,6 @@ function savePlayoffResult(matchId) {
   const scoreStr = `${tA ? tA.nome : '?'} ${golsA} x ${golsB} ${tB ? tB.nome : '?'}`;
   AppState.addAuditLog(getAuditUser(), `Registrou resultado de playoff: ${scoreStr}`, { matchId, fase: faseLabel, golsA, golsB });
   UI.showToast('Resultado de playoff salvo!', 'success');
-  Renderers.registrar();
   Renderers.bracket();
 }
 
@@ -407,6 +376,11 @@ function saveGrandFinalResult() {
 
   if (isNaN(golsUpper) || isNaN(golsLower) || golsUpper < 0 || golsLower < 0) {
     UI.showToast('Informe placar válido.', 'error');
+    return;
+  }
+
+  if (golsUpper > 99 || golsLower > 99) {
+    UI.showToast('Placar maximo permitido: 99.', 'error');
     return;
   }
 
@@ -433,40 +407,12 @@ function saveGrandFinalResult() {
   AppState.addAuditLog(getAuditUser(), `Registrou resultado da Grande Final: ${scoreStr} — Campeão: ${winner ? winner.nome : '?'}`, { golsUpper, golsLower, campeao: winner ? winner.id : null });
   UI.showToast(`\u{1F3C6} ${winner ? winner.nome : '?'} \u00E9 CAMPE\u00C3O!`, 'success', 6000);
 
-  Renderers.registrar();
   Renderers.bracket();
   Renderers.home();
   UI.updateHeaderBadge('encerrado');
   UI.updateLifecycleBar('encerrado');
 }
 
-// ------------------------------------------------------------------
-// Potes (team pools for Grand Final advantage)
-// ------------------------------------------------------------------
-
-function savePotesConfig() {
-  if (typeof isAdmin === 'function' && !isAdmin()) { showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
-  const potes = AppState.loadPotes();
-  const state = AppState.load();
-
-  // Read checked checkboxes for each pool
-  const novosSuperior = [];
-  const novosInferior = [];
-
-  state.times.forEach(t => {
-    const radioSup = document.getElementById(`pote_sup_${t.id}`);
-    const radioInf = document.getElementById(`pote_inf_${t.id}`);
-    if (radioSup && radioSup.checked) novosSuperior.push(t.id);
-    else if (radioInf && radioInf.checked) novosInferior.push(t.id);
-  });
-
-  potes.superior = novosSuperior;
-  potes.inferior = novosInferior;
-  AppState.savePotes(potes);
-  AppState.addAuditLog(getAuditUser(), 'Potes de times configurados', { poteSuperior: novosSuperior.length, poteInferior: novosInferior.length });
-  UI.showToast('Potes configurados com sucesso!', 'success');
-  Renderers.regras();
-}
 
 // ------------------------------------------------------------------
 // Reset
@@ -492,8 +438,7 @@ function executeReset() {
 function exportData() {
   const state = AppState.load();
   const auditLog = AppState.loadAuditLog();
-  const potes = AppState.loadPotes();
-  const json = JSON.stringify({ state, auditLog, potes }, null, 2);
+  const json = JSON.stringify({ state, auditLog }, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -536,31 +481,38 @@ async function submitPublicRegistration() {
     return;
   }
 
-  const registrations = await FirestoreService.loadRegistrations();
-  const allNames = [
-    ...state.times.map(t => t.nome.toLowerCase()),
-    ...registrations.filter(r => r.status === 'pendente').map(r => r.nome.toLowerCase())
-  ];
-  if (allNames.includes(nome.toLowerCase())) {
-    UI.showToast('Ja existe um time ou solicitacao com esse nome.', 'error');
-    return;
+  const submitBtn = document.querySelector('#inscricaoFormCard .btn-primary');
+  setLoading(submitBtn, true);
+
+  try {
+    const registrations = await FirestoreService.loadRegistrations();
+    const allNames = [
+      ...state.times.map(t => t.nome.toLowerCase()),
+      ...registrations.filter(r => r.status === 'pendente').map(r => r.nome.toLowerCase())
+    ];
+    if (allNames.includes(nome.toLowerCase())) {
+      UI.showToast('Ja existe um time ou solicitacao com esse nome.', 'error');
+      return;
+    }
+
+    await FirestoreService.submitRegistration({
+      participante,
+      nome,
+      abreviacao: abrev.toUpperCase().slice(0, 4),
+      cor
+    });
+
+    AppState.addAuditLog(getAuditUser(), 'Solicitou inscricao: ' + nome + ' (' + participante + ')', { abreviacao: abrev, participante });
+
+    UI.clearForm('inputInscParticipante', 'inputInscNome', 'inputInscAbrev');
+    const colorInput = document.getElementById('inputInscCor');
+    if (colorInput) colorInput.value = '#6c5ce7';
+
+    UI.showToast('Solicitacao enviada! Aguarde aprovacao do administrador.', 'success');
+    Renderers.inscricoes();
+  } finally {
+    setLoading(submitBtn, false);
   }
-
-  await FirestoreService.submitRegistration({
-    participante,
-    nome,
-    abreviacao: abrev.toUpperCase().slice(0, 4),
-    cor
-  });
-
-  AppState.addAuditLog(getAuditUser(), 'Solicitou inscricao: ' + nome + ' (' + participante + ')', { abreviacao: abrev, participante });
-
-  UI.clearForm('inputInscParticipante', 'inputInscNome', 'inputInscAbrev');
-  const colorInput = document.getElementById('inputInscCor');
-  if (colorInput) colorInput.value = '#6c5ce7';
-
-  UI.showToast('Solicitacao enviada! Aguarde aprovacao do administrador.', 'success');
-  Renderers.inscricoes();
 }
 
 async function approveRegistration(id) {
@@ -569,28 +521,35 @@ async function approveRegistration(id) {
     return;
   }
 
-  const registrations = await FirestoreService.loadRegistrations();
-  const reg = registrations.find(r => r.id === id);
-  if (!reg) return;
+  const actionBtns = document.querySelectorAll('.btn-approve, .btn-reject');
+  actionBtns.forEach(b => setLoading(b, true));
 
-  const state = AppState.load();
-  AppState.addTime(state, { nome: reg.nome, abreviacao: reg.abreviacao, cor: reg.cor, participante: reg.participante || '' });
-  AppState.save(state);
+  try {
+    const registrations = await FirestoreService.loadRegistrations();
+    const reg = registrations.find(r => r.id === id);
+    if (!reg) return;
 
-  await FirestoreService.updateRegistration(id, {
-    status: 'aprovado',
-    resolvidoEm: new Date().toISOString(),
-    resolvidoPor: currentUser ? currentUser.email : 'admin'
-  });
+    const state = AppState.load();
+    AppState.addTime(state, { nome: reg.nome, abreviacao: reg.abreviacao, cor: reg.cor, participante: reg.participante || '' });
+    AppState.save(state);
 
-  AppState.addAuditLog(
-    currentUser ? currentUser.email : getDeviceId(),
-    'Aprovou inscricao: ' + reg.nome
-  );
+    await FirestoreService.updateRegistration(id, {
+      status: 'aprovado',
+      resolvidoEm: new Date().toISOString(),
+      resolvidoPor: currentUser ? currentUser.email : 'admin'
+    });
 
-  UI.showToast('Time "' + reg.nome + '" aprovado e adicionado!', 'success');
-  Renderers.inscricoes();
-  Renderers.times();
+    AppState.addAuditLog(
+      currentUser ? currentUser.email : getDeviceId(),
+      'Aprovou inscricao: ' + reg.nome
+    );
+
+    UI.showToast('Time "' + reg.nome + '" aprovado e adicionado!', 'success');
+    Renderers.inscricoes();
+    Renderers.times();
+  } finally {
+    actionBtns.forEach(b => setLoading(b, false));
+  }
 }
 
 async function rejectRegistration(id) {
@@ -599,23 +558,30 @@ async function rejectRegistration(id) {
     return;
   }
 
-  const registrations = await FirestoreService.loadRegistrations();
-  const reg = registrations.find(r => r.id === id);
-  if (!reg) return;
+  const actionBtns = document.querySelectorAll('.btn-approve, .btn-reject');
+  actionBtns.forEach(b => setLoading(b, true));
 
-  await FirestoreService.updateRegistration(id, {
-    status: 'rejeitado',
-    resolvidoEm: new Date().toISOString(),
-    resolvidoPor: currentUser ? currentUser.email : 'admin'
-  });
+  try {
+    const registrations = await FirestoreService.loadRegistrations();
+    const reg = registrations.find(r => r.id === id);
+    if (!reg) return;
 
-  AppState.addAuditLog(
-    currentUser ? currentUser.email : getDeviceId(),
-    'Rejeitou inscricao: ' + reg.nome
-  );
+    await FirestoreService.updateRegistration(id, {
+      status: 'rejeitado',
+      resolvidoEm: new Date().toISOString(),
+      resolvidoPor: currentUser ? currentUser.email : 'admin'
+    });
 
-  UI.showToast('Inscricao de "' + reg.nome + '" rejeitada.', 'info');
-  Renderers.inscricoes();
+    AppState.addAuditLog(
+      currentUser ? currentUser.email : getDeviceId(),
+      'Rejeitou inscricao: ' + reg.nome
+    );
+
+    UI.showToast('Inscricao de "' + reg.nome + '" rejeitada.', 'info');
+    Renderers.inscricoes();
+  } finally {
+    actionBtns.forEach(b => setLoading(b, false));
+  }
 }
 
 // ------------------------------------------------------------------

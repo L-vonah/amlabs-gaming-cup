@@ -5,7 +5,7 @@
 
 const STATE_KEY = 'campeonato_amlabs_v1';
 const AUDIT_LOG_KEY = 'campeonato_amlabs_audit_v1';
-const POTES_KEY = 'campeonato_amlabs_potes_v1';
+const POTES_KEY = 'campeonato_amlabs_potes_v1'; // kept only for cleanup in resetState
 
 const DEFAULT_STATE = {
   campeonato: {
@@ -59,11 +59,23 @@ const DEFAULT_STATE = {
 // Load / Save State
 // ------------------------------------------------------------------
 
+// In-memory cache to avoid repeated JSON.parse on every render
+let _stateCache = null;
+
+function invalidateCache() {
+  _stateCache = null;
+}
+
 function loadState() {
   try {
+    if (_stateCache) return JSON.parse(JSON.stringify(_stateCache));
     const raw = localStorage.getItem(STATE_KEY);
-    if (!raw) return JSON.parse(JSON.stringify(DEFAULT_STATE));
-    return JSON.parse(raw);
+    if (!raw) {
+      _stateCache = JSON.parse(JSON.stringify(DEFAULT_STATE));
+      return JSON.parse(JSON.stringify(_stateCache));
+    }
+    _stateCache = JSON.parse(raw);
+    return JSON.parse(JSON.stringify(_stateCache));
   } catch (e) {
     console.error('Erro ao carregar estado:', e);
     return JSON.parse(JSON.stringify(DEFAULT_STATE));
@@ -72,6 +84,7 @@ function loadState() {
 
 function saveState(state) {
   try {
+    _stateCache = JSON.parse(JSON.stringify(state));
     localStorage.setItem(STATE_KEY, JSON.stringify(state));
 
     // Sync to Firestore if configured and admin
@@ -91,7 +104,6 @@ function saveState(state) {
  * Convert legacy localStorage state to DDD Firestore format.
  */
 function convertStateToFirestore(state) {
-  const potes = loadPotes();
   return {
     id: typeof TOURNAMENT_ID !== 'undefined' ? TOURNAMENT_ID : 'amlabs-2026',
     metadata: {
@@ -109,12 +121,7 @@ function convertStateToFirestore(state) {
         empate: state.config.pontosPorEmpate,
         derrota: state.config.pontosPorDerrota,
         criteriosDesempate: state.config.criteriosDesempate
-      },
-      vantagemFinal: {
-        tipo: 'potes',
-        descricao: 'Chave superior escolhe pote alto, inferior escolhe pote baixo'
-      },
-      potes: { alto: potes.superior || [], baixo: potes.inferior || [] }
+      }
     },
     times: state.times,
     faseGrupos: state.faseGrupos,
@@ -196,33 +203,6 @@ function loadAuditLog() {
     return raw ? JSON.parse(raw) : [];
   } catch (e) {
     return [];
-  }
-}
-
-// ------------------------------------------------------------------
-// Potes (team pools for Grand Final)
-// ------------------------------------------------------------------
-
-const DEFAULT_POTES = {
-  superior: [], // team ids in upper pool (Grand Final advantage)
-  inferior: []  // team ids in lower pool
-};
-
-function loadPotes() {
-  try {
-    const raw = localStorage.getItem(POTES_KEY);
-    return raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(DEFAULT_POTES));
-  } catch (e) {
-    return JSON.parse(JSON.stringify(DEFAULT_POTES));
-  }
-}
-
-function savePotes(potes) {
-  try {
-    localStorage.setItem(POTES_KEY, JSON.stringify(potes));
-    return true;
-  } catch (e) {
-    return false;
   }
 }
 
@@ -382,6 +362,35 @@ function calcularClassificacao(state) {
     return a.nome.localeCompare(b.nome);
   });
 
+  // Resolve remaining ties by confronto direto (two-team ties only)
+  for (let i = 0; i < tabela.length - 1; i++) {
+    let j = i + 1;
+    while (j < tabela.length &&
+      tabela[j].pontos === tabela[i].pontos &&
+      tabela[j].vitorias === tabela[i].vitorias &&
+      tabela[j].saldoGols === tabela[i].saldoGols &&
+      tabela[j].golsMarcados === tabela[i].golsMarcados) {
+      j++;
+    }
+    if (j - i === 2) {
+      const a = tabela[i];
+      const b = tabela[i + 1];
+      const directMatch = partidas.find(p =>
+        (p.timeA === a.id && p.timeB === b.id) ||
+        (p.timeA === b.id && p.timeB === a.id)
+      );
+      if (directMatch) {
+        const aIsHome = directMatch.timeA === a.id;
+        const aGols = aIsHome ? directMatch.golsA : directMatch.golsB;
+        const bGols = aIsHome ? directMatch.golsB : directMatch.golsA;
+        if (bGols > aGols) {
+          [tabela[i], tabela[i + 1]] = [tabela[i + 1], tabela[i]];
+        }
+      }
+    }
+    i = j - 1;
+  }
+
   return tabela;
 }
 
@@ -390,21 +399,38 @@ function calcularClassificacao(state) {
 // ------------------------------------------------------------------
 
 function calcularEstatisticas(state) {
-  const partidas = state.faseGrupos.partidas.filter(p => p.status === 'concluida');
-  const totalPartidas = partidas.length;
-  const totalGols = partidas.reduce((s, p) => s + p.golsA + p.golsB, 0);
+  const grupoPartidas = state.faseGrupos.partidas.filter(p => p.status === 'concluida');
+
+  // Collect playoff matches
+  const playoffPartidas = [];
+  if (state.playoffs && state.playoffs.status !== 'aguardando') {
+    const ub = state.playoffs.upperBracket;
+    const lb = state.playoffs.lowerBracket;
+    const gf = state.playoffs.grandFinal;
+    [ub.sf1, ub.sf2, ub.final, lb.sf, lb.final].forEach(m => {
+      if (m.vencedor) {
+        playoffPartidas.push({ timeA: m.timeA, timeB: m.timeB, golsA: m.golsA, golsB: m.golsB, rodada: 'playoff' });
+      }
+    });
+    if (gf.vencedor) {
+      playoffPartidas.push({ timeA: gf.timeUpper, timeB: gf.timeLower, golsA: gf.golsUpper, golsB: gf.golsLower, rodada: 'final' });
+    }
+  }
+
+  const allPartidas = [...grupoPartidas, ...playoffPartidas];
+  const totalPartidas = allPartidas.length;
+  const totalGols = allPartidas.reduce((s, p) => s + p.golsA + p.golsB, 0);
   const mediaGols = totalPartidas > 0 ? (totalGols / totalPartidas).toFixed(2) : 0;
-  const maiorGoleada = partidas.reduce((best, p) => {
+  const maiorGoleada = allPartidas.reduce((best, p) => {
     const diff = Math.abs(p.golsA - p.golsB);
     return diff > best.diff ? { diff, partida: p } : best;
   }, { diff: 0, partida: null });
 
-  // Top scorers per team (team total goals)
   const tabela = calcularClassificacao(state);
   const topGoleadores = [...tabela].sort((a, b) => b.golsMarcados - a.golsMarcados).slice(0, 5);
   const menosVazados = [...tabela].sort((a, b) => a.golsSofridos - b.golsSofridos).slice(0, 5);
 
-  return { totalPartidas, totalGols, mediaGols, maiorGoleada, topGoleadores, menosVazados };
+  return { totalPartidas, totalPartidasGrupos: grupoPartidas.length, totalPartidasPlayoffs: playoffPartidas.length, totalGols, mediaGols, maiorGoleada, topGoleadores, menosVazados };
 }
 
 // ------------------------------------------------------------------
@@ -442,6 +468,8 @@ function registrarResultadoPlayoff(state, matchId, golsA, golsB) {
   if (!match) return false;
   if (golsA === golsB) return false; // no draws in playoffs
 
+  _resetDownstreamPlayoff(state, matchId);
+
   match.golsA = golsA;
   match.golsB = golsB;
   match.vencedor = golsA > golsB ? match.timeA : match.timeB;
@@ -450,6 +478,47 @@ function registrarResultadoPlayoff(state, matchId, golsA, golsB) {
   // Cascade results through bracket
   _propagarResultadoPlayoff(state);
   return true;
+}
+
+function _resetDownstreamPlayoff(state, matchId) {
+  const ub = state.playoffs.upperBracket;
+  const lb = state.playoffs.lowerBracket;
+  const gf = state.playoffs.grandFinal;
+
+  function clearMatch(m) {
+    m.golsA = null; m.golsB = null;
+    m.vencedor = null; m.perdedor = null;
+  }
+  function clearGF() {
+    gf.golsUpper = null; gf.golsLower = null;
+    gf.vencedor = null; gf.timeUpper = null; gf.timeLower = null;
+  }
+
+  if (matchId === 'ub-sf1' || matchId === 'ub-sf2') {
+    clearMatch(ub.final); ub.final.timeA = null; ub.final.timeB = null;
+    clearMatch(lb.sf); lb.sf.timeA = null; lb.sf.timeB = null;
+    clearMatch(lb.final); lb.final.timeA = null; lb.final.timeB = null;
+    clearGF();
+  }
+  if (matchId === 'ub-final') {
+    // Keep lb.sf intact (it doesn't depend on UB final)
+    // But lb.final loser side changes, and GF upper side changes
+    clearMatch(lb.final); lb.final.timeB = null; // timeB was the UB final loser
+    clearGF();
+  }
+  if (matchId === 'lb-sf') {
+    clearMatch(lb.final); lb.final.timeA = null;
+    gf.timeLower = null; gf.golsLower = null; gf.golsUpper = null; gf.vencedor = null;
+  }
+  if (matchId === 'lb-final') {
+    gf.timeLower = null; gf.golsLower = null; gf.golsUpper = null; gf.vencedor = null;
+  }
+
+  // If we cleared the grand final winner, revert tournament status
+  if (gf.vencedor === null && state.campeonato.status === 'encerrado') {
+    state.campeonato.status = 'playoffs';
+    state.playoffs.status = 'andamento';
+  }
 }
 
 function _propagarResultadoPlayoff(state) {
@@ -495,6 +564,11 @@ function _propagarResultadoPlayoff(state) {
 function registrarResultadoGrandFinal(state, golsUpper, golsLower) {
   const gf = state.playoffs.grandFinal;
   if (!gf.timeUpper || !gf.timeLower) return false;
+
+  if (state.campeonato.status === 'encerrado') {
+    state.campeonato.status = 'playoffs';
+    state.playoffs.status = 'andamento';
+  }
   if (golsUpper === golsLower) return false; // no draw
 
   gf.golsUpper = golsUpper;
@@ -516,8 +590,6 @@ window.AppState = {
   reset: resetState,
   addAuditLog,
   loadAuditLog,
-  loadPotes,
-  savePotes,
   addTime,
   removeTime,
   getTimeById,
@@ -529,6 +601,7 @@ window.AppState = {
   registrarResultadoGrandFinal,
   convertStateToFirestore,
   convertFirestoreToState,
+  invalidateCache,
   isFirestoreMode() {
     return typeof FirestoreService !== 'undefined' && FirestoreService.isActive();
   }

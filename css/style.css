@@ -1475,11 +1475,92 @@ body {
 .tab-btn.active { color: var(--color-primary); border-bottom-color: var(--color-primary); }
 
 /* =============================================
+   RENDERER COMPONENT CLASSES
+   ============================================= */
+
+.round-header {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-dim);
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.round-group {
+  margin-bottom: 24px;
+}
+
+.status-banner {
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 24px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-banner.open {
+  background: var(--color-win-bg);
+  border: 1px solid rgba(0,184,148,0.3);
+  color: var(--color-win);
+}
+
+.status-banner.closed {
+  background: var(--color-loss-bg);
+  border: 1px solid rgba(232,67,147,0.3);
+  color: var(--color-loss);
+}
+
+.stats-counter-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.team-name-block {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
+.team-participant {
+  font-size: 0.65rem;
+  color: var(--color-text-dim);
+  font-weight: 400;
+}
+
+.playoff-section-header {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.completed-badge {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-win);
+  background: var(--color-win-bg);
+  padding: 3px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,184,148,0.3);
+}
+
+/* =============================================
    RESPONSIVE
    ============================================= */
 
 /* Hidden on desktop */
-.mobile-menu-toggle { display: none; }
 .mobile-bottom-bar { display: none; }
 .mobile-more-overlay { display: none; }
 
@@ -1494,7 +1575,6 @@ body {
   .logo-img { height: 24px; }
   .main-nav { display: none !important; /* hidden — replaced by bottom bar */ }
   .header-badge { display: none; }
-  .mobile-menu-toggle { display: none !important; }
 
   /* ----- Bottom Tab Bar ----- */
   .mobile-bottom-bar {
@@ -1694,6 +1774,28 @@ body {
   /* ----- Audit log ----- */
   .audit-entry { padding: 12px 16px; }
   .audit-meta { gap: 8px; }
+
+  /* ----- Mobile bracket ----- */
+  .bracket-mobile-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .bracket-mobile-section {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+  }
+  .bracket-mobile-section-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--color-border);
+  }
 }
 
 /* =============================================
@@ -2119,3 +2221,29 @@ body {
 
 .admin-only { /* shown via JS when admin */ }
 .visitor-only { /* shown via JS when not admin */ }
+
+/* =============================================
+   LOADING SPINNER
+   ============================================= */
+
+.btn-loading {
+  position: relative;
+  pointer-events: none;
+  opacity: 0.7;
+}
+.btn-loading::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: btnSpin 0.6s linear infinite;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+@keyframes btnSpin {
+  to { transform: translateY(-50%) rotate(360deg); }
+}
