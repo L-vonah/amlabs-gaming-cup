@@ -24,7 +24,7 @@
     <button class="mobile-menu-toggle" id="mobileMenuToggle" onclick="toggleMobileMenu()">&#9776;</button>
     <nav class="main-nav" id="mainNav">
       <button class="nav-link active" data-nav="home" onclick="UI.navigateTo('home')">In&iacute;cio</button>
-      <button class="nav-link" data-nav="inscricoes" onclick="UI.navigateTo('inscricoes')">Inscri&ccedil;&otilde;es</button>
+      <button class="nav-link inscricoes-only" data-nav="inscricoes" onclick="UI.navigateTo('inscricoes')">Inscri&ccedil;&otilde;es</button>
       <button class="nav-link" data-nav="times" onclick="UI.navigateTo('times')">Times</button>
       <button class="nav-link" data-nav="classificacao" onclick="UI.navigateTo('classificacao')">Classifica&ccedil;&atilde;o</button>
       <button class="nav-link" data-nav="partidas" onclick="UI.navigateTo('partidas')">Partidas</button>
@@ -32,7 +32,7 @@
       <button class="nav-link" data-nav="bracket" onclick="UI.navigateTo('bracket')">Chaveamento</button>
       <button class="nav-link" data-nav="estatisticas" onclick="UI.navigateTo('estatisticas')">Estat&iacute;sticas</button>
       <button class="nav-link" data-nav="regras" onclick="UI.navigateTo('regras')">Regras</button>
-      <button class="nav-link" data-nav="historico" onclick="UI.navigateTo('historico')">Hist&oacute;rico</button>
+      <button class="nav-link admin-only" data-nav="historico" onclick="UI.navigateTo('historico')">Hist&oacute;rico</button>
     </nav>
 
     <div class="header-badge">
@@ -358,7 +358,7 @@
   <section id="section-bracket" class="page-section">
     <div class="section-header">
       <h2 class="section-title">
-        <span class="section-title-icon icon-bg-purple">&#127942;</span>
+        <span class="section-title-icon icon-bg-purple">&#9878;</span>
         Chaveamento &mdash; Dupla Elimina&ccedil;&atilde;o
       </h2>
       <button class="btn btn-sm btn-secondary" onclick="renderBracket()">Atualizar</button>
@@ -577,17 +577,17 @@
     <span class="mobile-tab-icon">&#127968;</span>
     <span>In&iacute;cio</span>
   </button>
-  <button class="mobile-tab" data-nav="inscricoes" onclick="mobileNavigate('inscricoes')">
-    <span class="mobile-tab-icon">&#128221;</span>
-    <span>Inscri&ccedil;&otilde;es</span>
+  <button class="mobile-tab" data-nav="partidas" onclick="mobileNavigate('partidas')">
+    <span class="mobile-tab-icon">&#128197;</span>
+    <span>Partidas</span>
   </button>
   <button class="mobile-tab" data-nav="classificacao" onclick="mobileNavigate('classificacao')">
     <span class="mobile-tab-icon">&#127942;</span>
     <span>Tabela</span>
   </button>
-  <button class="mobile-tab" data-nav="registrar" onclick="mobileNavigate('registrar')">
-    <span class="mobile-tab-icon">&#9917;</span>
-    <span>Resultados</span>
+  <button class="mobile-tab" data-nav="bracket" onclick="mobileNavigate('bracket')">
+    <span class="mobile-tab-icon">&#9878;</span>
+    <span>Chaves</span>
   </button>
   <button class="mobile-tab" id="mobileMoreBtn" onclick="toggleMobileMore()">
     <span class="mobile-tab-icon">&#8226;&#8226;&#8226;</span>
@@ -600,27 +600,27 @@
   <div class="mobile-more-sheet" onclick="event.stopPropagation()">
     <div class="mobile-more-handle"></div>
     <div class="mobile-more-grid">
-      <button class="mobile-more-item" data-nav="times" onclick="mobileNavigate('times')">
-        <span class="mobile-more-icon">&#128101;</span>
-        <span>Times</span>
+      <button class="mobile-more-item inscricoes-only" data-nav="inscricoes" onclick="mobileNavigate('inscricoes')">
+        <span class="mobile-more-icon">&#128221;</span>
+        <span>Inscri&ccedil;&otilde;es</span>
       </button>
-      <button class="mobile-more-item" data-nav="partidas" onclick="mobileNavigate('partidas')">
-        <span class="mobile-more-icon">&#128197;</span>
-        <span>Partidas</span>
-      </button>
-      <button class="mobile-more-item" data-nav="bracket" onclick="mobileNavigate('bracket')">
-        <span class="mobile-more-icon">&#128312;</span>
-        <span>Chaveamento</span>
+      <button class="mobile-more-item" data-nav="registrar" onclick="mobileNavigate('registrar')">
+        <span class="mobile-more-icon">&#9999;</span>
+        <span>Resultados</span>
       </button>
       <button class="mobile-more-item" data-nav="estatisticas" onclick="mobileNavigate('estatisticas')">
         <span class="mobile-more-icon">&#128200;</span>
         <span>Estat&iacute;sticas</span>
       </button>
+      <button class="mobile-more-item" data-nav="times" onclick="mobileNavigate('times')">
+        <span class="mobile-more-icon">&#128101;</span>
+        <span>Times</span>
+      </button>
       <button class="mobile-more-item" data-nav="regras" onclick="mobileNavigate('regras')">
         <span class="mobile-more-icon">&#128203;</span>
         <span>Regras</span>
       </button>
-      <button class="mobile-more-item" data-nav="historico" onclick="mobileNavigate('historico')">
+      <button class="mobile-more-item admin-only" data-nav="historico" onclick="mobileNavigate('historico')">
         <span class="mobile-more-icon">&#128336;</span>
         <span>Hist&oacute;rico</span>
       </button>
@@ -799,10 +799,24 @@
     updateMobileTabBar(section);
   };
 
+  // Hide inscricoes nav items when campeonato has started
+  function updateInscricoesVisibility() {
+    const state = AppState.load();
+    const show = state.campeonato.status === 'configuracao';
+    document.querySelectorAll('.inscricoes-only').forEach(el => {
+      el.style.display = show ? '' : 'none';
+    });
+  }
+
+  // Wrap renderers to update inscricoes visibility
+  const _origHome2 = Renderers.home;
+  Renderers.home = function() { _origHome2(); updateInscricoesVisibility(); };
+
   // Boot
   document.addEventListener('DOMContentLoaded', () => {
     initAuth();
     initNavFromHash();
+    updateInscricoesVisibility();
 
     // Start Firestore listener if configured
     if (typeof FirestoreService !== 'undefined' && FirestoreService.isActive()) {
