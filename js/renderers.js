@@ -55,7 +55,7 @@ function renderHome() {
     if (lastResults.length === 0) {
       container.innerHTML = '<div class="empty-state"><div class="empty-icon">&#9917;</div><div class="empty-title">Nenhum resultado ainda</div><div class="empty-desc">Registre resultados na aba Resultados</div></div>';
     } else {
-      container.innerHTML = lastResults.map(p => renderMatchCard(p, state)).join('');
+      container.innerHTML = lastResults.map(p => renderMatchCardWithAction(p, state, false)).join('');
     }
   }
 
