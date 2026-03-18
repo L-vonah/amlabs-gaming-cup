@@ -1471,104 +1471,177 @@ body {
    RESPONSIVE
    ============================================= */
 
-/* =============================================
-   MOBILE NAVIGATION
-   ============================================= */
-
-.mobile-menu-toggle {
-  display: none;
-  background: none;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  color: var(--color-text);
-  padding: 6px 10px;
-  font-size: 1.2rem;
-  cursor: pointer;
-  line-height: 1;
-  transition: all var(--transition);
-}
-
-.mobile-menu-toggle:hover {
-  background: var(--color-surface-2);
-}
+/* Hidden on desktop */
+.mobile-menu-toggle { display: none; }
+.mobile-bottom-bar { display: none; }
+.mobile-more-overlay { display: none; }
 
 @media (max-width: 768px) {
-  /* Layout */
-  .main-content { padding: 16px 12px; }
+  /* ----- Layout ----- */
+  .main-content { padding: 16px 12px 80px; /* space for bottom bar */ }
   .manage-layout { grid-template-columns: 1fr !important; }
 
-  /* Header */
-  .header-inner { padding: 0 12px; gap: 8px; height: 52px; }
+  /* ----- Header: compact ----- */
+  .header-inner { padding: 0 12px; gap: 8px; height: 48px; }
   .logo-text { font-size: 0.8rem; }
   .logo-img { height: 24px; }
-  .mobile-menu-toggle { display: block; }
+  .main-nav { display: none !important; /* hidden — replaced by bottom bar */ }
   .header-badge { display: none; }
+  .mobile-menu-toggle { display: none !important; }
 
-  /* Mobile nav overlay */
-  .main-nav {
-    display: none;
+  /* ----- Bottom Tab Bar ----- */
+  .mobile-bottom-bar {
+    display: flex;
     position: fixed;
-    top: 52px;
+    bottom: 0;
     left: 0;
     right: 0;
-    bottom: 0;
+    height: 60px;
     background: var(--color-bg);
-    flex-direction: column;
-    padding: 8px 12px 24px;
-    gap: 2px;
-    z-index: 99;
-    overflow-y: auto;
     border-top: 1px solid var(--color-border);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    z-index: 100;
+    box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
   }
-  .main-nav.open { display: flex; }
-  .nav-link {
-    padding: 16px;
-    font-size: 1rem;
+
+  .mobile-tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 6px 0;
+    background: none;
+    border: none;
+    color: var(--color-text-dim);
+    font-family: var(--font-main);
+    font-size: 0.6rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color var(--transition);
+    -webkit-tap-highlight-color: transparent;
+    text-decoration: none;
+  }
+
+  .mobile-tab-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+
+  .mobile-tab.active {
+    color: var(--color-primary);
+  }
+
+  .mobile-tab:active {
+    background: var(--color-surface-2);
+  }
+
+  /* ----- "More" Overlay ----- */
+  .mobile-more-overlay {
+    display: none;
+    position: fixed;
+    bottom: 60px;
+    left: 0;
+    right: 0;
+    top: 0;
+    z-index: 99;
+    background: rgba(0,0,0,0.3);
+  }
+
+  .mobile-more-overlay.open {
+    display: block;
+  }
+
+  .mobile-more-sheet {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--color-bg);
+    border-top: 1px solid var(--color-border);
+    border-radius: 16px 16px 0 0;
+    padding: 12px 16px 20px;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.1);
+    animation: slideUp 0.2s ease-out;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .mobile-more-handle {
+    width: 36px;
+    height: 4px;
+    background: var(--color-border);
+    border-radius: 2px;
+    margin: 0 auto 12px;
+  }
+
+  .mobile-more-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+  }
+
+  .mobile-more-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 12px 4px;
     border-radius: var(--radius);
-    text-align: left;
-    border-bottom: 1px solid var(--color-border);
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    font-family: var(--font-main);
+    font-size: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition);
+    -webkit-tap-highlight-color: transparent;
   }
-  .nav-link.active {
+
+  .mobile-more-item:active {
+    background: var(--color-surface-2);
+  }
+
+  .mobile-more-item.active {
+    color: var(--color-primary);
     background: var(--color-primary-glow);
-    border-left: 3px solid var(--color-primary);
   }
 
-  /* Hero */
-  .hero { padding: 24px 12px 20px; }
-  .hero-title { font-size: 1.5rem; }
-  .hero-subtitle { font-size: 0.85rem; padding: 0 8px; }
-  .hero-stats { gap: 16px; }
-  .hero-stat-value { font-size: 1.5rem; }
-  .hero-stat-label { font-size: 0.65rem; }
+  .mobile-more-icon {
+    font-size: 1.4rem;
+    line-height: 1;
+  }
+
+  /* ----- Lifecycle bar: hide on mobile, info is in header ----- */
+  .lifecycle-bar { display: none; }
+
+  /* ----- Hero ----- */
+  .hero { padding: 20px 12px 16px; }
+  .hero-badge { font-size: 0.65rem; padding: 4px 10px; margin-bottom: 12px; }
+  .hero-title { font-size: 1.4rem; margin-bottom: 8px; }
+  .hero-subtitle { font-size: 0.82rem; padding: 0 4px; margin-bottom: 20px; }
+  .hero-stats { gap: 16px; margin-bottom: 20px; }
+  .hero-stat-value { font-size: 1.4rem; }
+  .hero-stat-label { font-size: 0.6rem; }
   .hero-actions { gap: 8px; }
-  .hero-actions .btn { font-size: 0.8rem; padding: 8px 14px; }
+  .hero-actions .btn { font-size: 0.78rem; padding: 8px 12px; }
 
-  /* Lifecycle bar */
-  .lifecycle-bar {
-    padding: 10px 12px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    gap: 0;
-  }
-  .lifecycle-step-dot { width: 26px; height: 26px; font-size: 0.65rem; }
-  .lifecycle-step-label { font-size: 0.6rem; display: none; }
-  .lifecycle-step.active .lifecycle-step-label,
-  .lifecycle-step.done .lifecycle-step-label { display: block; }
-  .lifecycle-line { min-width: 20px; }
-
-  /* Section headers */
+  /* ----- Section headers ----- */
   .section-header { flex-direction: column; align-items: flex-start; gap: 8px; }
   .section-title { font-size: 1rem; }
 
-  /* Rules */
+  /* ----- Rules ----- */
   .rules-grid { grid-template-columns: 1fr; gap: 12px; }
   .rule-card { padding: 16px; }
   .rule-card-title { font-size: 0.9rem; }
   .rule-list li { font-size: 0.82rem; }
   .highlight-box { font-size: 0.8rem; padding: 10px 12px; }
 
-  /* Tables */
+  /* ----- Tables ----- */
   .classification-table { font-size: 0.72rem; }
   .classification-table th,
   .classification-table td { padding: 6px 4px; }
@@ -1577,41 +1650,41 @@ body {
   .form-badge { width: 16px; height: 16px; font-size: 0.55rem; }
   .qualified-label { font-size: 0.55rem; padding: 1px 5px; }
 
-  /* Match cards */
+  /* ----- Match cards ----- */
   .match-card { flex-wrap: wrap; padding: 12px; gap: 8px; }
   .match-round-badge { min-width: auto; font-size: 0.6rem; }
   .match-teams { gap: 6px; }
   .match-team { font-size: 0.78rem; gap: 4px; }
   .match-score { padding: 4px 10px; font-size: 0.95rem; }
 
-  /* Bracket */
+  /* ----- Bracket ----- */
   .bracket-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
-  /* Stats */
+  /* ----- Stats ----- */
   .stats-overview { grid-template-columns: repeat(2, 1fr); gap: 8px; }
   .stat-card { padding: 12px; }
   .stat-card-value { font-size: 1.3rem; }
   .stat-card-label { font-size: 0.65rem; }
 
-  /* Forms */
+  /* ----- Forms ----- */
   .unified-score-row { grid-template-columns: 1fr; gap: 10px; text-align: center; }
   .unified-team-side,
   .unified-team-side-right { justify-content: center; text-align: center; }
   .unified-score-inputs { justify-content: center; }
   .score-input { width: 56px; font-size: 1.2rem; padding: 8px 4px; }
 
-  /* Cards */
+  /* ----- Cards ----- */
   .card-header { padding: 14px 16px 12px; }
   .card-body { padding: 16px; }
   .card-title { font-size: 0.9rem; }
 
-  /* Teams grid */
+  /* ----- Teams grid ----- */
   .teams-grid { grid-template-columns: 1fr; gap: 8px; }
 
-  /* Footer */
-  .footer-inner { flex-direction: column; gap: 8px; text-align: center; }
+  /* ----- Footer: hide on mobile (admin goes in "More") ----- */
+  .site-footer { display: none; }
 
-  /* Audit log */
+  /* ----- Audit log ----- */
   .audit-entry { padding: 12px 16px; }
   .audit-meta { gap: 8px; }
 }

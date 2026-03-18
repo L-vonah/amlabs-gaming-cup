@@ -570,6 +570,73 @@
 </main>
 
 <!-- ===============================================================
+     MOBILE BOTTOM TAB BAR
+     =============================================================== -->
+<nav class="mobile-bottom-bar" id="mobileBottomBar">
+  <button class="mobile-tab active" data-nav="home" onclick="mobileNavigate('home')">
+    <span class="mobile-tab-icon">&#127968;</span>
+    <span>In&iacute;cio</span>
+  </button>
+  <button class="mobile-tab" data-nav="inscricoes" onclick="mobileNavigate('inscricoes')">
+    <span class="mobile-tab-icon">&#128221;</span>
+    <span>Inscri&ccedil;&otilde;es</span>
+  </button>
+  <button class="mobile-tab" data-nav="classificacao" onclick="mobileNavigate('classificacao')">
+    <span class="mobile-tab-icon">&#127942;</span>
+    <span>Tabela</span>
+  </button>
+  <button class="mobile-tab" data-nav="registrar" onclick="mobileNavigate('registrar')">
+    <span class="mobile-tab-icon">&#9917;</span>
+    <span>Resultados</span>
+  </button>
+  <button class="mobile-tab" id="mobileMoreBtn" onclick="toggleMobileMore()">
+    <span class="mobile-tab-icon">&#8226;&#8226;&#8226;</span>
+    <span>Mais</span>
+  </button>
+</nav>
+
+<!-- Mobile "More" sheet -->
+<div class="mobile-more-overlay" id="mobileMoreOverlay" onclick="closeMobileMore()">
+  <div class="mobile-more-sheet" onclick="event.stopPropagation()">
+    <div class="mobile-more-handle"></div>
+    <div class="mobile-more-grid">
+      <button class="mobile-more-item" data-nav="times" onclick="mobileNavigate('times')">
+        <span class="mobile-more-icon">&#128101;</span>
+        <span>Times</span>
+      </button>
+      <button class="mobile-more-item" data-nav="partidas" onclick="mobileNavigate('partidas')">
+        <span class="mobile-more-icon">&#128197;</span>
+        <span>Partidas</span>
+      </button>
+      <button class="mobile-more-item" data-nav="bracket" onclick="mobileNavigate('bracket')">
+        <span class="mobile-more-icon">&#128312;</span>
+        <span>Chaveamento</span>
+      </button>
+      <button class="mobile-more-item" data-nav="estatisticas" onclick="mobileNavigate('estatisticas')">
+        <span class="mobile-more-icon">&#128200;</span>
+        <span>Estat&iacute;sticas</span>
+      </button>
+      <button class="mobile-more-item" data-nav="regras" onclick="mobileNavigate('regras')">
+        <span class="mobile-more-icon">&#128203;</span>
+        <span>Regras</span>
+      </button>
+      <button class="mobile-more-item" data-nav="historico" onclick="mobileNavigate('historico')">
+        <span class="mobile-more-icon">&#128336;</span>
+        <span>Hist&oacute;rico</span>
+      </button>
+      <button class="mobile-more-item" onclick="loginAdmin()">
+        <span class="mobile-more-icon">&#128274;</span>
+        <span>Admin</span>
+      </button>
+      <button class="mobile-more-item" onclick="logoutAdmin()" id="mobileLogoutBtn" style="display:none">
+        <span class="mobile-more-icon">&#128275;</span>
+        <span>Sair</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===============================================================
      MODAL - RESET
      =============================================================== -->
 <div class="modal-overlay" id="modalReset">
@@ -689,26 +756,47 @@
     }
   }
 
-  // Mobile menu
-  function toggleMobileMenu() {
-    const nav = document.getElementById('mainNav');
-    const btn = document.getElementById('mobileMenuToggle');
-    nav.classList.toggle('open');
-    btn.textContent = nav.classList.contains('open') ? '\u2715' : '\u2630';
+  // Mobile bottom tab bar
+  function mobileNavigate(section) {
+    closeMobileMore();
+    UI.navigateTo(section);
+    updateMobileTabBar(section);
   }
 
-  function closeMobileMenu() {
-    const nav = document.getElementById('mainNav');
-    const btn = document.getElementById('mobileMenuToggle');
-    if (nav) nav.classList.remove('open');
-    if (btn) btn.textContent = '\u2630';
+  function updateMobileTabBar(section) {
+    // Update bottom bar active state
+    document.querySelectorAll('.mobile-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.mobile-more-item').forEach(t => t.classList.remove('active'));
+    const tabBtn = document.querySelector('.mobile-tab[data-nav="' + section + '"]');
+    const moreBtn = document.querySelector('.mobile-more-item[data-nav="' + section + '"]');
+    if (tabBtn) {
+      tabBtn.classList.add('active');
+    } else if (moreBtn) {
+      moreBtn.classList.add('active');
+      // Highlight "More" tab when a sub-item is active
+      document.getElementById('mobileMoreBtn').classList.add('active');
+    }
+    // Show/hide logout in more sheet
+    const logoutBtn = document.getElementById('mobileLogoutBtn');
+    if (logoutBtn) logoutBtn.style.display = (typeof isAdmin === 'function' && isAdmin()) ? '' : 'none';
   }
 
-  // Close mobile menu when navigating
+  function toggleMobileMore() {
+    const overlay = document.getElementById('mobileMoreOverlay');
+    overlay.classList.toggle('open');
+  }
+
+  function closeMobileMore() {
+    const overlay = document.getElementById('mobileMoreOverlay');
+    if (overlay) overlay.classList.remove('open');
+  }
+
+  // Sync mobile tab bar when desktop nav is used
   const _origNavigateTo = UI.navigateTo;
   UI.navigateTo = function(section) {
-    closeMobileMenu();
+    closeMobileMore();
     _origNavigateTo(section);
+    updateMobileTabBar(section);
   };
 
   // Boot
