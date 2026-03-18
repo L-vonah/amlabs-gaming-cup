@@ -284,18 +284,16 @@ function renderPartidasGrupos(state, admin) {
   const doneCount = partidas.filter(p => p.status === 'concluida').length;
   const pendingCount = partidas.length - doneCount;
 
-  let html = `<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+  let html = `<div class="stats-counter-row">
     <span style="font-size:.8rem;color:var(--color-text-muted)">${doneCount} de ${partidas.length} partidas conclu&iacute;das</span>
     ${pendingCount === 0
-      ? '<span style="font-size:.8rem;font-weight:700;color:var(--color-win);background:var(--color-win-bg);padding:3px 10px;border-radius:10px;border:1px solid rgba(0,184,148,0.3)">Fase de Grupos Conclu&iacute;da!</span>'
+      ? '<span class="completed-badge">Fase de Grupos Conclu&iacute;da!</span>'
       : ''}
   </div>`;
 
   Object.entries(byRound).forEach(([rodada, matches]) => {
-    html += `<div style="margin-bottom:24px">
-      <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--color-text-dim);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--color-border)">
-        Rodada ${rodada}
-      </div>
+    html += `<div class="round-group">
+      <div class="round-header">Rodada ${rodada}</div>
       <div class="matches-grid">
         ${matches.map(p => renderMatchCardWithAction(p, state, admin)).join('')}
       </div>
@@ -327,7 +325,7 @@ function renderPartidasPlayoffs(state, admin) {
     const concluded = gf.vencedor !== null;
 
     html += `<div style="margin-bottom:24px">
-      <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--color-champion);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(249,168,37,0.3)">
+      <div class="playoff-section-header" style="color:var(--color-champion);border-bottom-color:rgba(249,168,37,0.3)">
         &#127942; Grande Final
       </div>
       <div class="match-card" style="border-left:3px solid var(--color-champion)">
@@ -396,8 +394,8 @@ function renderMatchCardWithAction(p, state, admin) {
   const concluded = p.status === 'concluida';
   const sc = concluded ? UI.scoreClass(p.golsA, p.golsB) : '';
 
-  const partA = tA && tA.participante ? `<span style="font-size:.65rem;color:var(--color-text-dim);font-weight:400">${tA.participante}</span>` : '';
-  const partB = tB && tB.participante ? `<span style="font-size:.65rem;color:var(--color-text-dim);font-weight:400">${tB.participante}</span>` : '';
+  const partA = tA && tA.participante ? `<span class="team-participant">${tA.participante}</span>` : '';
+  const partB = tB && tB.participante ? `<span class="team-participant">${tB.participante}</span>` : '';
 
   let actionBtn = '';
   if (admin) {
@@ -764,9 +762,9 @@ async function renderInscricoes() {
 
   // Status banner
   if (isOpen) {
-    html += '<div style="background:var(--color-win-bg);border:1px solid rgba(0,184,148,0.3);border-radius:var(--radius);padding:12px 16px;margin-bottom:24px;font-size:.875rem;color:var(--color-win);font-weight:600;display:flex;align-items:center;gap:8px"><span>&#9989;</span> Inscricoes abertas! Cadastre seu time abaixo.</div>';
+    html += '<div class="status-banner open"><span>&#9989;</span> Inscricoes abertas! Cadastre seu time abaixo.</div>';
   } else {
-    html += '<div style="background:var(--color-loss-bg);border:1px solid rgba(232,67,147,0.3);border-radius:var(--radius);padding:12px 16px;margin-bottom:24px;font-size:.875rem;color:var(--color-loss);font-weight:600;display:flex;align-items:center;gap:8px"><span>&#128683;</span> Inscricoes encerradas. O campeonato ja comecou.</div>';
+    html += '<div class="status-banner closed"><span>&#128683;</span> Inscricoes encerradas. O campeonato ja comecou.</div>';
   }
 
   // Pending requests
