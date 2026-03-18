@@ -7,6 +7,8 @@
 const TOURNAMENT_ID = 'amlabs-2026';
 const CAMPEONATOS_COLLECTION = 'campeonatos';
 const AUDIT_COLLECTION = 'auditLog';
+const INSCRICOES_COLLECTION = 'inscricoes';
+const INSCRICOES_LOCAL_KEY = 'campeonato_amlabs_inscricoes_v1';
 
 // Cached tournament data from Firestore listener
 let _firestoreCache = null;
@@ -171,6 +173,61 @@ const FirestoreService = {
   /**
    * Load audit log entries for this tournament.
    */
+  // ----- Registration (Inscricoes) -----
+
+  async submitRegistration(data) {
+    const entry = {
+      torneiId: TOURNAMENT_ID,
+      ...data,
+      status: 'pendente',
+      criadoEm: new Date().toISOString(),
+      device: typeof getDeviceId === 'function' ? getDeviceId() : 'unknown',
+      resolvidoEm: null,
+      resolvidoPor: null
+    };
+
+    if (!FIREBASE_CONFIGURED) {
+      entry.id = 'insc_' + Date.now();
+      const list = JSON.parse(localStorage.getItem(INSCRICOES_LOCAL_KEY) || '[]');
+      list.push(entry);
+      localStorage.setItem(INSCRICOES_LOCAL_KEY, JSON.stringify(list));
+      return entry;
+    }
+
+    const docRef = await firebase.firestore().collection(INSCRICOES_COLLECTION).add(entry);
+    return { id: docRef.id, ...entry };
+  },
+
+  async loadRegistrations() {
+    if (!FIREBASE_CONFIGURED) {
+      return JSON.parse(localStorage.getItem(INSCRICOES_LOCAL_KEY) || '[]');
+    }
+
+    try {
+      const snapshot = await firebase.firestore()
+        .collection(INSCRICOES_COLLECTION)
+        .where('torneiId', '==', TOURNAMENT_ID)
+        .orderBy('criadoEm', 'desc')
+        .get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error loading registrations:', error);
+      return [];
+    }
+  },
+
+  async updateRegistration(id, data) {
+    if (!FIREBASE_CONFIGURED) {
+      const list = JSON.parse(localStorage.getItem(INSCRICOES_LOCAL_KEY) || '[]');
+      const idx = list.findIndex(r => r.id === id);
+      if (idx >= 0) Object.assign(list[idx], data);
+      localStorage.setItem(INSCRICOES_LOCAL_KEY, JSON.stringify(list));
+      return;
+    }
+
+    await firebase.firestore().collection(INSCRICOES_COLLECTION).doc(id).update(data);
+  },
+
   async loadAuditLog() {
     if (!FIREBASE_CONFIGURED) return [];
 
