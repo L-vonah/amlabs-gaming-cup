@@ -5,7 +5,7 @@
 
 const STATE_KEY = 'campeonato_amlabs_v1';
 const AUDIT_LOG_KEY = 'campeonato_amlabs_audit_v1';
-const POTES_KEY = 'campeonato_amlabs_potes_v1';
+const POTES_KEY = 'campeonato_amlabs_potes_v1'; // kept only for cleanup in resetState
 
 const DEFAULT_STATE = {
   campeonato: {
@@ -104,7 +104,6 @@ function saveState(state) {
  * Convert legacy localStorage state to DDD Firestore format.
  */
 function convertStateToFirestore(state) {
-  const potes = loadPotes();
   return {
     id: typeof TOURNAMENT_ID !== 'undefined' ? TOURNAMENT_ID : 'amlabs-2026',
     metadata: {
@@ -122,12 +121,7 @@ function convertStateToFirestore(state) {
         empate: state.config.pontosPorEmpate,
         derrota: state.config.pontosPorDerrota,
         criteriosDesempate: state.config.criteriosDesempate
-      },
-      vantagemFinal: {
-        tipo: 'potes',
-        descricao: 'Chave superior escolhe pote alto, inferior escolhe pote baixo'
-      },
-      potes: { alto: potes.superior || [], baixo: potes.inferior || [] }
+      }
     },
     times: state.times,
     faseGrupos: state.faseGrupos,
@@ -209,33 +203,6 @@ function loadAuditLog() {
     return raw ? JSON.parse(raw) : [];
   } catch (e) {
     return [];
-  }
-}
-
-// ------------------------------------------------------------------
-// Potes (team pools for Grand Final)
-// ------------------------------------------------------------------
-
-const DEFAULT_POTES = {
-  superior: [], // team ids in upper pool (Grand Final advantage)
-  inferior: []  // team ids in lower pool
-};
-
-function loadPotes() {
-  try {
-    const raw = localStorage.getItem(POTES_KEY);
-    return raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(DEFAULT_POTES));
-  } catch (e) {
-    return JSON.parse(JSON.stringify(DEFAULT_POTES));
-  }
-}
-
-function savePotes(potes) {
-  try {
-    localStorage.setItem(POTES_KEY, JSON.stringify(potes));
-    return true;
-  } catch (e) {
-    return false;
   }
 }
 
@@ -432,21 +399,38 @@ function calcularClassificacao(state) {
 // ------------------------------------------------------------------
 
 function calcularEstatisticas(state) {
-  const partidas = state.faseGrupos.partidas.filter(p => p.status === 'concluida');
-  const totalPartidas = partidas.length;
-  const totalGols = partidas.reduce((s, p) => s + p.golsA + p.golsB, 0);
+  const grupoPartidas = state.faseGrupos.partidas.filter(p => p.status === 'concluida');
+
+  // Collect playoff matches
+  const playoffPartidas = [];
+  if (state.playoffs && state.playoffs.status !== 'aguardando') {
+    const ub = state.playoffs.upperBracket;
+    const lb = state.playoffs.lowerBracket;
+    const gf = state.playoffs.grandFinal;
+    [ub.sf1, ub.sf2, ub.final, lb.sf, lb.final].forEach(m => {
+      if (m.vencedor) {
+        playoffPartidas.push({ timeA: m.timeA, timeB: m.timeB, golsA: m.golsA, golsB: m.golsB, rodada: 'playoff' });
+      }
+    });
+    if (gf.vencedor) {
+      playoffPartidas.push({ timeA: gf.timeUpper, timeB: gf.timeLower, golsA: gf.golsUpper, golsB: gf.golsLower, rodada: 'final' });
+    }
+  }
+
+  const allPartidas = [...grupoPartidas, ...playoffPartidas];
+  const totalPartidas = allPartidas.length;
+  const totalGols = allPartidas.reduce((s, p) => s + p.golsA + p.golsB, 0);
   const mediaGols = totalPartidas > 0 ? (totalGols / totalPartidas).toFixed(2) : 0;
-  const maiorGoleada = partidas.reduce((best, p) => {
+  const maiorGoleada = allPartidas.reduce((best, p) => {
     const diff = Math.abs(p.golsA - p.golsB);
     return diff > best.diff ? { diff, partida: p } : best;
   }, { diff: 0, partida: null });
 
-  // Top scorers per team (team total goals)
   const tabela = calcularClassificacao(state);
   const topGoleadores = [...tabela].sort((a, b) => b.golsMarcados - a.golsMarcados).slice(0, 5);
   const menosVazados = [...tabela].sort((a, b) => a.golsSofridos - b.golsSofridos).slice(0, 5);
 
-  return { totalPartidas, totalGols, mediaGols, maiorGoleada, topGoleadores, menosVazados };
+  return { totalPartidas, totalPartidasGrupos: grupoPartidas.length, totalPartidasPlayoffs: playoffPartidas.length, totalGols, mediaGols, maiorGoleada, topGoleadores, menosVazados };
 }
 
 // ------------------------------------------------------------------
@@ -606,8 +590,6 @@ window.AppState = {
   reset: resetState,
   addAuditLog,
   loadAuditLog,
-  loadPotes,
-  savePotes,
   addTime,
   removeTime,
   getTimeById,
