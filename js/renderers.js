@@ -137,8 +137,8 @@ function renderTimes() {
   // Update generate button state
   const genBtn = document.getElementById('btnGerarGrupos');
   if (genBtn) {
-    genBtn.disabled = state.times.length < 2 || state.campeonato.status !== 'configuracao';
-    genBtn.title = state.times.length < 2 ? 'Adicione pelo menos 2 times' : '';
+    genBtn.disabled = state.times.length < 5 || state.campeonato.status !== 'configuracao';
+    genBtn.title = state.times.length < 5 ? 'Minimo de 5 times para iniciar' : '';
   }
 }
 

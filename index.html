@@ -180,8 +180,8 @@
         <div class="card-body">
           <div style="display:flex;flex-direction:column;gap:16px">
             <div class="form-group">
-              <label class="form-label" for="inputInscParticipante">Quem vai jogar? (seu nome) *</label>
-              <input class="form-input" type="text" id="inputInscParticipante" placeholder="Seu nome ou apelido"
+              <label class="form-label" for="inputInscParticipante">Participante *</label>
+              <input class="form-input" type="text" id="inputInscParticipante" placeholder="Ex: Jo&atilde;o"
                 onkeydown="if(event.key==='Enter')submitPublicRegistration()">
             </div>
             <div class="form-group">
@@ -190,7 +190,7 @@
                 onkeydown="if(event.key==='Enter')submitPublicRegistration()">
             </div>
             <div class="form-group">
-              <label class="form-label" for="inputInscAbrev">Abrevia&ccedil;&atilde;o (3 letras)</label>
+              <label class="form-label" for="inputInscAbrev">Abrevia&ccedil;&atilde;o (1 a 3 letras)</label>
               <input class="form-input" type="text" id="inputInscAbrev" placeholder="Ex: SPF" maxlength="3"
                 style="text-transform:uppercase"
                 onkeydown="if(event.key==='Enter')submitPublicRegistration()">
@@ -200,6 +200,25 @@
               <div class="color-picker-wrapper">
                 <input type="color" id="inputInscCor" value="#6c5ce7">
                 <span style="font-size:.8rem;color:var(--color-text-muted)">Escolha a cor do escudo</span>
+              </div>
+              <div class="insc-color-presets" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+                <script>
+                  (function() {
+                    const presetContainer = document.currentScript.parentElement;
+                    document.addEventListener('DOMContentLoaded', () => {
+                    UI.PRESET_COLORS.forEach(c => {
+                      const btn = document.createElement('button');
+                      btn.style.cssText = 'width:22px;height:22px;border-radius:50%;background:' + c + ';border:2px solid transparent;cursor:pointer;transition:.15s';
+                      btn.onclick = () => {
+                        document.getElementById('inputInscCor').value = c;
+                        presetContainer.querySelectorAll('button').forEach(b => b.style.borderColor = 'transparent');
+                        btn.style.borderColor = '#fff';
+                      };
+                      presetContainer.appendChild(btn);
+                    });
+                  });
+                  })();
+                </script>
               </div>
             </div>
             <button class="btn btn-primary w-full" onclick="submitPublicRegistration()">Enviar Inscri&ccedil;&atilde;o</button>
@@ -254,7 +273,7 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label" for="inputAbrevTimo">Abrevia&ccedil;&atilde;o (3 letras)</label>
+              <label class="form-label" for="inputAbrevTimo">Abrevia&ccedil;&atilde;o (1 a 3 letras)</label>
               <input class="form-input" type="text" id="inputAbrevTimo" placeholder="Ex: SPF" maxlength="3"
                 style="text-transform:uppercase"
                 onkeydown="if(event.key==='Enter')submitAddTime()">

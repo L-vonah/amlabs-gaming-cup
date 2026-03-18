@@ -201,8 +201,8 @@ function gerarFaseGrupos() {
   if (typeof isAdmin === 'function' && !isAdmin()) { showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
   const state = AppState.load();
 
-  if (state.times.length < 2) {
-    UI.showToast('Adicione pelo menos 2 times para gerar o calendário.', 'error');
+  if (state.times.length < 5) {
+    UI.showToast('Minimo de 5 times para gerar a fase de grupos. Atualmente: ' + state.times.length + ' time' + (state.times.length !== 1 ? 's' : '') + '.', 'error');
     return;
   }
 
