@@ -484,6 +484,8 @@ function registrarResultadoPlayoff(state, matchId, golsA, golsB) {
   if (!match) return false;
   if (golsA === golsB) return false; // no draws in playoffs
 
+  _resetDownstreamPlayoff(state, matchId);
+
   match.golsA = golsA;
   match.golsB = golsB;
   match.vencedor = golsA > golsB ? match.timeA : match.timeB;
@@ -492,6 +494,47 @@ function registrarResultadoPlayoff(state, matchId, golsA, golsB) {
   // Cascade results through bracket
   _propagarResultadoPlayoff(state);
   return true;
+}
+
+function _resetDownstreamPlayoff(state, matchId) {
+  const ub = state.playoffs.upperBracket;
+  const lb = state.playoffs.lowerBracket;
+  const gf = state.playoffs.grandFinal;
+
+  function clearMatch(m) {
+    m.golsA = null; m.golsB = null;
+    m.vencedor = null; m.perdedor = null;
+  }
+  function clearGF() {
+    gf.golsUpper = null; gf.golsLower = null;
+    gf.vencedor = null; gf.timeUpper = null; gf.timeLower = null;
+  }
+
+  if (matchId === 'ub-sf1' || matchId === 'ub-sf2') {
+    clearMatch(ub.final); ub.final.timeA = null; ub.final.timeB = null;
+    clearMatch(lb.sf); lb.sf.timeA = null; lb.sf.timeB = null;
+    clearMatch(lb.final); lb.final.timeA = null; lb.final.timeB = null;
+    clearGF();
+  }
+  if (matchId === 'ub-final') {
+    // Keep lb.sf intact (it doesn't depend on UB final)
+    // But lb.final loser side changes, and GF upper side changes
+    clearMatch(lb.final); lb.final.timeB = null; // timeB was the UB final loser
+    clearGF();
+  }
+  if (matchId === 'lb-sf') {
+    clearMatch(lb.final); lb.final.timeA = null;
+    gf.timeLower = null; gf.golsLower = null; gf.golsUpper = null; gf.vencedor = null;
+  }
+  if (matchId === 'lb-final') {
+    gf.timeLower = null; gf.golsLower = null; gf.golsUpper = null; gf.vencedor = null;
+  }
+
+  // If we cleared the grand final winner, revert tournament status
+  if (gf.vencedor === null && state.campeonato.status === 'encerrado') {
+    state.campeonato.status = 'playoffs';
+    state.playoffs.status = 'andamento';
+  }
 }
 
 function _propagarResultadoPlayoff(state) {
@@ -537,6 +580,11 @@ function _propagarResultadoPlayoff(state) {
 function registrarResultadoGrandFinal(state, golsUpper, golsLower) {
   const gf = state.playoffs.grandFinal;
   if (!gf.timeUpper || !gf.timeLower) return false;
+
+  if (state.campeonato.status === 'encerrado') {
+    state.campeonato.status = 'playoffs';
+    state.playoffs.status = 'andamento';
+  }
   if (golsUpper === golsLower) return false; // no draw
 
   gf.golsUpper = golsUpper;
