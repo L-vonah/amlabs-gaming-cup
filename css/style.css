@@ -1049,8 +1049,6 @@ body {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: 24px;
-  overflow-wrap: break-word;
-  word-break: break-word;
 }
 
 .rule-card-header {
@@ -1079,20 +1077,22 @@ body {
 
 .rule-list {
   list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  display: block;
+  padding: 0;
+  margin: 0;
 }
 
 .rule-list li {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
   color: var(--color-text-muted);
   font-size: 0.875rem;
-  line-height: 1.6;
-  overflow-wrap: break-word;
-  word-break: break-word;
+  line-height: 1.7;
+  padding-left: 18px;
+  position: relative;
+  margin-bottom: 10px;
+}
+
+.rule-list li:last-child {
+  margin-bottom: 0;
 }
 
 .rule-list li::before {
@@ -1101,8 +1101,9 @@ body {
   height: 6px;
   border-radius: 50%;
   background: var(--color-primary);
-  flex-shrink: 0;
-  margin-top: 7px;
+  position: absolute;
+  left: 0;
+  top: 9px;
 }
 
 .highlight-box {
@@ -1492,80 +1493,127 @@ body {
 }
 
 @media (max-width: 768px) {
+  /* Layout */
   .main-content { padding: 16px 12px; }
-  .hero { padding: 32px 12px 24px; }
-  .hero-stats { gap: 20px; }
-  .hero-title { font-size: clamp(1.4rem, 5vw, 2.5rem); }
-  .hero-subtitle { font-size: 0.9rem; }
+  .manage-layout { grid-template-columns: 1fr !important; }
 
-  .header-inner {
-    padding: 0 12px;
-    gap: 8px;
-    height: 56px;
-  }
-
+  /* Header */
+  .header-inner { padding: 0 12px; gap: 8px; height: 52px; }
   .logo-text { font-size: 0.8rem; }
-  .logo-img { height: 26px; }
-
+  .logo-img { height: 24px; }
   .mobile-menu-toggle { display: block; }
   .header-badge { display: none; }
 
+  /* Mobile nav overlay */
   .main-nav {
     display: none;
     position: fixed;
-    top: 56px;
+    top: 52px;
     left: 0;
     right: 0;
     bottom: 0;
     background: var(--color-bg);
     flex-direction: column;
-    padding: 16px;
-    gap: 4px;
+    padding: 8px 12px 24px;
+    gap: 2px;
     z-index: 99;
     overflow-y: auto;
     border-top: 1px solid var(--color-border);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
   }
-
-  .main-nav.open {
-    display: flex;
-  }
-
+  .main-nav.open { display: flex; }
   .nav-link {
-    padding: 14px 16px;
+    padding: 16px;
     font-size: 1rem;
     border-radius: var(--radius);
     text-align: left;
     border-bottom: 1px solid var(--color-border);
   }
+  .nav-link.active {
+    background: var(--color-primary-glow);
+    border-left: 3px solid var(--color-primary);
+  }
 
-  .match-card { flex-wrap: wrap; }
-  .match-round-badge { min-width: auto; }
-  .match-teams { gap: 8px; }
-  .match-team { font-size: 0.8rem; }
+  /* Hero */
+  .hero { padding: 24px 12px 20px; }
+  .hero-title { font-size: 1.5rem; }
+  .hero-subtitle { font-size: 0.85rem; padding: 0 8px; }
+  .hero-stats { gap: 16px; }
+  .hero-stat-value { font-size: 1.5rem; }
+  .hero-stat-label { font-size: 0.65rem; }
+  .hero-actions { gap: 8px; }
+  .hero-actions .btn { font-size: 0.8rem; padding: 8px 14px; }
 
-  .manage-layout { grid-template-columns: 1fr !important; }
+  /* Lifecycle bar */
+  .lifecycle-bar {
+    padding: 10px 12px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 0;
+  }
+  .lifecycle-step-dot { width: 26px; height: 26px; font-size: 0.65rem; }
+  .lifecycle-step-label { font-size: 0.6rem; display: none; }
+  .lifecycle-step.active .lifecycle-step-label,
+  .lifecycle-step.done .lifecycle-step-label { display: block; }
+  .lifecycle-line { min-width: 20px; }
 
+  /* Section headers */
   .section-header { flex-direction: column; align-items: flex-start; gap: 8px; }
-  .section-title { font-size: 1.05rem; }
+  .section-title { font-size: 1rem; }
 
-  .lifecycle-bar { padding: 12px 16px; overflow-x: auto; }
-  .lifecycle-step-label { font-size: 0.7rem; }
+  /* Rules */
+  .rules-grid { grid-template-columns: 1fr; gap: 12px; }
+  .rule-card { padding: 16px; }
+  .rule-card-title { font-size: 0.9rem; }
+  .rule-list li { font-size: 0.82rem; }
+  .highlight-box { font-size: 0.8rem; padding: 10px 12px; }
 
-  .classification-table { font-size: 0.75rem; }
+  /* Tables */
+  .classification-table { font-size: 0.72rem; }
   .classification-table th,
-  .classification-table td { padding: 8px 6px; }
+  .classification-table td { padding: 6px 4px; }
+  .stat-pts { font-size: 0.85rem; }
+  .form-badges { gap: 2px; }
+  .form-badge { width: 16px; height: 16px; font-size: 0.55rem; }
+  .qualified-label { font-size: 0.55rem; padding: 1px 5px; }
 
+  /* Match cards */
+  .match-card { flex-wrap: wrap; padding: 12px; gap: 8px; }
+  .match-round-badge { min-width: auto; font-size: 0.6rem; }
+  .match-teams { gap: 6px; }
+  .match-team { font-size: 0.78rem; gap: 4px; }
+  .match-score { padding: 4px 10px; font-size: 0.95rem; }
+
+  /* Bracket */
   .bracket-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
-  .stat-card { padding: 14px; }
-  .stat-card-value { font-size: 1.5rem; }
+  /* Stats */
+  .stats-overview { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .stat-card { padding: 12px; }
+  .stat-card-value { font-size: 1.3rem; }
+  .stat-card-label { font-size: 0.65rem; }
 
-  .footer-inner { flex-direction: column; gap: 8px; text-align: center; }
-
-  .unified-score-row { grid-template-columns: 1fr; gap: 12px; text-align: center; }
-  .unified-team-side { justify-content: center; }
+  /* Forms */
+  .unified-score-row { grid-template-columns: 1fr; gap: 10px; text-align: center; }
+  .unified-team-side,
   .unified-team-side-right { justify-content: center; text-align: center; }
   .unified-score-inputs { justify-content: center; }
+  .score-input { width: 56px; font-size: 1.2rem; padding: 8px 4px; }
+
+  /* Cards */
+  .card-header { padding: 14px 16px 12px; }
+  .card-body { padding: 16px; }
+  .card-title { font-size: 0.9rem; }
+
+  /* Teams grid */
+  .teams-grid { grid-template-columns: 1fr; gap: 8px; }
+
+  /* Footer */
+  .footer-inner { flex-direction: column; gap: 8px; text-align: center; }
+
+  /* Audit log */
+  .audit-entry { padding: 12px 16px; }
+  .audit-meta { gap: 8px; }
 }
 
 /* =============================================
