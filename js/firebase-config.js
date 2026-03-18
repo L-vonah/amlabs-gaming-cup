@@ -4,12 +4,12 @@
  */
 
 const firebaseConfig = {
-  apiKey: "PLACEHOLDER",
-  authDomain: "PLACEHOLDER.firebaseapp.com",
-  projectId: "PLACEHOLDER",
-  storageBucket: "PLACEHOLDER.appspot.com",
-  messagingSenderId: "PLACEHOLDER",
-  appId: "PLACEHOLDER"
+  apiKey: "AIzaSyDvTVmgRVS_0u3-ThhXdUJRe4gkN9Ys3-o",
+  authDomain: "amlabs-gaming-cup-df736.firebaseapp.com",
+  projectId: "amlabs-gaming-cup-df736",
+  storageBucket: "amlabs-gaming-cup-df736.firebasestorage.app",
+  messagingSenderId: "554464614822",
+  appId: "1:554464614822:web:07647c72d6cb33be04d767"
 };
 
 // Detect if Firebase is configured (not placeholder)
