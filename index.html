@@ -804,8 +804,8 @@
         if (pm && pm.vencedor) { golsA = pm.golsA; golsB = pm.golsB; }
       }
     }
-    document.getElementById('modalScoreGolsA').value = golsA !== null ? golsA : '';
-    document.getElementById('modalScoreGolsB').value = golsB !== null ? golsB : '';
+    document.getElementById('modalScoreGolsA').value = golsA !== null ? golsA : 0;
+    document.getElementById('modalScoreGolsB').value = golsB !== null ? golsB : 0;
 
     UI.openModal('modalScore');
     setTimeout(() => document.getElementById('modalScoreGolsA').focus(), 100);
@@ -821,12 +821,6 @@
 
     if (isNaN(golsA) || isNaN(golsB) || golsA < 0 || golsB < 0) {
       UI.showToast('Informe placar valido.', 'error');
-      return;
-    }
-
-    const teamA = document.getElementById('modalScoreTeamA').textContent;
-    const teamB = document.getElementById('modalScoreTeamB').textContent;
-    if (!confirm('Confirma o resultado?\n\n' + teamA + ' ' + golsA + ' x ' + golsB + ' ' + teamB)) {
       return;
     }
 
