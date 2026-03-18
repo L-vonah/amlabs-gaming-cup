@@ -268,8 +268,9 @@
               <!-- Color presets -->
               <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
                 <script>
-                  document.addEventListener('DOMContentLoaded', () => {
+                  (function() {
                     const presetContainer = document.currentScript.parentElement;
+                    document.addEventListener('DOMContentLoaded', () => {
                     UI.PRESET_COLORS.forEach(c => {
                       const btn = document.createElement('button');
                       btn.style.cssText = `width:22px;height:22px;border-radius:50%;background:${c};border:2px solid transparent;cursor:pointer;transition:.15s`;
@@ -281,6 +282,7 @@
                       presetContainer.appendChild(btn);
                     });
                   });
+                  })();
                 </script>
               </div>
             </div>
