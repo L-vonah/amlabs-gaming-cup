@@ -30,7 +30,7 @@ Site estatico hospedado no GitHub Pages com autenticacao via Firebase (Google Lo
 GitHub Pages (site estatico)
   |
   +-- Firebase Auth (Google Login)
-  |     - Apenas dev.vonah@gmail.com pode editar
+  |     - Apenas vonah.dev@gmail.com pode editar
   |     - Visitantes veem tudo sem login
   |
   +-- Firebase Firestore (banco de dados)
@@ -130,7 +130,7 @@ URL: `https://L-vonah.github.io/amlabs-gaming-cup/`
 ### Administrador
 
 1. Clica no botao **Admin** no rodape
-2. Faz login com Google (dev.vonah@gmail.com)
+2. Faz login com Google (vonah.dev@gmail.com)
 3. Botoes de edicao aparecem:
    - Cadastrar/remover times
    - Gerar fase de grupos
