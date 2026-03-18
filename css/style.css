@@ -141,16 +141,23 @@ body {
 .main-nav {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   flex: 1;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.main-nav::-webkit-scrollbar {
+  display: none;
 }
 
 .nav-link {
-  padding: 8px 14px;
+  padding: 7px 11px;
   border-radius: var(--radius);
   text-decoration: none;
   color: var(--color-text-muted);
-  font-size: 0.875rem;
+  font-size: 0.82rem;
   font-weight: 500;
   transition: all var(--transition);
   white-space: nowrap;

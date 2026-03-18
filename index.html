@@ -28,7 +28,6 @@
       <button class="nav-link" data-nav="times" onclick="UI.navigateTo('times')">Times</button>
       <button class="nav-link" data-nav="classificacao" onclick="UI.navigateTo('classificacao')">Classifica&ccedil;&atilde;o</button>
       <button class="nav-link" data-nav="partidas" onclick="UI.navigateTo('partidas')">Partidas</button>
-      <button class="nav-link" data-nav="registrar" onclick="UI.navigateTo('registrar')">Resultados</button>
       <button class="nav-link" data-nav="bracket" onclick="UI.navigateTo('bracket')">Chaveamento</button>
       <button class="nav-link" data-nav="estatisticas" onclick="UI.navigateTo('estatisticas')">Estat&iacute;sticas</button>
       <button class="nav-link" data-nav="regras" onclick="UI.navigateTo('regras')">Regras</button>
@@ -604,10 +603,6 @@
         <span class="mobile-more-icon">&#128221;</span>
         <span>Inscri&ccedil;&otilde;es</span>
       </button>
-      <button class="mobile-more-item" data-nav="registrar" onclick="mobileNavigate('registrar')">
-        <span class="mobile-more-icon">&#9999;</span>
-        <span>Resultados</span>
-      </button>
       <button class="mobile-more-item" data-nav="estatisticas" onclick="mobileNavigate('estatisticas')">
         <span class="mobile-more-icon">&#128200;</span>
         <span>Estat&iacute;sticas</span>
@@ -632,6 +627,38 @@
         <span class="mobile-more-icon">&#128275;</span>
         <span>Sair</span>
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===============================================================
+     MODAL - SCORE
+     =============================================================== -->
+<div class="modal-overlay" id="modalScore">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <span class="modal-title" id="modalScoreTitle">Registrar Resultado</span>
+      <button class="btn-icon" onclick="UI.closeModal('modalScore')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="modalScoreMatchId">
+      <input type="hidden" id="modalScoreIsGrandFinal">
+      <div style="display:flex;align-items:center;justify-content:center;gap:16px;padding:12px 0">
+        <div style="text-align:center;flex:1">
+          <div style="font-weight:700;font-size:.95rem;margin-bottom:8px" id="modalScoreTeamA"></div>
+          <input type="number" id="modalScoreGolsA" min="0" max="99" value="0" class="score-input" style="width:64px;font-size:1.6rem;padding:10px">
+        </div>
+        <span style="font-size:1.2rem;font-weight:800;color:var(--color-text-dim)">x</span>
+        <div style="text-align:center;flex:1">
+          <div style="font-weight:700;font-size:.95rem;margin-bottom:8px" id="modalScoreTeamB"></div>
+          <input type="number" id="modalScoreGolsB" min="0" max="99" value="0" class="score-input" style="width:64px;font-size:1.6rem;padding:10px">
+        </div>
+      </div>
+      <p id="modalScoreHint" style="font-size:.75rem;color:var(--color-text-dim);text-align:center;margin-top:8px;display:none">Empates n&atilde;o permitidos nos playoffs.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="UI.closeModal('modalScore')">Cancelar</button>
+      <button class="btn btn-success" onclick="submitScoreModal()">Salvar</button>
     </div>
   </div>
 </div>
@@ -697,6 +724,104 @@
   // ------------------------------------------------------------------
   // App initialization
   // ------------------------------------------------------------------
+
+  // Partidas tab switching (grupos/playoffs)
+  function switchPartidaTab(tab) {
+    const g = document.getElementById('partidaTabGrupos');
+    const p = document.getElementById('partidaTabPlayoffs');
+    const bg = document.getElementById('tabPartGrupos');
+    const bp = document.getElementById('tabPartPlayoffs');
+    if (g) g.style.display = tab === 'grupos' ? 'block' : 'none';
+    if (p) p.style.display = tab === 'playoffs' ? 'block' : 'none';
+    if (bg) bg.classList.toggle('active', tab === 'grupos');
+    if (bp) bp.classList.toggle('active', tab === 'playoffs');
+  }
+
+  // Score modal
+  function openScoreModal(matchId, teamA, teamB, isGrandFinal) {
+    document.getElementById('modalScoreMatchId').value = matchId;
+    document.getElementById('modalScoreIsGrandFinal').value = isGrandFinal ? '1' : '0';
+    document.getElementById('modalScoreTeamA').textContent = teamA;
+    document.getElementById('modalScoreTeamB').textContent = teamB;
+    document.getElementById('modalScoreTitle').textContent = isGrandFinal ? 'Grande Final' : 'Registrar Resultado';
+    document.getElementById('modalScoreHint').style.display = (matchId.startsWith('rr_') || matchId.startsWith('insc')) ? 'none' : 'block';
+
+    // Pre-fill if match has existing score
+    const state = AppState.load();
+    let golsA = 0, golsB = 0;
+    if (isGrandFinal) {
+      golsA = state.playoffs.grandFinal.golsUpper || 0;
+      golsB = state.playoffs.grandFinal.golsLower || 0;
+    } else {
+      const grp = state.faseGrupos.partidas.find(p => p.id === matchId);
+      if (grp && grp.status === 'concluida') {
+        golsA = grp.golsA;
+        golsB = grp.golsB;
+      } else {
+        const ub = state.playoffs.upperBracket;
+        const lb = state.playoffs.lowerBracket;
+        const allP = [ub.sf1, ub.sf2, ub.final, lb.sf, lb.final];
+        const pm = allP.find(m => m.id === matchId);
+        if (pm && pm.vencedor) { golsA = pm.golsA; golsB = pm.golsB; }
+      }
+    }
+    document.getElementById('modalScoreGolsA').value = golsA;
+    document.getElementById('modalScoreGolsB').value = golsB;
+
+    UI.openModal('modalScore');
+    setTimeout(() => document.getElementById('modalScoreGolsA').focus(), 100);
+  }
+  window.openScoreModal = openScoreModal;
+  window.switchPartidaTab = switchPartidaTab;
+
+  function submitScoreModal() {
+    const matchId = document.getElementById('modalScoreMatchId').value;
+    const isGF = document.getElementById('modalScoreIsGrandFinal').value === '1';
+    const golsA = parseInt(document.getElementById('modalScoreGolsA').value);
+    const golsB = parseInt(document.getElementById('modalScoreGolsB').value);
+
+    if (isNaN(golsA) || isNaN(golsB) || golsA < 0 || golsB < 0) {
+      UI.showToast('Informe placar valido.', 'error');
+      return;
+    }
+
+    UI.closeModal('modalScore');
+
+    if (isGF) {
+      // Set values and call existing function
+      const elA = document.getElementById('gfGolsUpper');
+      const elB = document.getElementById('gfGolsLower');
+      if (elA) elA.value = golsA;
+      if (elB) elB.value = golsB;
+      saveGrandFinalResult();
+    } else {
+      // Check if it's a group stage or playoff match
+      const state = AppState.load();
+      const grp = state.faseGrupos.partidas.find(p => p.id === matchId);
+      if (grp) {
+        // Temporarily create inline elements for saveInlineResult
+        const tmpA = document.createElement('input'); tmpA.id = 'inline_golsA_' + matchId; tmpA.value = golsA;
+        const tmpB = document.createElement('input'); tmpB.id = 'inline_golsB_' + matchId; tmpB.value = golsB;
+        document.body.appendChild(tmpA);
+        document.body.appendChild(tmpB);
+        saveInlineResult(matchId);
+        tmpA.remove();
+        tmpB.remove();
+      } else {
+        const tmpA = document.createElement('input'); tmpA.id = 'playoff_golsA_' + matchId; tmpA.value = golsA;
+        const tmpB = document.createElement('input'); tmpB.id = 'playoff_golsB_' + matchId; tmpB.value = golsB;
+        document.body.appendChild(tmpA);
+        document.body.appendChild(tmpB);
+        savePlayoffResult(matchId);
+        tmpA.remove();
+        tmpB.remove();
+      }
+    }
+
+    // Refresh partidas page
+    setTimeout(() => Renderers.partidas(), 100);
+  }
+  window.submitScoreModal = submitScoreModal;
 
   function switchResultTab(tab) {
     document.getElementById('resultTabGrupos').style.display = tab === 'grupos' ? 'block' : 'none';
