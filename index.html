@@ -17,7 +17,7 @@
 <header class="site-header">
   <div class="header-inner">
     <a class="site-logo" onclick="UI.navigateTo('home')" style="cursor:pointer">
-      <span class="logo-icon">&#9917;</span>
+      <img src="assets/logo-amlabs.png" alt="AMLabs" class="logo-img">
       <span class="logo-text">FC Football <span>AMLabs</span> <span class="logo-year">2026</span></span>
     </a>
 
@@ -78,6 +78,7 @@
     <div id="championBanner" style="display:none"></div>
 
     <div class="hero">
+      <img src="assets/logo-amlabs.png" alt="AMLabs" class="hero-logo">
       <div class="hero-badge">1&ordf; Edi&ccedil;&atilde;o &bull; 2026</div>
       <h1 class="hero-title">1&ordm; Campeonato FC Football<br><span class="highlight">AMLabs 2026</span></h1>
       <p class="hero-subtitle">Fase de grupos todos contra todos + Playoffs com Dupla Elimina&ccedil;&atilde;o (Chave Superior &amp; Inferior)</p>
@@ -557,11 +558,36 @@
 <!-- ===============================================================
      TOAST CONTAINER
      =============================================================== -->
+<!-- ===============================================================
+     FOOTER
+     =============================================================== -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <span class="footer-text">AMLabs Gaming Cup 2026</span>
+    <div class="footer-admin">
+      <button id="adminLoginBtn" class="btn-admin-login" onclick="loginAdmin()">&#128274; Admin</button>
+      <div id="adminInfo" style="display:none" class="admin-info-bar">
+        <span class="admin-email"></span>
+        <button class="btn-admin-logout" onclick="logoutAdmin()">Sair</button>
+      </div>
+    </div>
+  </div>
+</footer>
+
 <div class="toast-container" id="toastContainer"></div>
 
 <!-- ===============================================================
      SCRIPTS
      =============================================================== -->
+<!-- Firebase SDKs (compat mode for simplicity) -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+
+<!-- App scripts (order matters) -->
+<script src="js/firebase-config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/firestore-service.js"></script>
 <script src="js/state.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/renderers.js"></script>
@@ -632,7 +658,22 @@
 
   // Boot
   document.addEventListener('DOMContentLoaded', () => {
+    initAuth();
     initNavFromHash();
+
+    // Start Firestore listener if configured
+    if (typeof FirestoreService !== 'undefined' && FirestoreService.isActive()) {
+      FirestoreService.startListener((data) => {
+        // When Firestore data updates, re-render active section
+        const active = document.querySelector('.nav-link.active');
+        if (active) {
+          const section = active.getAttribute('data-nav');
+          if (window.Renderers && window.Renderers[section]) {
+            window.Renderers[section]();
+          }
+        }
+      });
+    }
   });
 
   window.addEventListener('hashchange', () => {

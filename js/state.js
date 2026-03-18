@@ -73,11 +73,80 @@ function loadState() {
 function saveState(state) {
   try {
     localStorage.setItem(STATE_KEY, JSON.stringify(state));
+
+    // Sync to Firestore if configured and admin
+    if (typeof FirestoreService !== 'undefined' && FirestoreService.isActive() && typeof isAdmin === 'function' && isAdmin()) {
+      const firestoreData = convertStateToFirestore(state);
+      FirestoreService.saveTournament(firestoreData);
+    }
+
     return true;
   } catch (e) {
     console.error('Erro ao salvar estado:', e);
     return false;
   }
+}
+
+/**
+ * Convert legacy localStorage state to DDD Firestore format.
+ */
+function convertStateToFirestore(state) {
+  const potes = loadPotes();
+  return {
+    id: typeof TOURNAMENT_ID !== 'undefined' ? TOURNAMENT_ID : 'amlabs-2026',
+    metadata: {
+      nome: state.campeonato.nome,
+      jogo: 'FC Football',
+      ano: parseInt(state.campeonato.temporada) || 2026,
+      status: state.campeonato.status,
+      criadoEm: state._criadoEm || new Date().toISOString(),
+      atualizadoEm: new Date().toISOString()
+    },
+    config: {
+      formato: 'grupos+playoffs',
+      regrasClassificacao: {
+        vitoria: state.config.pontosPorVitoria,
+        empate: state.config.pontosPorEmpate,
+        derrota: state.config.pontosPorDerrota,
+        criteriosDesempate: state.config.criteriosDesempate
+      },
+      vantagemFinal: {
+        tipo: 'potes',
+        descricao: 'Chave superior escolhe pote alto, inferior escolhe pote baixo'
+      },
+      potes: { alto: potes.superior || [], baixo: potes.inferior || [] }
+    },
+    times: state.times,
+    faseGrupos: state.faseGrupos,
+    playoffs: state.playoffs,
+    campeao: state.playoffs.grandFinal.vencedor || null
+  };
+}
+
+/**
+ * Convert Firestore DDD format back to legacy state format.
+ */
+function convertFirestoreToState(data) {
+  if (!data) return null;
+  return {
+    campeonato: {
+      nome: data.metadata.nome,
+      edicao: 1,
+      temporada: String(data.metadata.ano),
+      status: data.metadata.status
+    },
+    config: {
+      pontosPorVitoria: data.config.regrasClassificacao.vitoria,
+      pontosPorEmpate: data.config.regrasClassificacao.empate,
+      pontosPorDerrota: data.config.regrasClassificacao.derrota,
+      classificadosPorGrupo: 4,
+      criteriosDesempate: data.config.regrasClassificacao.criteriosDesempate
+    },
+    times: data.times || [],
+    faseGrupos: data.faseGrupos || { status: 'aguardando', partidas: [] },
+    playoffs: data.playoffs || JSON.parse(JSON.stringify(DEFAULT_STATE.playoffs)),
+    _criadoEm: data.metadata.criadoEm
+  };
 }
 
 function resetState() {
@@ -104,13 +173,18 @@ function addAuditLog(usuario, acao, detalhes) {
     logs.push({
       id: 'log_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
       timestamp: new Date().toISOString(),
-      usuario: usuario || 'Anônimo',
+      usuario: usuario || 'Anonimo',
       acao,
       detalhes: detalhes || null
     });
     // Keep up to 500 entries
     if (logs.length > 500) logs.splice(0, logs.length - 500);
     localStorage.setItem(AUDIT_LOG_KEY, JSON.stringify(logs));
+
+    // Also write to Firestore if available
+    if (typeof FirestoreService !== 'undefined' && FirestoreService.isActive()) {
+      FirestoreService.addAuditLog(acao, detalhes);
+    }
   } catch (e) {
     console.error('Erro ao gravar log de auditoria:', e);
   }
@@ -452,5 +526,10 @@ window.AppState = {
   calcularEstatisticas,
   popularPlayoffs,
   registrarResultadoPlayoff,
-  registrarResultadoGrandFinal
+  registrarResultadoGrandFinal,
+  convertStateToFirestore,
+  convertFirestoreToState,
+  isFirestoreMode() {
+    return typeof FirestoreService !== 'undefined' && FirestoreService.isActive();
+  }
 };

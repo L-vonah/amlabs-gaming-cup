@@ -54,6 +54,7 @@ function getDeviceId() {
 // ------------------------------------------------------------------
 
 function submitAddTime() {
+  if (typeof isAdmin === 'function' && !isAdmin()) { showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
   const nome = UI.getFormValue('inputNomeTimo');
   let abrev = UI.getFormValue('inputAbrevTimo');
   const cor = document.getElementById('inputCorTimo') ? document.getElementById('inputCorTimo').value : UI.getRandomColor();
@@ -96,6 +97,7 @@ function submitAddTime() {
 }
 
 function deleteTime(id) {
+  if (typeof isAdmin === 'function' && !isAdmin()) { showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
   const state = AppState.load();
   const time = AppState.getTimeById(state, id);
   if (!time) return;
@@ -117,6 +119,7 @@ function deleteTime(id) {
 // ------------------------------------------------------------------
 
 function gerarFaseGrupos() {
+  if (typeof isAdmin === 'function' && !isAdmin()) { showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
   const state = AppState.load();
 
   if (state.times.length < 2) {
@@ -139,6 +142,7 @@ function gerarFaseGrupos() {
 }
 
 function iniciarPlayoffs() {
+  if (typeof isAdmin === 'function' && !isAdmin()) { showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
   const state = AppState.load();
 
   if (!canStartPlayoffs(state)) {
@@ -168,6 +172,7 @@ function iniciarPlayoffs() {
  * @param {string} partidaId
  */
 function saveInlineResult(partidaId) {
+  if (typeof isAdmin === 'function' && !isAdmin()) { showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
   const golsAEl = document.getElementById(`inline_golsA_${partidaId}`);
   const golsBEl = document.getElementById(`inline_golsB_${partidaId}`);
 
@@ -278,6 +283,7 @@ function saveResult() {
 // ------------------------------------------------------------------
 
 function savePlayoffResult(matchId) {
+  if (typeof isAdmin === 'function' && !isAdmin()) { showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
   const golsAEl = document.getElementById(`playoff_golsA_${matchId}`);
   const golsBEl = document.getElementById(`playoff_golsB_${matchId}`);
 
@@ -327,6 +333,7 @@ function savePlayoffResult(matchId) {
 }
 
 function saveGrandFinalResult() {
+  if (typeof isAdmin === 'function' && !isAdmin()) { showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
   const golsUpperEl = document.getElementById('gfGolsUpper');
   const golsLowerEl = document.getElementById('gfGolsLower');
 
@@ -375,6 +382,7 @@ function saveGrandFinalResult() {
 // ------------------------------------------------------------------
 
 function savePotesConfig() {
+  if (typeof isAdmin === 'function' && !isAdmin()) { showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
   const potes = AppState.loadPotes();
   const state = AppState.load();
 
@@ -406,6 +414,7 @@ function confirmReset() {
 }
 
 function executeReset() {
+  if (typeof isAdmin === 'function' && !isAdmin()) { showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
   AppState.reset();
   UI.closeModal('modalReset');
   UI.showToast('Campeonato resetado com sucesso.', 'info');

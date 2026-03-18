@@ -109,7 +109,7 @@ function renderTimes() {
         <div class="team-card-name">${t.nome}</div>
         <div class="team-card-abbr">${t.abreviacao}</div>
       </div>
-      <div class="team-card-actions">
+      <div class="team-card-actions admin-only">
         <button class="btn-icon" onclick="deleteTime('${t.id}')" title="Remover time">&#x2715;</button>
       </div>
     </div>`).join('');
