@@ -140,6 +140,8 @@ function renderTimes() {
     genBtn.disabled = state.times.length < 5 || state.campeonato.status !== 'configuracao';
     genBtn.title = state.times.length < 5 ? 'Minimo de 5 times para iniciar' : '';
   }
+
+  if (typeof updateAdminUI === 'function') updateAdminUI();
 }
 
 // ------------------------------------------------------------------

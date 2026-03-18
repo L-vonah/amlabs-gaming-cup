@@ -83,7 +83,7 @@ function submitAddTime() {
   if (typeof isAdmin === 'function' && !isAdmin()) { showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
   const participante = UI.getFormValue('inputPartTimo');
   const nome = UI.getFormValue('inputNomeTimo');
-  let abrev = UI.getFormValue('inputAbrevTimo');
+  let abrev = UI.getFormValue('inputAbrevTimo').replace(/[^A-Za-z]/g, '');
   const cor = document.getElementById('inputCorTimo') ? document.getElementById('inputCorTimo').value : UI.getRandomColor();
 
   if (!participante) {
@@ -167,7 +167,7 @@ function saveEditTeam() {
   const id = document.getElementById('editTeamId').value;
   const participante = document.getElementById('editTeamParticipante').value.trim();
   const nome = document.getElementById('editTeamNome').value.trim();
-  const abrev = document.getElementById('editTeamAbrev').value.trim().toUpperCase().slice(0, 3);
+  const abrev = document.getElementById('editTeamAbrev').value.trim().replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 3);
   const cor = document.getElementById('editTeamCor').value;
 
   if (!participante || !nome) {
@@ -456,7 +456,7 @@ function exportData() {
 async function submitPublicRegistration() {
   const participante = UI.getFormValue('inputInscParticipante');
   const nome = UI.getFormValue('inputInscNome');
-  let abrev = UI.getFormValue('inputInscAbrev');
+  let abrev = UI.getFormValue('inputInscAbrev').replace(/[^A-Za-z]/g, '');
   const cor = document.getElementById('inputInscCor')
     ? document.getElementById('inputInscCor').value
     : UI.getRandomColor();

@@ -212,7 +212,7 @@ function loadAuditLog() {
 
 function addTime(state, { nome, abreviacao, cor, participante }) {
   const id = 'time_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
-  const time = { id, nome, abreviacao: abreviacao.toUpperCase().slice(0, 3), cor, participante: participante || '' };
+  const time = { id, nome, abreviacao: abreviacao.replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 3), cor, participante: participante || '' };
   state.times.push(time);
   return time;
 }
