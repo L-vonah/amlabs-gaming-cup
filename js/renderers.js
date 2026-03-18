@@ -59,21 +59,40 @@ function renderHome() {
     }
   }
 
-  // Leader card
+  // Mini classification table (top 6)
   const leaderEl = document.getElementById('homeLeader');
   if (leaderEl) {
     if (tabela.length === 0) {
       leaderEl.innerHTML = '<div class="text-dim text-sm" style="padding:16px">Aguardando cadastro de times...</div>';
     } else {
-      const leader = tabela[0];
+      const top = tabela.slice(0, 6);
       leaderEl.innerHTML = `
-        <div style="display:flex;align-items:center;gap:16px;padding:20px 24px">
-          ${UI.renderAvatar(leader, 48)}
-          <div>
-            <div style="font-weight:800;font-size:1.1rem">${leader.nome}</div>
-            <div style="color:var(--color-text-muted);font-size:0.875rem">${leader.pontos} pts &bull; ${leader.vitorias}V ${leader.empates}E ${leader.derrotas}D</div>
-          </div>
-          <div style="margin-left:auto;font-size:2rem;font-weight:800;color:var(--color-champion)">1&deg;</div>
+        <div style="padding:0">
+          <table style="width:100%;border-collapse:collapse;font-size:.8rem">
+            <thead>
+              <tr style="border-bottom:1px solid var(--color-border)">
+                <th style="padding:10px 12px;text-align:left;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-dim)" colspan="2">Time</th>
+                <th style="padding:10px 6px;text-align:center;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-dim)">J</th>
+                <th style="padding:10px 6px;text-align:center;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-dim)">V</th>
+                <th style="padding:10px 6px;text-align:center;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-dim)">SG</th>
+                <th style="padding:10px 12px;text-align:center;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-dim)">Pts</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${top.map((t, i) => {
+                const isQ = i < 4;
+                return '<tr style="border-bottom:1px solid var(--color-border);' + (isQ ? 'border-left:2px solid var(--color-win)' : '') + '">' +
+                  '<td style="padding:8px 12px;color:var(--color-text-dim);font-weight:700;width:24px">' + (i + 1) + '</td>' +
+                  '<td style="padding:8px 4px"><div style="display:flex;align-items:center;gap:8px">' + UI.renderAvatar(t, 22) + '<span style="font-weight:600">' + t.nome + '</span></div></td>' +
+                  '<td style="padding:8px 6px;text-align:center;color:var(--color-text-muted)">' + t.jogos + '</td>' +
+                  '<td style="padding:8px 6px;text-align:center;color:var(--color-win);font-weight:700">' + t.vitorias + '</td>' +
+                  '<td style="padding:8px 6px;text-align:center;font-weight:700;color:' + (t.saldoGols > 0 ? 'var(--color-win)' : t.saldoGols < 0 ? 'var(--color-loss)' : 'var(--color-text-muted)') + '">' + UI.signedNumber(t.saldoGols) + '</td>' +
+                  '<td style="padding:8px 12px;text-align:center;font-weight:800;font-size:.9rem">' + t.pontos + '</td>' +
+                '</tr>';
+              }).join('')}
+            </tbody>
+          </table>
+          ${tabela.length > 6 ? '<div style="padding:8px 12px;text-align:center"><button class="btn btn-sm btn-secondary" onclick="UI.navigateTo(\'classificacao\')">Ver completa</button></div>' : ''}
         </div>`;
     }
   }
