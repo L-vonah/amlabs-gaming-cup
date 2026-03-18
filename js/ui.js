@@ -107,7 +107,7 @@ function navigateTo(section) {
 
 function getStatusLabel(status) {
   const map = {
-    configuracao: 'Configuração',
+    configuracao: 'Inscrição',
     grupos: 'Fase de Grupos',
     playoffs: 'Playoffs',
     encerrado: 'Encerrado'

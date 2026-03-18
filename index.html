@@ -35,7 +35,7 @@
     </nav>
 
     <div class="header-badge">
-      <span class="badge-status configuracao" id="headerStatusBadge">Configura&ccedil;&atilde;o</span>
+      <span class="badge-status configuracao" id="headerStatusBadge">Inscri&ccedil;&atilde;o</span>
     </div>
   </div>
 </header>
@@ -51,7 +51,7 @@
   <div class="lifecycle-bar" id="lifecycleBar">
     <div class="lifecycle-step active" data-step="configuracao">
       <div class="lifecycle-step-dot">1</div>
-      <span class="lifecycle-step-label">Configura&ccedil;&atilde;o</span>
+      <span class="lifecycle-step-label">Inscri&ccedil;&atilde;o</span>
     </div>
     <div class="lifecycle-line" data-after="configuracao"></div>
     <div class="lifecycle-step" data-step="grupos">
@@ -110,12 +110,12 @@
     </div>
 
     <div class="grid-2">
-      <!-- Leader -->
+      <!-- Classification -->
       <div class="card">
         <div class="card-header">
           <span class="card-title">
-            <span class="section-title-icon icon-bg-yellow">&#9733;</span>
-            L&iacute;der da Classifica&ccedil;&atilde;o
+            <span class="section-title-icon icon-bg-yellow">&#127942;</span>
+            Classifica&ccedil;&atilde;o
           </span>
         </div>
         <div id="homeLeader"></div>
@@ -134,8 +134,8 @@
       </div>
     </div>
 
-    <!-- Quick actions -->
-    <div class="card mt-24">
+    <!-- Quick actions (admin only) -->
+    <div class="card mt-24 admin-only">
       <div class="card-header">
         <span class="card-title">
           <span class="section-title-icon icon-bg-blue">&#9881;</span>
@@ -227,7 +227,7 @@
       <div>
         <div class="teams-grid" id="timesGrid"></div>
 
-        <div class="mt-24" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+        <div class="mt-24 admin-only" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
           <button class="btn btn-primary" id="btnGerarGrupos" onclick="gerarFaseGrupos()" disabled>
             Gerar Fase de Grupos
           </button>
@@ -235,8 +235,8 @@
         </div>
       </div>
 
-      <!-- Add team form -->
-      <div class="card" style="position:sticky;top:80px">
+      <!-- Add team form (admin only) -->
+      <div class="card admin-only" style="position:sticky;top:80px">
         <div class="card-header">
           <span class="card-title">Adicionar Time</span>
         </div>
@@ -307,7 +307,7 @@
       </h2>
       <div style="display:flex;gap:8px">
         <button class="btn btn-sm btn-secondary" onclick="renderClassificacao()">Atualizar</button>
-        <button class="btn btn-sm btn-primary" onclick="iniciarPlayoffs()" id="btnIniciarPlayoffs" style="display:none">Iniciar Playoffs</button>
+        <button class="btn btn-sm btn-primary admin-only" onclick="iniciarPlayoffs()" id="btnIniciarPlayoffs" style="display:none">Iniciar Playoffs</button>
       </div>
     </div>
 
