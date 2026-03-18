@@ -484,6 +484,8 @@ async function submitPublicRegistration() {
     cor
   });
 
+  AppState.addAuditLog(getDeviceId(), 'Solicitou inscricao: ' + nome, { abreviacao: abrev, cor });
+
   UI.clearForm('inputInscNome', 'inputInscAbrev');
   const colorInput = document.getElementById('inputInscCor');
   if (colorInput) colorInput.value = '#6c5ce7';

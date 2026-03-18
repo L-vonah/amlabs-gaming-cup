@@ -21,7 +21,8 @@
       <span class="logo-text">FC Football <span>AMLabs</span> <span class="logo-year">2026</span></span>
     </a>
 
-    <nav class="main-nav">
+    <button class="mobile-menu-toggle" id="mobileMenuToggle" onclick="toggleMobileMenu()">&#9776;</button>
+    <nav class="main-nav" id="mainNav">
       <button class="nav-link active" data-nav="home" onclick="UI.navigateTo('home')">In&iacute;cio</button>
       <button class="nav-link" data-nav="inscricoes" onclick="UI.navigateTo('inscricoes')">Inscri&ccedil;&otilde;es</button>
       <button class="nav-link" data-nav="times" onclick="UI.navigateTo('times')">Times</button>
@@ -545,23 +546,6 @@
 
     </div>
 
-    <!-- Potes configuration -->
-    <div class="card mt-24">
-      <div class="card-header">
-        <span class="card-title">
-          <span class="section-title-icon icon-bg-yellow">&#127922;</span>
-          Configura&ccedil;&atilde;o de Potes &mdash; Grande Final
-        </span>
-      </div>
-      <div class="card-body">
-        <p style="font-size:.875rem;color:var(--color-text-muted);margin-bottom:16px">
-          Defina quais times pertencem ao <strong style="color:var(--color-upper)">pote superior</strong> (dispon&iacute;veis para o campe&atilde;o da Chave Superior escolher) e quais pertencem ao <strong style="color:var(--color-lower)">pote inferior</strong> (dispon&iacute;veis para o campe&atilde;o da Chave Inferior). Deixe como "Nenhum" para times n&atilde;o definidos ainda.
-        </p>
-        <div id="potesConfigContainer">
-          <div class="text-dim text-sm">Carregando...</div>
-        </div>
-      </div>
-    </div>
   </section>
 
   <!-- ---------------------------------------------------------------
@@ -704,6 +688,28 @@
       UI.navigateTo('home');
     }
   }
+
+  // Mobile menu
+  function toggleMobileMenu() {
+    const nav = document.getElementById('mainNav');
+    const btn = document.getElementById('mobileMenuToggle');
+    nav.classList.toggle('open');
+    btn.textContent = nav.classList.contains('open') ? '\u2715' : '\u2630';
+  }
+
+  function closeMobileMenu() {
+    const nav = document.getElementById('mainNav');
+    const btn = document.getElementById('mobileMenuToggle');
+    if (nav) nav.classList.remove('open');
+    if (btn) btn.textContent = '\u2630';
+  }
+
+  // Close mobile menu when navigating
+  const _origNavigateTo = UI.navigateTo;
+  UI.navigateTo = function(section) {
+    closeMobileMenu();
+    _origNavigateTo(section);
+  };
 
   // Boot
   document.addEventListener('DOMContentLoaded', () => {
