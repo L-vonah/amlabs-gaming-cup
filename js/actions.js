@@ -251,6 +251,11 @@ function saveInlineResult(partidaId) {
     return;
   }
 
+  if (golsA > 99 || golsB > 99) {
+    UI.showToast('Placar maximo permitido: 99.', 'error');
+    return;
+  }
+
   const state = AppState.load();
   const partida = state.faseGrupos.partidas.find(p => p.id === partidaId);
 
@@ -307,6 +312,11 @@ function savePlayoffResult(matchId) {
     return;
   }
 
+  if (golsA > 99 || golsB > 99) {
+    UI.showToast('Placar maximo permitido: 99.', 'error');
+    return;
+  }
+
   if (golsA === golsB) {
     UI.showToast('Empates não são permitidos nos playoffs. Defina o vencedor por prorrogação ou pênaltis.', 'error');
     return;
@@ -350,6 +360,11 @@ function saveGrandFinalResult() {
 
   if (isNaN(golsUpper) || isNaN(golsLower) || golsUpper < 0 || golsLower < 0) {
     UI.showToast('Informe placar válido.', 'error');
+    return;
+  }
+
+  if (golsUpper > 99 || golsLower > 99) {
+    UI.showToast('Placar maximo permitido: 99.', 'error');
     return;
   }
 

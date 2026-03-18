@@ -665,12 +665,12 @@
       <div style="display:flex;align-items:center;justify-content:center;gap:16px;padding:12px 0">
         <div style="text-align:center;flex:1">
           <div style="font-weight:700;font-size:.95rem;margin-bottom:8px" id="modalScoreTeamA"></div>
-          <input type="number" id="modalScoreGolsA" min="0" max="99" value="0" class="score-input" style="width:64px;font-size:1.6rem;padding:10px">
+          <input type="number" id="modalScoreGolsA" min="0" max="99" value="" placeholder="0" class="score-input" style="width:64px;font-size:1.6rem;padding:10px">
         </div>
         <span style="font-size:1.2rem;font-weight:800;color:var(--color-text-dim)">x</span>
         <div style="text-align:center;flex:1">
           <div style="font-weight:700;font-size:.95rem;margin-bottom:8px" id="modalScoreTeamB"></div>
-          <input type="number" id="modalScoreGolsB" min="0" max="99" value="0" class="score-input" style="width:64px;font-size:1.6rem;padding:10px">
+          <input type="number" id="modalScoreGolsB" min="0" max="99" value="" placeholder="0" class="score-input" style="width:64px;font-size:1.6rem;padding:10px">
         </div>
       </div>
       <p id="modalScoreHint" style="font-size:.75rem;color:var(--color-text-dim);text-align:center;margin-top:8px;display:none">Empates n&atilde;o permitidos nos playoffs.</p>
@@ -765,12 +765,12 @@
     document.getElementById('modalScoreTitle').textContent = isGrandFinal ? 'Grande Final' : 'Registrar Resultado';
     document.getElementById('modalScoreHint').style.display = (matchId.startsWith('rr_') || matchId.startsWith('insc')) ? 'none' : 'block';
 
-    // Pre-fill if match has existing score
+    // Pre-fill if match has an existing concluded score; leave empty for new matches
     const state = AppState.load();
-    let golsA = 0, golsB = 0;
+    let golsA = null, golsB = null;
     if (isGrandFinal) {
-      golsA = state.playoffs.grandFinal.golsUpper || 0;
-      golsB = state.playoffs.grandFinal.golsLower || 0;
+      const gf = state.playoffs.grandFinal;
+      if (gf.vencedor) { golsA = gf.golsUpper; golsB = gf.golsLower; }
     } else {
       const grp = state.faseGrupos.partidas.find(p => p.id === matchId);
       if (grp && grp.status === 'concluida') {
@@ -784,8 +784,8 @@
         if (pm && pm.vencedor) { golsA = pm.golsA; golsB = pm.golsB; }
       }
     }
-    document.getElementById('modalScoreGolsA').value = golsA;
-    document.getElementById('modalScoreGolsB').value = golsB;
+    document.getElementById('modalScoreGolsA').value = golsA !== null ? golsA : '';
+    document.getElementById('modalScoreGolsB').value = golsB !== null ? golsB : '';
 
     UI.openModal('modalScore');
     setTimeout(() => document.getElementById('modalScoreGolsA').focus(), 100);
@@ -801,6 +801,12 @@
 
     if (isNaN(golsA) || isNaN(golsB) || golsA < 0 || golsB < 0) {
       UI.showToast('Informe placar valido.', 'error');
+      return;
+    }
+
+    const teamA = document.getElementById('modalScoreTeamA').textContent;
+    const teamB = document.getElementById('modalScoreTeamB').textContent;
+    if (!confirm('Confirma o resultado?\n\n' + teamA + ' ' + golsA + ' x ' + golsB + ' ' + teamB)) {
       return;
     }
 
