@@ -441,6 +441,116 @@ function exportData() {
   UI.showToast('Dados exportados!', 'success');
 }
 
+// ------------------------------------------------------------------
+// Public Registration
+// ------------------------------------------------------------------
+
+async function submitPublicRegistration() {
+  const nome = UI.getFormValue('inputInscNome');
+  let abrev = UI.getFormValue('inputInscAbrev');
+  const cor = document.getElementById('inputInscCor')
+    ? document.getElementById('inputInscCor').value
+    : UI.getRandomColor();
+
+  if (!nome) {
+    UI.showToast('Informe o nome do time.', 'error');
+    return;
+  }
+  if (!abrev) {
+    abrev = nome.replace(/[aeiouAEIOU\s]/g, '').slice(0, 3).toUpperCase()
+      || nome.slice(0, 3).toUpperCase();
+  }
+
+  const state = AppState.load();
+  if (state.campeonato.status !== 'configuracao') {
+    UI.showToast('Inscricoes encerradas. O campeonato ja comecou.', 'error');
+    return;
+  }
+
+  // Check duplicates
+  const registrations = await FirestoreService.loadRegistrations();
+  const allNames = [
+    ...state.times.map(t => t.nome.toLowerCase()),
+    ...registrations.filter(r => r.status === 'pendente').map(r => r.nome.toLowerCase())
+  ];
+  if (allNames.includes(nome.toLowerCase())) {
+    UI.showToast('Ja existe um time ou solicitacao com esse nome.', 'error');
+    return;
+  }
+
+  await FirestoreService.submitRegistration({
+    nome,
+    abreviacao: abrev.toUpperCase().slice(0, 4),
+    cor
+  });
+
+  UI.clearForm('inputInscNome', 'inputInscAbrev');
+  const colorInput = document.getElementById('inputInscCor');
+  if (colorInput) colorInput.value = '#6c5ce7';
+
+  UI.showToast('Solicitacao enviada! Aguarde aprovacao do administrador.', 'success');
+  Renderers.inscricoes();
+}
+
+async function approveRegistration(id) {
+  if (typeof isAdmin === 'function' && !isAdmin()) {
+    UI.showToast('Apenas o admin pode aprovar.', 'error');
+    return;
+  }
+
+  const registrations = await FirestoreService.loadRegistrations();
+  const reg = registrations.find(r => r.id === id);
+  if (!reg) return;
+
+  const state = AppState.load();
+  AppState.addTime(state, { nome: reg.nome, abreviacao: reg.abreviacao, cor: reg.cor });
+  AppState.save(state);
+
+  await FirestoreService.updateRegistration(id, {
+    status: 'aprovado',
+    resolvidoEm: new Date().toISOString(),
+    resolvidoPor: currentUser ? currentUser.email : 'admin'
+  });
+
+  AppState.addAuditLog(
+    currentUser ? currentUser.email : getDeviceId(),
+    'Aprovou inscricao: ' + reg.nome
+  );
+
+  UI.showToast('Time "' + reg.nome + '" aprovado e adicionado!', 'success');
+  Renderers.inscricoes();
+  Renderers.times();
+}
+
+async function rejectRegistration(id) {
+  if (typeof isAdmin === 'function' && !isAdmin()) {
+    UI.showToast('Apenas o admin pode rejeitar.', 'error');
+    return;
+  }
+
+  const registrations = await FirestoreService.loadRegistrations();
+  const reg = registrations.find(r => r.id === id);
+  if (!reg) return;
+
+  await FirestoreService.updateRegistration(id, {
+    status: 'rejeitado',
+    resolvidoEm: new Date().toISOString(),
+    resolvidoPor: currentUser ? currentUser.email : 'admin'
+  });
+
+  AppState.addAuditLog(
+    currentUser ? currentUser.email : getDeviceId(),
+    'Rejeitou inscricao: ' + reg.nome
+  );
+
+  UI.showToast('Inscricao de "' + reg.nome + '" rejeitada.', 'info');
+  Renderers.inscricoes();
+}
+
+// ------------------------------------------------------------------
+// Import / Export
+// ------------------------------------------------------------------
+
 function importData(event) {
   const file = event.target.files[0];
   if (!file) return;
