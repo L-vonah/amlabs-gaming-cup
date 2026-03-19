@@ -1873,7 +1873,7 @@ body {
    ============================================= */
 
 /* Desktop: show text buttons, hide round buttons */
-.match-action-mobile { display: none; }
+.match-action-mobile { display: none !important; }
 .match-action-desktop { display: inline-flex; }
 
 @media (max-width: 768px) {
