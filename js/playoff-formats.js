@@ -360,8 +360,8 @@ const FORMAT_PLAY_IN_6 = {
     return {
       'ub-qf1': _newMatch('ub-qf1', 'Quartas da Chave Superior 1', '3º vs 6º'),
       'ub-qf2': _newMatch('ub-qf2', 'Quartas da Chave Superior 2', '4º vs 5º'),
-      'ub-sf1': _newMatch('ub-sf1', 'Semifinal da Chave Superior 1', '1º vs Venc. QF1'),
-      'ub-sf2': _newMatch('ub-sf2', 'Semifinal da Chave Superior 2', '2º vs Venc. QF2'),
+      'ub-sf1': _newMatch('ub-sf1', 'Semifinal da Chave Superior 1', '1º vs Venc. QF2'),
+      'ub-sf2': _newMatch('ub-sf2', 'Semifinal da Chave Superior 2', '2º vs Venc. QF1'),
       'ub-final': _newMatch('ub-final', 'Final da Chave Superior', 'Final Superior'),
       'lb-qf1': _newMatch('lb-qf1', 'Quartas da Chave Inferior 1', 'Perd. SF1 vs Perd. QF(3v6)'),
       'lb-qf2': _newMatch('lb-qf2', 'Quartas da Chave Inferior 2', 'Perd. SF2 vs Perd. QF(4v5)'),
@@ -393,9 +393,9 @@ const FORMAT_PLAY_IN_6 = {
     const lbFinal = matches['lb-final'];
     const gf = matches['grand-final'];
 
-    // UB QF winners → UB SF (QF1→SF1, QF2→SF2 so LB crossing is visually clear)
-    if (ubQf1.vencedor) ubSf1.timeB = ubQf1.vencedor;  // 1st vs W(3v6)
-    if (ubQf2.vencedor) ubSf2.timeB = ubQf2.vencedor;  // 2nd vs W(4v5)
+    // UB QF winners → UB SF (timeB, since timeA is the bye seed)
+    if (ubQf2.vencedor) ubSf1.timeB = ubQf2.vencedor;  // 1st vs W(4v5)
+    if (ubQf1.vencedor) ubSf2.timeB = ubQf1.vencedor;  // 2nd vs W(3v6)
 
     // UB SF winners → UB Final
     if (ubSf1.vencedor && ubSf2.vencedor) {
@@ -403,14 +403,14 @@ const FORMAT_PLAY_IN_6 = {
       ubFinal.timeB = ubSf2.vencedor;
     }
 
-    // LB QF: crossed — SF1 loser vs QF2 loser, SF2 loser vs QF1 loser (avoids rematch)
-    if (ubSf1.perdedor && ubQf2.perdedor) {
+    // LB QF: crossed — SF loser vs QF loser from opposite side
+    if (ubSf1.perdedor && ubQf1.perdedor) {
       lbQf1.timeA = ubSf1.perdedor;
-      lbQf1.timeB = ubQf2.perdedor;  // SF1 loser vs QF2 loser (crossed)
+      lbQf1.timeB = ubQf1.perdedor;  // SF1 loser vs QF1 loser (3v6 side)
     }
-    if (ubSf2.perdedor && ubQf1.perdedor) {
+    if (ubSf2.perdedor && ubQf2.perdedor) {
       lbQf2.timeA = ubSf2.perdedor;
-      lbQf2.timeB = ubQf1.perdedor;  // SF2 loser vs QF1 loser (crossed)
+      lbQf2.timeB = ubQf2.perdedor;  // SF2 loser vs QF2 loser (4v5 side)
     }
 
     // LB SF: QF winners
@@ -441,20 +441,20 @@ const FORMAT_PLAY_IN_6 = {
     const gf = matches['grand-final'];
 
     if (matchId === 'ub-qf1') {
-      ubSf1.timeB = null; _clearMatch(ubSf1);  // QF1 feeds SF1
+      ubSf2.timeB = null; _clearMatch(ubSf2);
       _clearMatchFull(ubFinal);
-      _clearMatchFull(lbQf1); _clearMatchFull(lbQf2);  // QF1 loser goes to LB QF2 (crossed)
+      _clearMatchFull(lbQf1); _clearMatchFull(lbQf2);
       _clearMatchFull(lbSf); _clearMatchFull(lbFinal); _clearMatchFull(gf);
     }
     if (matchId === 'ub-qf2') {
-      ubSf2.timeB = null; _clearMatch(ubSf2);  // QF2 feeds SF2
+      ubSf1.timeB = null; _clearMatch(ubSf1);
       _clearMatchFull(ubFinal);
-      _clearMatchFull(lbQf1); _clearMatchFull(lbQf2);  // QF2 loser goes to LB QF1 (crossed)
+      _clearMatchFull(lbQf1); _clearMatchFull(lbQf2);
       _clearMatchFull(lbSf); _clearMatchFull(lbFinal); _clearMatchFull(gf);
     }
     if (matchId === 'ub-sf1') {
       _clearMatchFull(ubFinal);
-      _clearMatchFull(lbQf1);  // SF1 loser goes to LB QF1
+      _clearMatchFull(lbQf1);
       _clearMatchFull(lbSf); _clearMatchFull(lbFinal); _clearMatchFull(gf);
     }
     if (matchId === 'ub-sf2') {
@@ -516,8 +516,8 @@ const FORMAT_PLAY_IN_6 = {
         { slotA: '4º Colocado', slotB: '5º Colocado' }
       ], note: '1º e 2º não jogam nesta fase' },
       { name: 'Semifinal', matches: [
-        { slotA: '1º Colocado (BYE)', slotB: 'Vencedor QF1 (3º vs 6º)' },
-        { slotA: '2º Colocado (BYE)', slotB: 'Vencedor QF2 (4º vs 5º)' }
+        { slotA: '1º Colocado (BYE)', slotB: 'Vencedor (4º vs 5º)' },
+        { slotA: '2º Colocado (BYE)', slotB: 'Vencedor (3º vs 6º)' }
       ]},
       { name: 'Final Superior', matches: [
         { slotA: 'Vencedor Semi 1', slotB: 'Vencedor Semi 2' }
@@ -525,8 +525,8 @@ const FORMAT_PLAY_IN_6 = {
     ]},
     { section: 'lower', title: 'Chave Inferior — Cruzada', phases: [
       { name: 'Quartas Cruzadas', matches: [
-        { slotA: 'Perdedor UB SF1', slotB: 'Perdedor UB QF2 (4º vs 5º)' },
-        { slotA: 'Perdedor UB SF2', slotB: 'Perdedor UB QF1 (3º vs 6º)' }
+        { slotA: 'Perdedor UB SF1', slotB: 'Perdedor UB QF (3ºvs6º)' },
+        { slotA: 'Perdedor UB SF2', slotB: 'Perdedor UB QF (4ºvs5º)' }
       ], note: 'Cruzamento invertido: evita rematch imediato' },
       { name: 'Semifinal Inferior', matches: [
         { slotA: 'Vencedor LB QF 1', slotB: 'Vencedor LB QF 2' }
@@ -602,8 +602,8 @@ const FORMAT_PLAY_IN_6 = {
         ${_connector(64)}
         <div style="display:flex;flex-direction:column;gap:16px">
           ${_phaseHeader('Semifinal')}
-          ${_matchHTML(state, m, 'ub-sf1', 'upper', '1º Colocado (BYE)', 'Venc. QF1 (3º vs 6º)')}
-          ${_matchHTML(state, m, 'ub-sf2', 'upper', '2º Colocado (BYE)', 'Venc. QF2 (4º vs 5º)')}
+          ${_matchHTML(state, m, 'ub-sf1', 'upper', '1º Colocado (BYE)', 'Venc. QF (4º vs 5º)')}
+          ${_matchHTML(state, m, 'ub-sf2', 'upper', '2º Colocado (BYE)', 'Venc. QF (3º vs 6º)')}
         </div>
         ${_connector(48)}
         <div style="display:flex;flex-direction:column;justify-content:center">
@@ -621,8 +621,8 @@ const FORMAT_PLAY_IN_6 = {
       <div style="display:grid;grid-template-columns:1fr 36px 1fr 36px 1fr;gap:0;align-items:center;min-width:700px;max-width:900px;margin-bottom:16px">
         <div style="display:flex;flex-direction:column;gap:16px">
           ${_phaseHeader('Quartas de Final')}
-          ${_matchHTML(state, m, 'lb-qf1', 'lower', 'Perdedor UB SF1', 'Perdedor UB QF2')}
-          ${_matchHTML(state, m, 'lb-qf2', 'lower', 'Perdedor UB SF2', 'Perdedor UB QF1')}
+          ${_matchHTML(state, m, 'lb-qf1', 'lower', 'Perdedor UB SF1', 'Perdedor UB QF1')}
+          ${_matchHTML(state, m, 'lb-qf2', 'lower', 'Perdedor UB SF2', 'Perdedor UB QF2')}
         </div>
         ${_connector(44)}
         <div>
