@@ -760,8 +760,10 @@ async function renderHistorico() {
     return;
   }
 
-  // Show newest first
-  const sorted = [...logs].reverse();
+  // Show newest first (Firestore already returns desc; localStorage needs reverse)
+  const sorted = typeof FirestoreService !== 'undefined' && FirestoreService.isActive()
+    ? logs
+    : [...logs].reverse();
 
   container.innerHTML = `
     <div class="audit-log">

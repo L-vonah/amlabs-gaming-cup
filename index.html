@@ -137,14 +137,15 @@
           A&ccedil;&otilde;es R&aacute;pidas
         </span>
       </div>
-      <div class="card-body" style="display:flex;gap:12px;flex-wrap:wrap">
+      <div class="card-body quick-actions-grid">
         <button class="btn btn-primary" onclick="UI.navigateTo('times');setTimeout(()=>document.getElementById('inputNomeTimo').focus(),100)">+ Adicionar Time</button>
         <button class="btn btn-secondary" onclick="exportData()">Exportar Dados</button>
         <label class="btn btn-secondary" style="cursor:pointer">
           Importar Dados
           <input type="file" accept=".json" onchange="importData(event)" style="display:none">
         </label>
-        <button class="btn btn-danger btn-sm" onclick="confirmReset()" style="margin-left:auto">Reset Campeonato</button>
+        <div class="quick-actions-separator"></div>
+        <button class="btn btn-danger btn-sm" onclick="confirmReset()">Reset Campeonato</button>
       </div>
     </div>
   </section>

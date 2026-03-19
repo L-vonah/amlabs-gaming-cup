@@ -185,7 +185,7 @@ const FirestoreService = {
       const snapshot = await firebase.firestore()
         .collection(AUDIT_COLLECTION)
         .where('torneiId', '==', TOURNAMENT_ID)
-        .orderBy('timestamp', 'asc')
+        .orderBy('timestamp', 'desc')
         .get();
       return snapshot.docs.map(doc => {
         const d = doc.data();
