@@ -193,6 +193,13 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+/**
+ * Centralized admin check — avoids repeating typeof guard everywhere.
+ */
+function checkAdmin() {
+  return typeof isAdmin === 'function' && isAdmin();
+}
+
 window.UI = {
   getRandomColor,
   renderAvatar,
@@ -208,5 +215,6 @@ window.UI = {
   scoreClass,
   getStatusLabel,
   escapeHtml,
+  checkAdmin,
   PRESET_COLORS
 };

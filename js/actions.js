@@ -80,18 +80,26 @@ function setLoading(btn, loading) {
 // ------------------------------------------------------------------
 
 function submitAddTime() {
-  if (typeof isAdmin === 'function' && !isAdmin()) { UI.showToast('Voc\u00ea precisa estar logado como admin para editar.', 'error'); return; }
+  if (!UI.checkAdmin()) { UI.showToast('Voc\u00ea precisa estar logado como admin para editar.', 'error'); return; }
   const participante = UI.getFormValue('inputPartTimo');
   const nome = UI.getFormValue('inputNomeTimo');
   let abrev = UI.getFormValue('inputAbrevTimo').replace(/[^A-Za-z]/g, '');
   const cor = document.getElementById('inputCorTimo') ? document.getElementById('inputCorTimo').value : UI.getRandomColor();
 
+  // Clear previous error highlights
+  const elPart = document.getElementById('inputPartTimo');
+  const elNome = document.getElementById('inputNomeTimo');
+  if (elPart) elPart.style.borderColor = '';
+  if (elNome) elNome.style.borderColor = '';
+
   if (!participante) {
+    if (elPart) elPart.style.borderColor = 'var(--color-loss)';
     UI.showToast('Informe o nome do participante.', 'error');
     return;
   }
 
   if (!nome) {
+    if (elNome) elNome.style.borderColor = 'var(--color-loss)';
     UI.showToast('Informe o nome do time.', 'error');
     return;
   }
@@ -127,7 +135,7 @@ function submitAddTime() {
   UI.clearForm('inputPartTimo', 'inputNomeTimo', 'inputAbrevTimo');
   // Reset color to a new random color
   const colorInput = document.getElementById('inputCorTimo');
-  if (colorInput) colorInput.value = (typeof randomColor === 'function') ? randomColor() : '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+  if (colorInput) colorInput.value = UI.getRandomColor();
 
   const msg = novasPartidas > 0
     ? `Time "${nome}" adicionado! ${novasPartidas} partidas geradas.`
@@ -138,7 +146,7 @@ function submitAddTime() {
 }
 
 function deleteTime(id) {
-  if (typeof isAdmin === 'function' && !isAdmin()) { UI.showToast('Voc\u00ea precisa estar logado como admin para editar.', 'error'); return; }
+  if (!UI.checkAdmin()) { UI.showToast('Voc\u00ea precisa estar logado como admin para editar.', 'error'); return; }
   const state = AppState.load();
   const time = AppState.getTimeById(state, id);
   if (!time) return;
@@ -160,7 +168,7 @@ function deleteTime(id) {
 // ------------------------------------------------------------------
 
 function openEditTeamModal(id) {
-  if (typeof isAdmin === 'function' && !isAdmin()) { UI.showToast('Apenas o admin pode editar.', 'error'); return; }
+  if (!UI.checkAdmin()) { UI.showToast('Apenas o admin pode editar.', 'error'); return; }
   const state = AppState.load();
   const time = AppState.getTimeById(state, id);
   if (!time) return;
@@ -175,15 +183,22 @@ function openEditTeamModal(id) {
 window.openEditTeamModal = openEditTeamModal;
 
 function saveEditTeam() {
-  if (typeof isAdmin === 'function' && !isAdmin()) return;
+  if (!UI.checkAdmin()) return;
   const id = document.getElementById('editTeamId').value;
   const participante = document.getElementById('editTeamParticipante').value.trim();
   const nome = document.getElementById('editTeamNome').value.trim();
   const abrev = document.getElementById('editTeamAbrev').value.trim().replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 3);
   const cor = document.getElementById('editTeamCor').value;
 
+  const inputPart = document.getElementById('editTeamParticipante');
+  const inputNome = document.getElementById('editTeamNome');
+  inputPart.style.borderColor = '';
+  inputNome.style.borderColor = '';
+
   if (!participante || !nome) {
-    UI.showToast('Participante e nome do time sao obrigatorios.', 'error');
+    if (!participante) inputPart.style.borderColor = 'var(--color-loss)';
+    if (!nome) inputNome.style.borderColor = 'var(--color-loss)';
+    UI.showToast('Participante e nome do time s\u00e3o obrigat\u00f3rios.', 'error');
     return;
   }
 
@@ -210,7 +225,7 @@ window.saveEditTeam = saveEditTeam;
 // ------------------------------------------------------------------
 
 function gerarFaseGrupos() {
-  if (typeof isAdmin === 'function' && !isAdmin()) { UI.showToast('Voc\u00ea precisa estar logado como admin para editar.', 'error'); return; }
+  if (!UI.checkAdmin()) { UI.showToast('Voc\u00ea precisa estar logado como admin para editar.', 'error'); return; }
   const state = AppState.load();
 
   if (state.times.length < 5) {
@@ -233,7 +248,7 @@ function gerarFaseGrupos() {
 }
 
 function iniciarPlayoffs() {
-  if (typeof isAdmin === 'function' && !isAdmin()) { UI.showToast('Voc\u00ea precisa estar logado como admin para editar.', 'error'); return; }
+  if (!UI.checkAdmin()) { UI.showToast('Voc\u00ea precisa estar logado como admin para editar.', 'error'); return; }
   const state = AppState.load();
 
   if (!canStartPlayoffs(state)) {
@@ -264,7 +279,7 @@ function iniciarPlayoffs() {
  * @param {number} golsB
  */
 function saveInlineResult(partidaId, golsA, golsB) {
-  if (typeof isAdmin === 'function' && !isAdmin()) { UI.showToast('Voc\u00ea precisa estar logado como admin para editar.', 'error'); return; }
+  if (!UI.checkAdmin()) { UI.showToast('Voc\u00ea precisa estar logado como admin para editar.', 'error'); return; }
 
   if (isNaN(golsA) || isNaN(golsB) || golsA < 0 || golsB < 0) {
     UI.showToast('Informe placar válido (números não negativos).', 'error');
@@ -315,7 +330,7 @@ function saveInlineResult(partidaId, golsA, golsB) {
 // ------------------------------------------------------------------
 
 function savePlayoffResult(matchId, golsA, golsB) {
-  if (typeof isAdmin === 'function' && !isAdmin()) { UI.showToast('Voc\u00ea precisa estar logado como admin para editar.', 'error'); return; }
+  if (!UI.checkAdmin()) { UI.showToast('Voc\u00ea precisa estar logado como admin para editar.', 'error'); return; }
 
   if (isNaN(golsA) || isNaN(golsB) || golsA < 0 || golsB < 0) {
     UI.showToast('Informe placar válido.', 'error');
@@ -367,7 +382,7 @@ function confirmReset() {
 }
 
 function executeReset() {
-  if (typeof isAdmin === 'function' && !isAdmin()) { UI.showToast('Voc\u00ea precisa estar logado como admin para editar.', 'error'); return; }
+  if (!UI.checkAdmin()) { UI.showToast('Voc\u00ea precisa estar logado como admin para editar.', 'error'); return; }
   AppState.reset();
   UI.closeModal('modalReset');
   UI.showToast('Campeonato resetado com sucesso.', 'info');
@@ -450,7 +465,7 @@ async function submitPublicRegistration() {
 
     UI.clearForm('inputInscParticipante', 'inputInscNome', 'inputInscAbrev');
     const colorInput = document.getElementById('inputInscCor');
-    if (colorInput) colorInput.value = (typeof randomColor === 'function') ? randomColor() : '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+    if (colorInput) colorInput.value = UI.getRandomColor();
 
     UI.showToast('Solicita\u00e7\u00e3o enviada! Aguarde aprova\u00e7\u00e3o do administrador.', 'success');
     Renderers.inscricoes();
@@ -460,7 +475,7 @@ async function submitPublicRegistration() {
 }
 
 async function approveRegistration(id) {
-  if (typeof isAdmin === 'function' && !isAdmin()) {
+  if (!UI.checkAdmin()) {
     UI.showToast('Apenas o admin pode aprovar.', 'error');
     return;
   }
@@ -502,7 +517,7 @@ async function approveRegistration(id) {
 }
 
 async function rejectRegistration(id) {
-  if (typeof isAdmin === 'function' && !isAdmin()) {
+  if (!UI.checkAdmin()) {
     UI.showToast('Apenas o admin pode rejeitar.', 'error');
     return;
   }
@@ -538,7 +553,7 @@ async function rejectRegistration(id) {
 // ------------------------------------------------------------------
 
 function resetPlayoffs() {
-  if (typeof isAdmin === 'function' && !isAdmin()) {
+  if (!UI.checkAdmin()) {
     UI.showToast('Apenas o admin pode resetar.', 'error');
     return;
   }

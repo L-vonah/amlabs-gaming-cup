@@ -859,7 +859,7 @@
     document.getElementById('modalScoreHint').style.display = (matchId.startsWith('rr_') || matchId.startsWith('insc')) ? 'none' : 'block';
 
     // Pre-fill if match has an existing concluded score; leave empty for new matches
-    const state = AppState.load();
+    const state = AppState.loadReadOnly();
     let golsA = null, golsB = null;
     if (isGrandFinal) {
       const gf = state.playoffs.grandFinal;
@@ -915,17 +915,25 @@
     if (_scoreSubmitting) return;
     const matchId = document.getElementById('modalScoreMatchId').value;
     const isGF = document.getElementById('modalScoreIsGrandFinal').value === '1';
-    const golsA = parseInt(document.getElementById('modalScoreGolsA').value);
-    const golsB = parseInt(document.getElementById('modalScoreGolsB').value);
+    const inputA = document.getElementById('modalScoreGolsA');
+    const inputB = document.getElementById('modalScoreGolsB');
+    const golsA = parseInt(inputA.value);
+    const golsB = parseInt(inputB.value);
+
+    // Clear previous error highlights
+    inputA.style.borderColor = '';
+    inputB.style.borderColor = '';
 
     if (isNaN(golsA) || isNaN(golsB) || golsA < 0 || golsB < 0) {
+      if (isNaN(golsA) || golsA < 0) inputA.style.borderColor = 'var(--color-loss)';
+      if (isNaN(golsB) || golsB < 0) inputB.style.borderColor = 'var(--color-loss)';
       UI.showToast('Informe placar v\u00e1lido.', 'error');
       return;
     }
 
     // Check if editing an existing playoff result — show modal confirmation
     let needsConfirm = false;
-    const state = AppState.load();
+    const state = AppState.loadReadOnly();
     if (isGF && state.playoffs.grandFinal.vencedor) {
       needsConfirm = true;
     } else if (!isGF && !matchId.startsWith('rr_')) {
@@ -988,7 +996,7 @@
     }
     // Show/hide logout in more sheet
     const logoutBtn = document.getElementById('mobileLogoutBtn');
-    if (logoutBtn) logoutBtn.style.display = (typeof isAdmin === 'function' && isAdmin()) ? '' : 'none';
+    if (logoutBtn) logoutBtn.style.display = (UI.checkAdmin()) ? '' : 'none';
   }
 
   function toggleMobileMore() {
@@ -1011,14 +1019,14 @@
     closeMobileMore();
     _origNavigateTo(section);
     updateMobileTabBar(section);
-    const st = AppState.load();
+    const st = AppState.loadReadOnly();
     UI.updateHeaderBadge(st.campeonato.status);
     UI.updateLifecycleBar(st.campeonato.status);
   };
 
   // Hide inscricoes nav items when campeonato has started
   function updateInscricoesVisibility() {
-    const state = AppState.load();
+    const state = AppState.loadReadOnly();
     const show = state.campeonato.status === 'configuracao';
     document.querySelectorAll('.inscricoes-only').forEach(el => {
       el.style.display = show ? '' : 'none';
@@ -1033,7 +1041,7 @@
   const _origRenderClassificacao = Renderers.classificacao;
   Renderers.classificacao = function() {
     _origRenderClassificacao();
-    const state = AppState.load();
+    const state = AppState.loadReadOnly();
     const btnPlayoffs = document.getElementById('btnIniciarPlayoffs');
     if (btnPlayoffs) {
       const pending = state.faseGrupos.partidas.filter(p => p.status === 'pendente').length;
@@ -1042,11 +1050,6 @@
     }
   };
 
-  // Random color generator for team color inputs
-  function randomColor() {
-    return '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
-  }
-  window.randomColor = randomColor;
 
   // Delegated click handler for score buttons — avoids XSS via team names in onclick
   document.addEventListener('click', (e) => {
@@ -1054,7 +1057,7 @@
     if (!btn) return;
     const matchId = btn.getAttribute('data-match-id');
     const isGF = btn.getAttribute('data-gf') === '1';
-    const state = AppState.load();
+    const state = AppState.loadReadOnly();
 
     let teamA = '?', teamB = '?';
     if (isGF) {
@@ -1095,8 +1098,8 @@
     // Set random default colors on color inputs
     const inputCorTimo = document.getElementById('inputCorTimo');
     const inputInscCor = document.getElementById('inputInscCor');
-    if (inputCorTimo) inputCorTimo.value = randomColor();
-    if (inputInscCor) inputInscCor.value = randomColor();
+    if (inputCorTimo) inputCorTimo.value = UI.getRandomColor();
+    if (inputInscCor) inputInscCor.value = UI.getRandomColor();
 
     // Start Firestore listener if configured
     if (typeof FirestoreService !== 'undefined' && FirestoreService.isActive()) {
