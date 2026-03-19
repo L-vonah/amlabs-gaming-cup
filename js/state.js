@@ -1,5 +1,5 @@
 /**
- * State Manager — 1o Campeonato FC Football AMLabs
+ * State Manager — 1o Campeonato EA Sports FC AMLabs
  * Centralized data layer using localStorage for persistence
  */
 
@@ -8,7 +8,7 @@ const AUDIT_LOG_KEY = 'campeonato_amlabs_audit_v1';
 
 const DEFAULT_STATE = {
   campeonato: {
-    nome: '1º Campeonato FC Football AMLabs 2026',
+    nome: '1º Campeonato EA Sports FC AMLabs 2026',
     edicao: 1,
     temporada: '2026',
     status: 'configuracao' // configuracao | grupos | playoffs | encerrado
@@ -107,7 +107,7 @@ function convertStateToFirestore(state) {
     id: typeof TOURNAMENT_ID !== 'undefined' ? TOURNAMENT_ID : 'amlabs-2026',
     metadata: {
       nome: state.campeonato.nome,
-      jogo: 'FC Football',
+      jogo: 'EA Sports FC',
       ano: parseInt(state.campeonato.temporada) || 2026,
       status: state.campeonato.status,
       criadoEm: state._criadoEm || new Date().toISOString(),

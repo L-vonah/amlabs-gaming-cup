@@ -1,6 +1,6 @@
 # AMLabs Gaming Cup
 
-Plataforma web para gerenciar campeonatos de futebol virtual da AMLabs. Atualmente rodando o **1o Campeonato FC Football AMLabs 2026**.
+Plataforma web para gerenciar campeonatos de futebol virtual da AMLabs. Atualmente rodando o **1o Campeonato EA Sports FC AMLabs 2026**.
 
 ## Sobre
 

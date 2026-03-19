@@ -1,5 +1,5 @@
 /**
- * Renderers — 1o Campeonato FC Football AMLabs
+ * Renderers — 1o Campeonato EA Sports FC AMLabs
  * All page-specific rendering functions
  */
 
@@ -41,7 +41,7 @@ function renderHome() {
             ${winner && winner.participante ? `<div class="champion-label" style="margin-top:4px;letter-spacing:.12em;font-size:.85rem">${UI.escapeHtml(winner.participante)}</div>` : ''}
             ${winner ? `<div class="champion-avatar-wrapper">${UI.renderAvatar(winner, 80)}</div>` : ''}
             <div class="champion-score">${gf.golsUpper} &times; ${gf.golsLower} &mdash; Grande Final</div>
-            <div class="champion-badge">1&ordm; Campeonato FC Football AMLabs 2026</div>
+            <div class="champion-badge">1&ordm; Campeonato EA Sports FC AMLabs 2026</div>
           </div>
         </div>`;
     } else {

@@ -1,5 +1,5 @@
 /**
- * UI Helpers — 1o Campeonato FC Football AMLabs
+ * UI Helpers — 1o Campeonato EA Sports FC AMLabs
  * Rendering utilities shared across all pages
  */
 
