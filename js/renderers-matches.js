@@ -292,7 +292,7 @@ function renderBracket() {
   // Format selector (admin only, pre-playoffs)
   const selectorContainer = document.getElementById('formatSelectorContainer');
   if (selectorContainer) {
-    if (isPrePlayoffs) {
+    if (isPrePlayoffs && UI.checkAdmin()) {
       selectorContainer.style.display = '';
       _renderFormatSelector(state);
     } else {
