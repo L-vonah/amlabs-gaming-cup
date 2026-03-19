@@ -542,8 +542,11 @@ function resetPlayoffs() {
     UI.showToast('Apenas o admin pode resetar.', 'error');
     return;
   }
-  if (!confirm('Tem certeza? Todos os dados dos playoffs ser\u00e3o resetados. A fase de grupos ser\u00e1 mantida.')) return;
+  UI.openModal('modalResetPlayoffs');
+}
 
+function executeResetPlayoffs() {
+  UI.closeModal('modalResetPlayoffs');
   const state = AppState.load();
   state.playoffs = JSON.parse(JSON.stringify(AppState.getDefaultPlayoffs()));
   state.campeonato.status = 'grupos';
@@ -563,6 +566,12 @@ window.resetPlayoffs = resetPlayoffs;
 function importData(event) {
   const file = event.target.files[0];
   if (!file) return;
+
+  // Limit import size to 5MB to prevent DoS
+  if (file.size > 5 * 1024 * 1024) {
+    UI.showToast('Arquivo muito grande. Limite: 5MB.', 'error');
+    return;
+  }
 
   const reader = new FileReader();
   reader.onload = (e) => {

@@ -744,7 +744,7 @@
 </div>
 
 <!-- ===============================================================
-     MODAL - RESET
+     MODAL - PLAYOFF EDIT CONFIRMATION
      =============================================================== -->
 <div class="modal-overlay" id="modalPlayoffEdit">
   <div class="modal">
@@ -758,6 +758,22 @@
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="UI.closeModal('modalPlayoffEdit')">Cancelar</button>
       <button class="btn btn-primary" id="btnConfirmPlayoffEdit">Sim, editar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalResetPlayoffs">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Refazer Playoffs</span>
+      <button class="btn-icon" onclick="UI.closeModal('modalResetPlayoffs')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--color-text-muted);font-size:.9rem">Tem certeza? Todos os dados dos playoffs ser&atilde;o <strong style="color:var(--color-loss)">resetados</strong>. A fase de grupos ser&aacute; mantida.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="UI.closeModal('modalResetPlayoffs')">Cancelar</button>
+      <button class="btn btn-danger" onclick="executeResetPlayoffs()">Sim, refazer</button>
     </div>
   </div>
 </div>
@@ -861,8 +877,8 @@
         if (pm && pm.vencedor) { golsA = pm.golsA; golsB = pm.golsB; }
       }
     }
-    document.getElementById('modalScoreGolsA').value = golsA !== null ? golsA : 0;
-    document.getElementById('modalScoreGolsB').value = golsB !== null ? golsB : 0;
+    document.getElementById('modalScoreGolsA').value = golsA !== null ? golsA : '';
+    document.getElementById('modalScoreGolsB').value = golsB !== null ? golsB : '';
 
     UI.openModal('modalScore');
     setTimeout(() => document.getElementById('modalScoreGolsA').focus(), 100);
@@ -871,6 +887,7 @@
   window.switchPartidaTab = switchPartidaTab;
 
   function _executeScoreSave(matchId, isGF, golsA, golsB) {
+    _scoreSubmitting = true;
     UI.closeModal('modalScore');
 
     if (isGF) {
@@ -890,10 +907,12 @@
       }
     }
 
-    setTimeout(() => Renderers.partidas(), 100);
+    setTimeout(() => { Renderers.partidas(); _scoreSubmitting = false; }, 100);
   }
 
+  let _scoreSubmitting = false;
   function submitScoreModal() {
+    if (_scoreSubmitting) return;
     const matchId = document.getElementById('modalScoreMatchId').value;
     const isGF = document.getElementById('modalScoreIsGrandFinal').value === '1';
     const golsA = parseInt(document.getElementById('modalScoreGolsA').value);
@@ -1029,6 +1048,44 @@
   }
   window.randomColor = randomColor;
 
+  // Delegated click handler for score buttons — avoids XSS via team names in onclick
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.btn-score-action');
+    if (!btn) return;
+    const matchId = btn.getAttribute('data-match-id');
+    const isGF = btn.getAttribute('data-gf') === '1';
+    const state = AppState.load();
+
+    let teamA = '?', teamB = '?';
+    if (isGF) {
+      const gf = state.playoffs.grandFinal;
+      const tU = AppState.getTimeById(state, gf.timeUpper);
+      const tL = AppState.getTimeById(state, gf.timeLower);
+      teamA = tU ? tU.nome : '?';
+      teamB = tL ? tL.nome : '?';
+    } else {
+      // Check group stage first, then playoffs
+      const grp = state.faseGrupos.partidas.find(p => p.id === matchId);
+      if (grp) {
+        const tA = AppState.getTimeById(state, grp.timeA);
+        const tB = AppState.getTimeById(state, grp.timeB);
+        teamA = tA ? tA.nome : '?';
+        teamB = tB ? tB.nome : '?';
+      } else {
+        const ub = state.playoffs.upperBracket;
+        const lb = state.playoffs.lowerBracket;
+        const pm = [ub.sf1, ub.sf2, ub.final, lb.sf, lb.final].find(m => m.id === matchId);
+        if (pm) {
+          const tA = AppState.getTimeById(state, pm.timeA);
+          const tB = AppState.getTimeById(state, pm.timeB);
+          teamA = tA ? tA.nome : '?';
+          teamB = tB ? tB.nome : '?';
+        }
+      }
+    }
+    openScoreModal(matchId, teamA, teamB, isGF);
+  });
+
   // Boot
   document.addEventListener('DOMContentLoaded', () => {
     initAuth();
@@ -1059,15 +1116,7 @@
   window.addEventListener('hashchange', () => {
     const hash = window.location.hash.replace('#', '');
     if (hash && VALID_SECTIONS.includes(hash)) {
-      document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
-      document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-      const target = document.getElementById('section-' + hash);
-      if (target) target.classList.add('active');
-      const navLink = document.querySelector(`[data-nav="${hash}"]`);
-      if (navLink) navLink.classList.add('active');
-      if (window.Renderers && window.Renderers[hash]) {
-        window.Renderers[hash]();
-      }
+      UI.navigateTo(hash);
     }
   });
 </script>

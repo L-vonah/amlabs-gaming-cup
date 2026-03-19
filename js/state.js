@@ -89,7 +89,11 @@ function saveState(state) {
     // Sync to Firestore if configured and admin
     if (typeof FirestoreService !== 'undefined' && FirestoreService.isActive() && typeof isAdmin === 'function' && isAdmin()) {
       const firestoreData = convertStateToFirestore(state);
-      FirestoreService.saveTournament(firestoreData);
+      FirestoreService.saveTournament(firestoreData).then(ok => {
+        if (!ok && typeof UI !== 'undefined') {
+          UI.showToast('Erro ao sincronizar com o servidor. Dados salvos localmente.', 'error');
+        }
+      });
     }
 
     return true;
@@ -145,7 +149,7 @@ function convertFirestoreToState(data) {
       pontosPorVitoria: data.config.regrasClassificacao.vitoria,
       pontosPorEmpate: data.config.regrasClassificacao.empate,
       pontosPorDerrota: data.config.regrasClassificacao.derrota,
-      classificadosPorGrupo: 4,
+      classificadosPorGrupo: (data.config && data.config.classificadosPorGrupo) || 4,
       criteriosDesempate: data.config.regrasClassificacao.criteriosDesempate
     },
     times: data.times || [],
