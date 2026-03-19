@@ -114,10 +114,10 @@ function submitAddTime() {
 
   const novoTime = AppState.addTime(state, { nome, abreviacao: abrev, cor, participante });
 
-  // If tournament is in group stage, generate matches for the new team
+  // If tournament is in group stage, regenerate all matches preserving results
   const partidasAntes = state.faseGrupos.partidas.length;
   if (state.campeonato.status === 'grupos') {
-    AppState.adicionarPartidasNovoTime(state, novoTime.id);
+    AppState.regenerarFaseGrupos(state);
   }
   const novasPartidas = state.faseGrupos.partidas.length - partidasAntes;
 
@@ -542,10 +542,10 @@ async function approveRegistration(id) {
     if (!reg) return;
 
     const state = AppState.load();
-    const novoTime = AppState.addTime(state, { nome: reg.nome, abreviacao: reg.abreviacao, cor: reg.cor, participante: reg.participante || '' });
+    AppState.addTime(state, { nome: reg.nome, abreviacao: reg.abreviacao, cor: reg.cor, participante: reg.participante || '' });
 
     if (state.campeonato.status === 'grupos') {
-      AppState.adicionarPartidasNovoTime(state, novoTime.id);
+      AppState.regenerarFaseGrupos(state);
     }
 
     AppState.save(state);

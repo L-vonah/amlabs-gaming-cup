@@ -294,72 +294,40 @@ function gerarFaseGrupos(state) {
 }
 
 /**
- * Adds matches for a new team against all existing teams,
- * distributing them into rounds so no team plays twice in the same round.
+ * Regenerates the entire round-robin schedule preserving existing results.
+ * Used when adding a team mid-tournament.
  */
-function adicionarPartidasNovoTime(state, novoTimeId) {
-  const partidas = state.faseGrupos.partidas;
-  const outrosIds = state.times.filter(t => t.id !== novoTimeId).map(t => t.id);
-  if (outrosIds.length === 0) return;
-
-  // Build map: round number -> set of team IDs playing in that round
-  const roundTeams = {};
-  partidas.forEach(p => {
-    const r = Number(p.rodada);
-    if (!roundTeams[r]) roundTeams[r] = new Set();
-    roundTeams[r].add(p.timeA);
-    roundTeams[r].add(p.timeB);
+function regenerarFaseGrupos(state) {
+  // Save existing results keyed by matchup (sorted team IDs)
+  const resultados = {};
+  state.faseGrupos.partidas.forEach(p => {
+    if (p.status === 'concluida') {
+      const key = [p.timeA, p.timeB].sort().join('|');
+      resultados[key] = { golsA: p.golsA, golsB: p.golsB, timeA: p.timeA, timeB: p.timeB };
+    }
   });
 
-  let maxRound = 0;
-  Object.keys(roundTeams).forEach(r => { if (Number(r) > maxRound) maxRound = Number(r); });
+  // Generate fresh schedule with all teams
+  const novasPartidas = gerarRodadasRoundRobin(state.times);
 
-  const ts = Date.now();
-
-  for (let i = 0; i < outrosIds.length; i++) {
-    const outroId = outrosIds[i];
-    let placed = false;
-
-    // Try existing rounds in order
-    for (let r = 1; r <= maxRound; r++) {
-      const teams = roundTeams[r] || new Set();
-      if (!teams.has(novoTimeId) && !teams.has(outroId)) {
-        const [home, away] = Math.random() < 0.5 ? [novoTimeId, outroId] : [outroId, novoTimeId];
-        partidas.push({
-          id: `rr_add_${ts}_${i}`,
-          rodada: r,
-          timeA: home,
-          timeB: away,
-          golsA: null,
-          golsB: null,
-          status: 'pendente'
-        });
-        if (!roundTeams[r]) roundTeams[r] = new Set();
-        roundTeams[r].add(novoTimeId);
-        roundTeams[r].add(outroId);
-        placed = true;
-        break;
+  // Restore results
+  novasPartidas.forEach(p => {
+    const key = [p.timeA, p.timeB].sort().join('|');
+    if (resultados[key]) {
+      const r = resultados[key];
+      // Match the original home/away with goals
+      if (p.timeA === r.timeA) {
+        p.golsA = r.golsA;
+        p.golsB = r.golsB;
+      } else {
+        p.golsA = r.golsB;
+        p.golsB = r.golsA;
       }
+      p.status = 'concluida';
     }
+  });
 
-    // No room — create new round
-    if (!placed) {
-      maxRound++;
-      roundTeams[maxRound] = new Set();
-      const [home, away] = Math.random() < 0.5 ? [novoTimeId, outroId] : [outroId, novoTimeId];
-      partidas.push({
-        id: `rr_add_${ts}_${i}`,
-        rodada: maxRound,
-        timeA: home,
-        timeB: away,
-        golsA: null,
-        golsB: null,
-        status: 'pendente'
-      });
-      roundTeams[maxRound].add(novoTimeId);
-      roundTeams[maxRound].add(outroId);
-    }
-  }
+  state.faseGrupos.partidas = novasPartidas;
 }
 
 // ------------------------------------------------------------------
@@ -674,7 +642,7 @@ window.AppState = {
   removeTime,
   getTimeById,
   gerarFaseGrupos,
-  adicionarPartidasNovoTime,
+  regenerarFaseGrupos,
   calcularClassificacao,
   calcularEstatisticas,
   popularPlayoffs,
