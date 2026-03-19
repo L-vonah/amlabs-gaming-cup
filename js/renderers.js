@@ -36,9 +36,9 @@ function renderHome() {
             <div class="champion-trophy">
               <span class="champion-trophy-icon">&#127942;</span>
             </div>
-            <div class="champion-label">CAMPEAO DO CAMPEONATO 2026</div>
+            <div class="champion-label">CAMPE&Atilde;O DO CAMPEONATO 2026</div>
             <div class="champion-name">${winner ? UI.escapeHtml(winner.nome) : '?'}</div>
-            ${winner && winner.participante ? `<div style="font-size:1.1rem;font-weight:600;color:#fde68a;margin-top:-4px">${UI.escapeHtml(winner.participante)}</div>` : ''}
+            ${winner && winner.participante ? `<div class="champion-label" style="margin-top:4px;letter-spacing:.12em;font-size:.85rem">${UI.escapeHtml(winner.participante)}</div>` : ''}
             ${winner ? `<div class="champion-avatar-wrapper">${UI.renderAvatar(winner, 80)}</div>` : ''}
             <div class="champion-score">${gf.golsUpper} &times; ${gf.golsLower} &mdash; Grande Final</div>
             <div class="champion-badge">1&ordm; Campeonato FC Football AMLabs 2026</div>
@@ -821,7 +821,7 @@ function renderBracket() {
 
 function renderBracketMobile(container, state) {
   if (state.campeonato.status === 'configuracao' || state.campeonato.status === 'grupos') {
-    container.innerHTML = '<div class="empty-state"><div class="empty-icon">&#127942;</div><div class="empty-title">Playoffs ainda nao iniciados</div><div class="empty-desc">Conclua a fase de grupos com pelo menos 4 times classificados.</div>' +
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">&#127942;</div><div class="empty-title">Playoffs ainda n&atilde;o iniciados</div><div class="empty-desc">Conclua a fase de grupos com pelo menos 4 times classificados.</div>' +
       (state.campeonato.status === 'grupos' && canStartPlayoffs(state) ? '<button class="btn btn-primary mt-16" onclick="iniciarPlayoffs()">Iniciar Playoffs</button>' : '') + '</div>';
     return;
   }

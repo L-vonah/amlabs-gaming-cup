@@ -80,7 +80,7 @@ function setLoading(btn, loading) {
 // ------------------------------------------------------------------
 
 function submitAddTime() {
-  if (typeof isAdmin === 'function' && !isAdmin()) { UI.showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
+  if (typeof isAdmin === 'function' && !isAdmin()) { UI.showToast('Voc\u00ea precisa estar logado como admin para editar.', 'error'); return; }
   const participante = UI.getFormValue('inputPartTimo');
   const nome = UI.getFormValue('inputNomeTimo');
   let abrev = UI.getFormValue('inputAbrevTimo').replace(/[^A-Za-z]/g, '');
@@ -103,7 +103,7 @@ function submitAddTime() {
   const state = AppState.load();
 
   if (state.campeonato.status !== 'configuracao' && state.campeonato.status !== 'grupos') {
-    UI.showToast('Nao e possivel adicionar times durante os playoffs.', 'error');
+    UI.showToast('N\u00e3o \u00e9 poss\u00edvel adicionar times durante os playoffs.', 'error');
     return;
   }
 
@@ -138,7 +138,7 @@ function submitAddTime() {
 }
 
 function deleteTime(id) {
-  if (typeof isAdmin === 'function' && !isAdmin()) { UI.showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
+  if (typeof isAdmin === 'function' && !isAdmin()) { UI.showToast('Voc\u00ea precisa estar logado como admin para editar.', 'error'); return; }
   const state = AppState.load();
   const time = AppState.getTimeById(state, id);
   if (!time) return;
@@ -210,7 +210,7 @@ window.saveEditTeam = saveEditTeam;
 // ------------------------------------------------------------------
 
 function gerarFaseGrupos() {
-  if (typeof isAdmin === 'function' && !isAdmin()) { UI.showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
+  if (typeof isAdmin === 'function' && !isAdmin()) { UI.showToast('Voc\u00ea precisa estar logado como admin para editar.', 'error'); return; }
   const state = AppState.load();
 
   if (state.times.length < 5) {
@@ -233,7 +233,7 @@ function gerarFaseGrupos() {
 }
 
 function iniciarPlayoffs() {
-  if (typeof isAdmin === 'function' && !isAdmin()) { UI.showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
+  if (typeof isAdmin === 'function' && !isAdmin()) { UI.showToast('Voc\u00ea precisa estar logado como admin para editar.', 'error'); return; }
   const state = AppState.load();
 
   if (!canStartPlayoffs(state)) {
@@ -264,7 +264,7 @@ function iniciarPlayoffs() {
  * @param {number} golsB
  */
 function saveInlineResult(partidaId, golsA, golsB) {
-  if (typeof isAdmin === 'function' && !isAdmin()) { UI.showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
+  if (typeof isAdmin === 'function' && !isAdmin()) { UI.showToast('Voc\u00ea precisa estar logado como admin para editar.', 'error'); return; }
 
   if (isNaN(golsA) || isNaN(golsB) || golsA < 0 || golsB < 0) {
     UI.showToast('Informe placar válido (números não negativos).', 'error');
@@ -315,7 +315,7 @@ function saveInlineResult(partidaId, golsA, golsB) {
 // ------------------------------------------------------------------
 
 function savePlayoffResult(matchId, golsA, golsB) {
-  if (typeof isAdmin === 'function' && !isAdmin()) { UI.showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
+  if (typeof isAdmin === 'function' && !isAdmin()) { UI.showToast('Voc\u00ea precisa estar logado como admin para editar.', 'error'); return; }
 
   if (isNaN(golsA) || isNaN(golsB) || golsA < 0 || golsB < 0) {
     UI.showToast('Informe placar válido.', 'error');
@@ -367,7 +367,7 @@ function confirmReset() {
 }
 
 function executeReset() {
-  if (typeof isAdmin === 'function' && !isAdmin()) { UI.showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
+  if (typeof isAdmin === 'function' && !isAdmin()) { UI.showToast('Voc\u00ea precisa estar logado como admin para editar.', 'error'); return; }
   AppState.reset();
   UI.closeModal('modalReset');
   UI.showToast('Campeonato resetado com sucesso.', 'info');
@@ -406,7 +406,7 @@ async function submitPublicRegistration() {
     : UI.getRandomColor();
 
   if (!participante) {
-    UI.showToast('Informe seu nome para identificacao.', 'error');
+    UI.showToast('Informe seu nome para identifica\u00e7\u00e3o.', 'error');
     return;
   }
 
@@ -446,13 +446,13 @@ async function submitPublicRegistration() {
       cor
     });
 
-    AppState.addAuditLog(getAuditUser(), 'Solicitou inscricao: ' + nome + ' (' + participante + ')', { abreviacao: abrev, participante });
+    AppState.addAuditLog(getAuditUser(), 'Solicitou inscri\u00e7\u00e3o:' + nome + ' (' + participante + ')', { abreviacao: abrev, participante });
 
     UI.clearForm('inputInscParticipante', 'inputInscNome', 'inputInscAbrev');
     const colorInput = document.getElementById('inputInscCor');
     if (colorInput) colorInput.value = (typeof randomColor === 'function') ? randomColor() : '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
 
-    UI.showToast('Solicitacao enviada! Aguarde aprovacao do administrador.', 'success');
+    UI.showToast('Solicita\u00e7\u00e3o enviada! Aguarde aprova\u00e7\u00e3o do administrador.', 'success');
     Renderers.inscricoes();
   } finally {
     setLoading(submitBtn, false);
@@ -490,7 +490,7 @@ async function approveRegistration(id) {
 
     AppState.addAuditLog(
       currentUser ? currentUser.email : getDeviceId(),
-      'Aprovou inscricao: ' + reg.nome
+      'Aprovou inscri\u00e7\u00e3o:' + reg.nome
     );
 
     UI.showToast('Time "' + reg.nome + '" aprovado e adicionado!', 'success');
@@ -523,10 +523,10 @@ async function rejectRegistration(id) {
 
     AppState.addAuditLog(
       currentUser ? currentUser.email : getDeviceId(),
-      'Rejeitou inscricao: ' + reg.nome
+      'Rejeitou inscri\u00e7\u00e3o:' + reg.nome
     );
 
-    UI.showToast('Inscricao de "' + reg.nome + '" rejeitada.', 'info');
+    UI.showToast('Inscri\u00e7\u00e3o de "' + reg.nome + '" rejeitada.', 'info');
     Renderers.inscricoes();
   } finally {
     actionBtns.forEach(b => setLoading(b, false));
@@ -575,7 +575,7 @@ function importData(event) {
           !stateObj.campeonato || typeof stateObj.campeonato !== 'object' ||
           !Array.isArray(stateObj.times) ||
           !stateObj.faseGrupos || typeof stateObj.faseGrupos !== 'object') {
-        UI.showToast('Arquivo invalido: estrutura de dados nao reconhecida (campeonato, times, faseGrupos).', 'error');
+        UI.showToast('Arquivo inv\u00e1lido: estrutura de dados n\u00e3o reconhecida (campeonato, times, faseGrupos).', 'error');
         return;
       }
 

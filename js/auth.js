@@ -29,7 +29,7 @@ function initAuth() {
 
 async function loginAdmin() {
   if (!FIREBASE_CONFIGURED) {
-    UI.showToast('Firebase nao configurado. Modo local ativo.', 'info');
+    UI.showToast('Firebase n\u00e3o configurado. Modo local ativo.', 'info');
     return;
   }
 
@@ -39,7 +39,7 @@ async function loginAdmin() {
     const result = await firebase.auth().signInWithPopup(provider);
 
     if (result.user.email !== ADMIN_EMAIL) {
-      UI.showToast('Sem permissao de edicao. Apenas o administrador pode editar.', 'error');
+      UI.showToast('Sem permiss\u00e3o de edi\u00e7\u00e3o. Apenas o administrador pode editar.', 'error');
       await firebase.auth().signOut();
       return false;
     }
