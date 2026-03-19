@@ -334,9 +334,9 @@ async function renderInscricoes() {
 
   // Status banner
   if (isOpen) {
-    html += '<div class="status-banner open"><span>&#9989;</span> Inscricoes abertas! Cadastre seu time abaixo.</div>';
+    html += '<div class="status-banner open"><span>&#9989;</span> Inscri&ccedil;&otilde;es abertas! Cadastre seu time abaixo.</div>';
   } else {
-    html += '<div class="status-banner closed"><span>&#128683;</span> Inscricoes encerradas. O campeonato ja comecou.</div>';
+    html += '<div class="status-banner closed"><span>&#128683;</span> Inscri&ccedil;&otilde;es encerradas. O campeonato j&aacute; come&ccedil;ou. Contate o administrador.</div>';
   }
 
   // Pending requests

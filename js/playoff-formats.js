@@ -108,7 +108,7 @@ const FORMAT_DOUBLE_ELIM_4 = {
   minTeams: 4,
 
   classificationTiers: [
-    { from: 1, to: 4, cssClass: 'classified-green', label: 'Classificado', color: 'var(--color-win)' }
+    { from: 1, to: 4, cssClass: 'classified-green', label: 'Classificado', color: '#1a9a5a' }
   ],
 
   defaultMatches() {
@@ -351,9 +351,9 @@ const FORMAT_PLAY_IN_6 = {
   minTeams: 6,
 
   classificationTiers: [
-    { from: 1, to: 2, cssClass: 'classified-green-dark', label: 'BYE — Semifinal', color: 'var(--color-win)' },
-    { from: 3, to: 4, cssClass: 'classified-yellow-dark', label: 'Quartas de Final', color: '#b8860b' },
-    { from: 5, to: 6, cssClass: 'classified-yellow-light', label: 'Quartas de Final', color: '#d4a843' }
+    { from: 1, to: 2, cssClass: 'classified-green-dark', label: 'BYE — Semifinal', color: '#1a7a3a' },
+    { from: 3, to: 4, cssClass: 'classified-yellow-dark', label: 'Quartas de Final', color: '#c8a028' },
+    { from: 5, to: 6, cssClass: 'classified-yellow-light', label: 'Quartas de Final', color: '#dcbe50' }
   ],
 
   defaultMatches() {
@@ -651,10 +651,10 @@ const FORMAT_GAUNTLET_6 = {
   minTeams: 6,
 
   classificationTiers: [
-    { from: 1, to: 1, cssClass: 'classified-green-dark', label: 'UB Final — 2 jogos mín', color: 'var(--color-win)' },
-    { from: 2, to: 2, cssClass: 'classified-green-light', label: 'UB R2 — 3 jogos mín', color: '#2ecc71' },
-    { from: 3, to: 4, cssClass: 'classified-yellow-dark', label: 'UB R1 — Dupla eliminação', color: '#b8860b' },
-    { from: 5, to: 6, cssClass: 'classified-yellow-light', label: 'LB Oitavas — Sem 2ª chance', color: '#d4a843' }
+    { from: 1, to: 1, cssClass: 'classified-green-dark', label: 'Final Superior — 2 jogos mín', color: '#1a7a3a' },
+    { from: 2, to: 2, cssClass: 'classified-green-light', label: 'Semifinal — 3 jogos mín', color: '#2ecc71' },
+    { from: 3, to: 4, cssClass: 'classified-yellow-dark', label: 'Quartas — Dupla eliminação', color: '#c8a028' },
+    { from: 5, to: 6, cssClass: 'classified-yellow-light', label: 'LB Oitavas — Sem 2ª chance', color: '#dcbe50' }
   ],
 
   defaultMatches() {
