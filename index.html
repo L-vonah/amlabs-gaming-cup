@@ -320,7 +320,10 @@
         <span class="section-title-icon icon-bg-purple">&#127942;</span>
         Chaveamento &mdash; Dupla Elimina&ccedil;&atilde;o
       </h2>
-      <button class="btn btn-sm btn-secondary" onclick="renderBracket()">Atualizar</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm btn-secondary" onclick="renderBracket()">Atualizar</button>
+        <button class="btn btn-sm btn-secondary admin-only" onclick="resetPlayoffs()" style="color:var(--color-loss)" id="btnRefazerPlayoffs">Refazer Playoffs</button>
+      </div>
     </div>
 
     <div id="bracketContainer"></div>
@@ -394,6 +397,14 @@
         </span>
       </div>
       <div class="card-body" id="statGoleada"></div>
+    </div>
+
+    <!-- Partida com mais gols -->
+    <div class="card mt-24">
+      <div class="card-header">
+        <span class="card-title">&#9917; Partida com Mais Gols</span>
+      </div>
+      <div class="card-body" id="statMaisGols"></div>
     </div>
   </section>
 
@@ -952,6 +963,9 @@
     closeMobileMore();
     _origNavigateTo(section);
     updateMobileTabBar(section);
+    const st = AppState.load();
+    UI.updateHeaderBadge(st.campeonato.status);
+    UI.updateLifecycleBar(st.campeonato.status);
   };
 
   // Hide inscricoes nav items when campeonato has started

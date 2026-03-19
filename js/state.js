@@ -492,7 +492,12 @@ function calcularEstatisticas(state) {
   const topGoleadores = [...tabela].sort((a, b) => b.golsMarcados - a.golsMarcados).slice(0, 5);
   const menosVazados = [...tabela].sort((a, b) => a.golsSofridos - b.golsSofridos).slice(0, 5);
 
-  return { totalPartidas, totalPartidasGrupos: grupoPartidas.length, totalPartidasPlayoffs: playoffPartidas.length, totalGols, mediaGols, maiorGoleada, topGoleadores, menosVazados };
+  const partidaMaisGols = allPartidas.reduce((best, p) => {
+    const total = p.golsA + p.golsB;
+    return total > best.total ? { total, partida: p } : best;
+  }, { total: 0, partida: null });
+
+  return { totalPartidas, totalPartidasGrupos: grupoPartidas.length, totalPartidasPlayoffs: playoffPartidas.length, totalGols, mediaGols, maiorGoleada, partidaMaisGols, topGoleadores, menosVazados };
 }
 
 // ------------------------------------------------------------------
@@ -530,11 +535,14 @@ function registrarResultadoPlayoff(state, matchId, golsA, golsB) {
   if (!match) return false;
   if (golsA === golsB) return false; // no draws in playoffs
 
-  _resetDownstreamPlayoff(state, matchId);
+  const newWinner = golsA > golsB ? match.timeA : match.timeB;
+  if (match.vencedor && match.vencedor !== newWinner) {
+    _resetDownstreamPlayoff(state, matchId);
+  }
 
   match.golsA = golsA;
   match.golsB = golsB;
-  match.vencedor = golsA > golsB ? match.timeA : match.timeB;
+  match.vencedor = newWinner;
   match.perdedor = golsA > golsB ? match.timeB : match.timeA;
 
   // Cascade results through bracket
@@ -628,15 +636,18 @@ function registrarResultadoGrandFinal(state, golsUpper, golsLower) {
   const gf = state.playoffs.grandFinal;
   if (!gf.timeUpper || !gf.timeLower) return false;
 
-  if (state.campeonato.status === 'encerrado') {
-    state.campeonato.status = 'playoffs';
-    state.playoffs.status = 'andamento';
+  const newWinner = golsUpper > golsLower ? gf.timeUpper : gf.timeLower;
+  if (gf.vencedor && gf.vencedor !== newWinner) {
+    if (state.campeonato.status === 'encerrado') {
+      state.campeonato.status = 'playoffs';
+      state.playoffs.status = 'andamento';
+    }
   }
   if (golsUpper === golsLower) return false; // no draw
 
   gf.golsUpper = golsUpper;
   gf.golsLower = golsLower;
-  gf.vencedor = golsUpper > golsLower ? gf.timeUpper : gf.timeLower;
+  gf.vencedor = newWinner;
   state.playoffs.status = 'concluido';
   state.campeonato.status = 'encerrado';
   return true;
