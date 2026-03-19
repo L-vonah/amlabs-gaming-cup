@@ -126,7 +126,7 @@ function renderTimes() {
       ${UI.renderAvatar(t, 44, 'team-card-avatar')}
       <div class="team-card-info">
         <div class="team-card-name">${t.nome}</div>
-        <div class="team-card-abbr">${t.abreviacao}${t.participante ? ' &bull; ' + t.participante : ''}</div>
+        <div class="team-card-abbr">${t.participante || ''}</div>
       </div>
       <div class="team-card-actions admin-only">
         <button class="btn-icon" onclick="openEditTeamModal('${t.id}')" title="Editar time">&#9998;</button>
@@ -200,6 +200,7 @@ function renderClassificacao() {
                     ${UI.renderAvatar(t, 28)}
                     <div>
                       <div class="team-name-text">${t.nome}</div>
+                      ${t.participante ? '<div class="team-participant-sub">' + t.participante + '</div>' : ''}
                     </div>
                   </div>
                 </td>

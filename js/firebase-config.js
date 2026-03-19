@@ -20,14 +20,9 @@ if (FIREBASE_CONFIGURED) {
   const db = firebase.firestore();
   const auth = firebase.auth();
 
-  // Enable offline persistence (Option B)
-  db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
-    if (err.code === 'failed-precondition') {
-      console.warn('Firestore persistence: multiple tabs open, only one can enable.');
-    } else if (err.code === 'unimplemented') {
-      console.warn('Firestore persistence not supported in this browser.');
-    }
-  });
+  // Enable offline persistence via settings (avoids deprecation warning)
+  db.settings({ cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED, merge: true });
+  db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
 } else {
   console.info('[AMLabs Gaming Cup] Firebase not configured. Running in localStorage mode.');
 }

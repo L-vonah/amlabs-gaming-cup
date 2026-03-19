@@ -343,6 +343,7 @@ function calcularClassificacao(state) {
     nome: t.nome,
     abreviacao: t.abreviacao,
     cor: t.cor,
+    participante: t.participante || '',
     jogos: 0,
     vitorias: 0,
     empates: 0,

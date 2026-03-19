@@ -515,6 +515,13 @@ body {
 
 .classification-table tbody tr.qualified {
   border-left: 3px solid var(--color-win);
+  background: rgba(46, 213, 115, 0.06);
+}
+
+.team-participant-sub {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  font-weight: 400;
 }
 
 .classification-table tbody tr.qualified td:first-child {
