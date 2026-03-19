@@ -698,7 +698,9 @@ body {
   flex-shrink: 0;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
+  min-width: 100px;
 }
 
 .match-score {
@@ -1832,12 +1834,6 @@ body {
 
   /* ----- Match cards ----- */
   .match-card { padding: 10px 12px; }
-  .match-round-badge { min-width: auto; font-size: 0.6rem; }
-  .match-teams { gap: 4px; }
-  .match-team { font-size: 0.78rem; gap: 4px; }
-  .match-score { padding: 4px 8px; font-size: 0.9rem; }
-  .match-team-info .team-name-text { font-size: 0.78rem; }
-  .match-team-info .team-participant { font-size: 0.65rem; }
 
   /* ----- Bracket ----- */
   .bracket-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -1924,44 +1920,75 @@ body {
    ROUND ACTION BUTTONS (Match Cards)
    ============================================= */
 
-/* Desktop: show text buttons, hide round buttons */
-.match-action-mobile { display: none !important; }
-.match-action-desktop { display: inline-flex; }
+/* Desktop/mobile layout toggle */
+.match-mobile { display: none; }
+.match-desktop { display: flex; align-items: center; gap: 12px; }
 
 @media (max-width: 768px) {
-  .match-action-mobile { display: flex !important; }
-  .match-action-desktop { display: none !important; }
+  .match-mobile { display: block; }
+  .match-desktop { display: none !important; }
 }
 
-.btn-round-action {
+/* =============================================
+   MOBILE MATCH CARD LAYOUT
+   ============================================= */
+
+.match-mobile-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: none;
-  font-size: 1rem;
-  font-weight: 700;
-  cursor: pointer;
-  flex-shrink: 0;
+  gap: 10px;
+  padding: 6px 0;
 }
 
-.btn-round-register {
-  background: var(--color-win);
-  color: white;
+.match-mobile-row + .match-mobile-row {
+  border-top: 1px solid var(--color-border);
 }
 
-.btn-round-edit {
-  background: var(--color-text-muted);
-  color: white;
+.match-mobile-name {
+  flex: 1;
+  font-weight: 600;
+  font-size: 0.88rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.btn-round-done {
-  background: #e8f5e9;
+.match-mobile-name .team-participant {
+  font-weight: 400;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.match-mobile-score {
+  font-size: 1.1rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  min-width: 28px;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.match-mobile-score.win {
   color: var(--color-win);
-  cursor: default;
 }
+
+.match-mobile-score.loss {
+  color: var(--color-loss);
+}
+
+.match-mobile-action {
+  display: flex;
+  justify-content: center;
+  padding-top: 8px;
+  border-top: 1px dashed var(--color-border);
+  margin-top: 4px;
+}
+
+.match-mobile-action .btn {
+  width: 100%;
+}
+
 
 /* =============================================
    QUICK ACTIONS

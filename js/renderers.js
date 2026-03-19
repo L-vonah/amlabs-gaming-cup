@@ -425,21 +425,21 @@ function renderMatchCardWithAction(p, state, admin) {
   const partA = tA && tA.participante ? `<span class="team-participant">${tA.participante}</span>` : '';
   const partB = tB && tB.participante ? `<span class="team-participant">${tB.participante}</span>` : '';
 
-  let actionBtn = '';
   const onclick = `openScoreModal('${p.id}','${nameA.replace(/'/g,"\\'")}','${nameB.replace(/'/g,"\\'")}',false)`;
+
+  let desktopBtn = '';
+  let mobileBtn = '';
   if (admin && !concluded) {
-    actionBtn = `<button class="btn btn-sm btn-success admin-only match-action-desktop" onclick="${onclick}">Registrar</button>`
-      + `<button class="btn-round-action btn-round-register admin-only match-action-mobile" onclick="${onclick}">+</button>`;
+    desktopBtn = `<button class="btn btn-sm btn-success admin-only" onclick="${onclick}">Registrar</button>`;
+    mobileBtn = `<button class="btn btn-sm btn-success admin-only" onclick="${onclick}">Registrar</button>`;
   } else if (admin && concluded) {
-    actionBtn = `<button class="btn btn-sm btn-secondary admin-only match-action-desktop" onclick="${onclick}">Editar</button>`
-      + `<button class="btn-round-action btn-round-edit admin-only match-action-mobile" onclick="${onclick}">&#9998;</button>`;
-  } else if (!admin && concluded) {
-    actionBtn = `<span class="btn-round-action btn-round-done match-action-mobile">&#10003;</span>`;
+    desktopBtn = `<button class="btn btn-sm btn-secondary admin-only" onclick="${onclick}">Editar</button>`;
+    mobileBtn = `<button class="btn btn-sm btn-secondary admin-only" onclick="${onclick}">Editar</button>`;
   }
 
   return `
     <div class="match-card">
-      <div class="match-layout">
+      <div class="match-desktop">
         <div class="match-teams">
           <div class="match-team home">
             <div class="match-team-info" style="text-align:right"><span class="team-name-text">${nameA}</span>${partA}</div>
@@ -456,9 +456,23 @@ function renderMatchCardWithAction(p, state, admin) {
           </div>
         </div>
         <div class="match-action-slot">
-          ${actionBtn}
-          ${concluded ? '<span class="match-status-badge concluida match-action-desktop">Conclu&iacute;da</span>' : ''}
+          ${desktopBtn}
+          ${concluded ? '<span class="match-status-badge concluida">Conclu&iacute;da</span>' : ''}
         </div>
+      </div>
+      <div class="match-mobile">
+        <div class="match-mobile-row">
+          ${UI.renderAvatar(tA, 28)}
+          <span class="match-mobile-name">${nameA}${partA ? ' <span class="team-participant">' + tA.participante + '</span>' : ''}</span>
+          <span class="match-mobile-score ${concluded && p.golsA > p.golsB ? 'win' : concluded && p.golsA < p.golsB ? 'loss' : ''}">${concluded ? p.golsA : '-'}</span>
+        </div>
+        <div class="match-mobile-row">
+          ${UI.renderAvatar(tB, 28)}
+          <span class="match-mobile-name">${nameB}${partB ? ' <span class="team-participant">' + tB.participante + '</span>' : ''}</span>
+          <span class="match-mobile-score ${concluded && p.golsB > p.golsA ? 'win' : concluded && p.golsB < p.golsA ? 'loss' : ''}">${concluded ? p.golsB : '-'}</span>
+        </div>
+        ${mobileBtn ? '<div class="match-mobile-action">' + mobileBtn + '</div>' : ''}
+        ${!mobileBtn && concluded ? '<div class="match-mobile-action"><span class="match-status-badge concluida">Conclu&iacute;da</span></div>' : ''}
       </div>
     </div>`;
 }
