@@ -729,6 +729,13 @@ function renderBracket() {
   const container = document.getElementById('bracketContainer');
   if (!container) return;
 
+  // Show/hide refazer button based on playoff status
+  const refazerBtn = document.getElementById('btnRefazerPlayoffs');
+  if (refazerBtn) {
+    refazerBtn.style.display = (state.campeonato.status === 'playoffs' || state.campeonato.status === 'encerrado') ? '' : 'none';
+  }
+  if (typeof updateAdminUI === 'function') updateAdminUI();
+
   const isMobile = window.innerWidth <= 768;
   if (isMobile) {
     renderBracketMobile(container, state);
