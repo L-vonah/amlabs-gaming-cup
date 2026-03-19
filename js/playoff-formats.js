@@ -650,9 +650,9 @@ const FORMAT_GAUNTLET_6 = {
   minTeams: 6,
 
   classificationTiers: [
-    { from: 1, to: 1, cssClass: 'classified-green-dark', label: 'Final Superior — 2 jogos mín', color: '#1a7a3a' },
-    { from: 2, to: 2, cssClass: 'classified-green-light', label: 'Semifinal — 3 jogos mín', color: '#2ecc71' },
-    { from: 3, to: 4, cssClass: 'classified-blue-light', label: 'Quartas — Dupla eliminação', color: '#74b9ff' },
+    { from: 1, to: 1, cssClass: 'classified-green-dark', label: 'Final Superior — Dupla eliminação', color: '#1a7a3a' },
+    { from: 2, to: 2, cssClass: 'classified-green-light', label: 'Semifinal Superior — Dupla eliminação', color: '#2ecc71' },
+    { from: 3, to: 4, cssClass: 'classified-blue-light', label: 'Quartas de Final — Dupla eliminação', color: '#74b9ff' },
     { from: 5, to: 6, cssClass: 'classified-yellow-light', label: 'LB Oitavas — Sem 2ª chance', color: '#dcbe50' }
   ],
 
