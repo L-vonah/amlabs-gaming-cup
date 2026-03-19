@@ -746,6 +746,22 @@
 <!-- ===============================================================
      MODAL - RESET
      =============================================================== -->
+<div class="modal-overlay" id="modalPlayoffEdit">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Editar Resultado do Playoff</span>
+      <button class="btn-icon" onclick="UI.closeModal('modalPlayoffEdit')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--color-text-muted);font-size:.9rem">Editar este resultado pode <strong style="color:var(--color-loss)">resetar partidas seguintes</strong> do playoff caso o vencedor mude. Deseja continuar?</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="UI.closeModal('modalPlayoffEdit')">Cancelar</button>
+      <button class="btn btn-primary" id="btnConfirmPlayoffEdit">Sim, editar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalReset">
   <div class="modal">
     <div class="modal-header">
@@ -854,6 +870,29 @@
   window.openScoreModal = openScoreModal;
   window.switchPartidaTab = switchPartidaTab;
 
+  function _executeScoreSave(matchId, isGF, golsA, golsB) {
+    UI.closeModal('modalScore');
+
+    if (isGF) {
+      const state = AppState.load();
+      AppState.registrarResultadoGrandFinal(state, golsA, golsB);
+      AppState.save(state);
+      AppState.addAuditLog(getAuditUser(), 'Registrou resultado da Grande Final: ' + golsA + ' x ' + golsB);
+      Renderers.bracket();
+      Renderers.home();
+    } else {
+      const state = AppState.load();
+      const grp = state.faseGrupos.partidas.find(p => p.id === matchId);
+      if (grp) {
+        saveInlineResult(matchId, golsA, golsB);
+      } else {
+        savePlayoffResult(matchId, golsA, golsB);
+      }
+    }
+
+    setTimeout(() => Renderers.partidas(), 100);
+  }
+
   function submitScoreModal() {
     const matchId = document.getElementById('modalScoreMatchId').value;
     const isGF = document.getElementById('modalScoreIsGrandFinal').value === '1';
@@ -865,42 +904,32 @@
       return;
     }
 
-    // Check for downstream reset warning when editing an existing playoff result
+    // Check if editing an existing playoff result — show modal confirmation
+    let needsConfirm = false;
     const state = AppState.load();
-    if (isGF) {
-      if (state.playoffs.grandFinal.vencedor) {
-        if (!confirm('Editar este resultado pode resetar partidas seguintes do playoff. Deseja continuar?')) return;
-      }
-    } else if (!matchId.startsWith('rr_')) {
+    if (isGF && state.playoffs.grandFinal.vencedor) {
+      needsConfirm = true;
+    } else if (!isGF && !matchId.startsWith('rr_')) {
       const ub = state.playoffs.upperBracket;
       const lb = state.playoffs.lowerBracket;
-      const allPlayoffMatches = [ub.sf1, ub.sf2, ub.final, lb.sf, lb.final];
-      const playoffMatch = allPlayoffMatches.find(m => m.id === matchId);
-      if (playoffMatch && playoffMatch.vencedor) {
-        if (!confirm('Editar este resultado pode resetar partidas seguintes do playoff. Deseja continuar?')) return;
-      }
+      const pm = [ub.sf1, ub.sf2, ub.final, lb.sf, lb.final].find(m => m.id === matchId);
+      if (pm && pm.vencedor) needsConfirm = true;
     }
 
-    UI.closeModal('modalScore');
-
-    if (isGF) {
-      AppState.registrarResultadoGrandFinal(state, golsA, golsB);
-      AppState.save(state);
-      AppState.addAuditLog(getAuditUser(), 'Registrou resultado da Grande Final: ' + golsA + ' x ' + golsB);
-      Renderers.bracket();
-      Renderers.home();
-    } else {
-      // Check if it's a group stage or playoff match
-      const grp = state.faseGrupos.partidas.find(p => p.id === matchId);
-      if (grp) {
-        saveInlineResult(matchId, golsA, golsB);
-      } else {
-        savePlayoffResult(matchId, golsA, golsB);
-      }
+    if (needsConfirm) {
+      UI.closeModal('modalScore');
+      UI.openModal('modalPlayoffEdit');
+      const confirmBtn = document.getElementById('btnConfirmPlayoffEdit');
+      const newBtn = confirmBtn.cloneNode(true);
+      confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
+      newBtn.addEventListener('click', function() {
+        UI.closeModal('modalPlayoffEdit');
+        _executeScoreSave(matchId, isGF, golsA, golsB);
+      });
+      return;
     }
 
-    // Refresh partidas page
-    setTimeout(() => Renderers.partidas(), 100);
+    _executeScoreSave(matchId, isGF, golsA, golsB);
   }
   window.submitScoreModal = submitScoreModal;
 
