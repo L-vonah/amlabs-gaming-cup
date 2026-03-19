@@ -38,7 +38,7 @@ function renderHome() {
             </div>
             <div class="champion-label">CAMPEAO DO CAMPEONATO 2026</div>
             <div class="champion-name">${winner ? UI.escapeHtml(winner.nome) : '?'}</div>
-            ${winner && winner.participante ? `<div style="font-size:1rem;color:rgba(255,255,255,0.8);margin-top:-4px">${UI.escapeHtml(winner.participante)}</div>` : ''}
+            ${winner && winner.participante ? `<div style="font-size:1.1rem;font-weight:600;color:#fde68a;margin-top:-4px">${UI.escapeHtml(winner.participante)}</div>` : ''}
             ${winner ? `<div class="champion-avatar-wrapper">${UI.renderAvatar(winner, 80)}</div>` : ''}
             <div class="champion-score">${gf.golsUpper} &times; ${gf.golsLower} &mdash; Grande Final</div>
             <div class="champion-badge">1&ordm; Campeonato FC Football AMLabs 2026</div>
