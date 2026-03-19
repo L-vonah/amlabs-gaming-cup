@@ -260,27 +260,7 @@ function renderEstatisticas() {
 // ------------------------------------------------------------------
 
 function renderRegras() {
-  const container = document.getElementById('dynamicPlayoffRules');
-  if (!container) return;
-
-  const state = AppState.loadReadOnly();
-  const formatId = (state.playoffs && state.playoffs.formato) || PlayoffFormats.DEFAULT;
-  const format = PlayoffFormats.get(formatId);
-
-  let html = '';
-  format.rules.forEach(rule => {
-    html += `<div class="rule-card">
-      <div class="rule-card-header">
-        <div class="rule-icon ${rule.iconBg}" style="width:40px;height:40px;border-radius:var(--radius)">${rule.icon}</div>
-        <h3 class="rule-card-title">${rule.title}</h3>
-      </div>
-      <ul class="rule-list">
-        ${rule.items.map(item => '<li>' + item + '</li>').join('')}
-      </ul>
-    </div>`;
-  });
-
-  container.innerHTML = html;
+  // Rules page is mostly static HTML. Playoff rules are now on the bracket page.
 }
 
 // ------------------------------------------------------------------

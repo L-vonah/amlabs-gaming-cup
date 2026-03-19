@@ -2544,10 +2544,21 @@ body {
   gap: 16px;
   margin-top: 24px;
 }
+/* Rules section in bracket page */
+.bracket-rules-section {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 24px;
+  margin-bottom: 8px;
+}
+
 @media (max-width: 768px) {
   .bracket-info-cards { grid-template-columns: 1fr; }
+  .bracket-rules-section { grid-template-columns: 1fr; }
   .format-selector-header { flex-direction: column; align-items: flex-start; }
   .format-select { min-width: 100%; }
+  #btnGerarPlayoffs { width: 100%; }
 }
 .info-card {
   background: var(--color-surface);

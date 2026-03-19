@@ -292,7 +292,7 @@ function renderBracket() {
   // Format selector (admin only, pre-playoffs)
   const selectorContainer = document.getElementById('formatSelectorContainer');
   if (selectorContainer) {
-    if (isPrePlayoffs && UI.checkAdmin()) {
+    if (isPrePlayoffs) {
       selectorContainer.style.display = '';
       _renderFormatSelector(state);
     } else {
@@ -528,7 +528,38 @@ function _renderBracketSlot(time, gols, isWinner) {
 
 function _renderInfoCards(format) {
   const cards = format.infoCards;
-  let html = '<div class="bracket-info-cards">';
+  const rules = format.rules;
+
+  // Rules cards (Chave Superior, Chave Inferior) + info cards
+  let html = '';
+
+  // Rules from format (rendered as rule-cards matching the regras page style)
+  if (rules && rules.length > 0) {
+    html += '<div class="bracket-rules-section">';
+    rules.forEach(rule => {
+      const borderColor = rule.iconBg === 'icon-bg-purple' ? 'var(--color-upper)' : rule.iconBg === 'icon-bg-orange' ? 'var(--color-lower)' : 'var(--color-text-dim)';
+      html += `<div class="info-card" style="border-left:3px solid ${borderColor}">
+        <div class="info-card-title" style="color:${borderColor}">${rule.icon} ${rule.title}</div>
+        <ul style="list-style:none;padding:0;margin:0">
+          ${rule.items.map(item => '<li class="info-card-line" style="padding:2px 0">' + item + '</li>').join('')}
+        </ul>
+      </div>`;
+    });
+
+    // Grand Final advantage card (shared)
+    html += `<div class="info-card" style="border-left:3px solid var(--color-champion)">
+      <div class="info-card-title" style="color:var(--color-champion)">&#127942; Grande Final</div>
+      <ul style="list-style:none;padding:0;margin:0">
+        <li class="info-card-line" style="padding:2px 0">Vencedor da <strong>Chave Superior</strong> vs Vencedor da <strong>Chave Inferior</strong>.</li>
+        <li class="info-card-line" style="padding:2px 0">Jogo &uacute;nico, sem empate (prorroga&ccedil;&atilde;o/p&ecirc;naltis se necess&aacute;rio).</li>
+        <li class="info-card-line" style="padding:2px 0">O time da <strong>Chave Superior</strong> tem <strong>vantagem de ban</strong>.</li>
+      </ul>
+    </div>`;
+    html += '</div>';
+  }
+
+  // Info cards (path, mechanics, advantages)
+  html += '<div class="bracket-info-cards">';
 
   // Path card
   html += `<div class="info-card">

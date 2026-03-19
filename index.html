@@ -145,7 +145,7 @@
           <input type="file" accept=".json" onchange="importData(event)" style="display:none">
         </label>
         <div class="quick-actions-separator"></div>
-        <button class="btn btn-danger btn-sm" onclick="confirmReset()">Reset Campeonato</button>
+        <button class="btn btn-danger btn-sm" onclick="confirmReset()">Reiniciar Campeonato</button>
       </div>
     </div>
   </section>
@@ -327,7 +327,7 @@
     </div>
 
     <!-- Format selector (admin only, pre-playoffs) -->
-    <div id="formatSelectorContainer" class="admin-only" style="display:none">
+    <div id="formatSelectorContainer" style="display:none">
       <div class="format-selector-card">
         <div class="format-selector-header">
           <label class="form-label" for="playoffFormatSelect">Formato dos Playoffs</label>
@@ -335,7 +335,7 @@
         </div>
         <div id="formatWarning" class="format-warning" style="display:none"></div>
         <div style="margin-top:12px">
-          <button class="btn btn-primary" id="btnGerarPlayoffs" onclick="iniciarPlayoffs()">Gerar Playoffs</button>
+          <button class="btn btn-primary admin-only" id="btnGerarPlayoffs" onclick="iniciarPlayoffs()">Gerar Playoffs</button>
         </div>
       </div>
     </div>
@@ -470,32 +470,16 @@
         </ul>
       </div>
 
-      <!-- Dynamic playoff rules (generated from selected format) -->
-      <div id="dynamicPlayoffRules" style="display:contents"></div>
-
-      <!-- Grande Final + Vantagem (shared across all formats) -->
-      <div class="rule-card">
-        <div class="rule-card-header">
-          <div class="rule-icon icon-bg-yellow" style="width:40px;height:40px;border-radius:var(--radius)">&#127942;</div>
-          <h3 class="rule-card-title">Grande Final &amp; Vantagem</h3>
-        </div>
-        <ul class="rule-list">
-          <li>Disputa entre o vencedor da <strong>Chave Superior</strong> e o vencedor da <strong>Chave Inferior</strong>.</li>
-          <li>Jogo &uacute;nico, sem empate (prorroga&ccedil;&atilde;o/p&ecirc;naltis se necess&aacute;rio).</li>
-          <li>O jogador da <strong>Chave Superior</strong> (sem derrota) escolhe qual vantagem de ban aplicar.</li>
-        </ul>
-      </div>
-
-      <!-- Formato Geral (shared across all formats) -->
+      <!-- Formato Geral dos Playoffs -->
       <div class="rule-card">
         <div class="rule-card-header">
           <div class="rule-icon icon-bg-green" style="width:40px;height:40px;border-radius:var(--radius)">&#128204;</div>
-          <h3 class="rule-card-title">Formato Geral dos Playoffs</h3>
+          <h3 class="rule-card-title">Formato dos Playoffs</h3>
         </div>
         <ul class="rule-list">
           <li>Todos os jogos dos playoffs s&atilde;o decididos em jogo &uacute;nico.</li>
-          <li><strong>Empates n&atilde;o s&atilde;o permitidos</strong> nos playoffs. Em caso de empate, utiliza-se prorroga&ccedil;&atilde;o e/ou p&ecirc;naltis.</li>
-          <li>O formato e n&uacute;mero de classificados pode ser ajustado pelo administrador antes de iniciar os playoffs.</li>
+          <li><strong>Empates n&atilde;o s&atilde;o permitidos</strong>. Em caso de empate, utiliza-se prorroga&ccedil;&atilde;o e/ou p&ecirc;naltis.</li>
+          <li>O formato e as regras das chaves est&atilde;o detalhados na <strong>tela de Chaveamento</strong>.</li>
         </ul>
       </div>
 
@@ -757,15 +741,15 @@
 <div class="modal-overlay" id="modalReset">
   <div class="modal">
     <div class="modal-header">
-      <span class="modal-title">Confirmar Reset</span>
+      <span class="modal-title">Reiniciar Campeonato</span>
       <button class="btn-icon" onclick="UI.closeModal('modalReset')">&#x2715;</button>
     </div>
     <div class="modal-body">
-      <p style="color:var(--color-text-muted);font-size:.9rem">Tem certeza que deseja <strong style="color:var(--color-loss)">resetar completamente</strong> o campeonato? Todos os times, resultados, histórico e configurações serão perdidos. Esta ação não pode ser desfeita.</p>
+      <p style="color:var(--color-text-muted);font-size:.9rem">Tem certeza que deseja <strong style="color:var(--color-loss)">reiniciar completamente</strong> o campeonato? Todos os times, resultados, hist&oacute;rico e configura&ccedil;&otilde;es ser&atilde;o perdidos. Esta a&ccedil;&atilde;o n&atilde;o pode ser desfeita.</p>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="UI.closeModal('modalReset')">Cancelar</button>
-      <button class="btn btn-danger" onclick="executeReset()">Sim, resetar</button>
+      <button class="btn btn-danger" onclick="executeReset()">Sim, reiniciar</button>
     </div>
   </div>
 </div>
