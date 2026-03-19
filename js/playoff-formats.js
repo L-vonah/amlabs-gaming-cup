@@ -108,7 +108,7 @@ const FORMAT_DOUBLE_ELIM_4 = {
   minTeams: 4,
 
   classificationTiers: [
-    { from: 1, to: 4, cssClass: 'classified-green', label: 'Classificado', color: '#1a9a5a' }
+    { from: 1, to: 4, cssClass: 'classified-green', label: 'SF Superior — Dupla eliminação', color: '#1a9a5a' }
   ],
 
   defaultMatches() {
@@ -351,8 +351,8 @@ const FORMAT_PLAY_IN_6 = {
   minTeams: 6,
 
   classificationTiers: [
-    { from: 1, to: 2, cssClass: 'classified-green-dark', label: 'Semifinal — Dupla eliminação', color: '#1a7a3a' },
-    { from: 3, to: 6, cssClass: 'classified-yellow-light', label: 'Quartas de Final', color: '#dcbe50' }
+    { from: 1, to: 2, cssClass: 'classified-green-dark', label: 'SF Superior — Dupla eliminação', color: '#1a7a3a' },
+    { from: 3, to: 6, cssClass: 'classified-yellow-light', label: 'QF Superior — Dupla eliminação', color: '#dcbe50' }
   ],
 
   defaultMatches() {
@@ -651,8 +651,8 @@ const FORMAT_GAUNTLET_6 = {
 
   classificationTiers: [
     { from: 1, to: 1, cssClass: 'classified-green-dark', label: 'Final Superior — Dupla eliminação', color: '#1a7a3a' },
-    { from: 2, to: 2, cssClass: 'classified-green-light', label: 'Semifinal Superior — Dupla eliminação', color: '#2ecc71' },
-    { from: 3, to: 4, cssClass: 'classified-blue-light', label: 'Quartas de Final — Dupla eliminação', color: '#74b9ff' },
+    { from: 2, to: 2, cssClass: 'classified-green-light', label: 'SF Superior — Dupla eliminação', color: '#2ecc71' },
+    { from: 3, to: 4, cssClass: 'classified-blue-light', label: 'QF Superior — Dupla eliminação', color: '#74b9ff' },
     { from: 5, to: 6, cssClass: 'classified-yellow-light', label: 'Oitavas Inferior — Sem 2ª chance', color: '#dcbe50' }
   ],
 
