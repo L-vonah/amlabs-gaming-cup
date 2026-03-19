@@ -300,28 +300,33 @@ function gerarFaseGrupos(state) {
 function adicionarPartidasNovoTime(state, novoTimeId) {
   const partidas = state.faseGrupos.partidas;
   const outrosIds = state.times.filter(t => t.id !== novoTimeId).map(t => t.id);
+  if (outrosIds.length === 0) return;
 
-  // Build map: round -> set of teams already playing
+  // Build map: round number -> set of team IDs playing in that round
   const roundTeams = {};
   partidas.forEach(p => {
-    if (!roundTeams[p.rodada]) roundTeams[p.rodada] = new Set();
-    roundTeams[p.rodada].add(p.timeA);
-    roundTeams[p.rodada].add(p.timeB);
+    const r = Number(p.rodada);
+    if (!roundTeams[r]) roundTeams[r] = new Set();
+    roundTeams[r].add(p.timeA);
+    roundTeams[r].add(p.timeB);
   });
 
-  const rounds = Object.keys(roundTeams).map(Number).sort((a, b) => a - b);
-  let maxRound = rounds.length > 0 ? Math.max(...rounds) : 0;
-  let matchIdx = 0;
+  let maxRound = 0;
+  Object.keys(roundTeams).forEach(r => { if (Number(r) > maxRound) maxRound = Number(r); });
 
-  for (const outroId of outrosIds) {
+  const ts = Date.now();
+
+  for (let i = 0; i < outrosIds.length; i++) {
+    const outroId = outrosIds[i];
     let placed = false;
 
-    // Try to fit in an existing round where neither team is playing
-    for (const r of rounds) {
-      if (!roundTeams[r].has(novoTimeId) && !roundTeams[r].has(outroId)) {
+    // Try existing rounds in order
+    for (let r = 1; r <= maxRound; r++) {
+      const teams = roundTeams[r] || new Set();
+      if (!teams.has(novoTimeId) && !teams.has(outroId)) {
         const [home, away] = Math.random() < 0.5 ? [novoTimeId, outroId] : [outroId, novoTimeId];
         partidas.push({
-          id: `rr_add_${Date.now()}_${matchIdx++}`,
+          id: `rr_add_${ts}_${i}`,
           rodada: r,
           timeA: home,
           timeB: away,
@@ -329,6 +334,7 @@ function adicionarPartidasNovoTime(state, novoTimeId) {
           golsB: null,
           status: 'pendente'
         });
+        if (!roundTeams[r]) roundTeams[r] = new Set();
         roundTeams[r].add(novoTimeId);
         roundTeams[r].add(outroId);
         placed = true;
@@ -336,14 +342,13 @@ function adicionarPartidasNovoTime(state, novoTimeId) {
       }
     }
 
-    // No room in existing rounds — create a new one
+    // No room — create new round
     if (!placed) {
       maxRound++;
-      rounds.push(maxRound);
       roundTeams[maxRound] = new Set();
       const [home, away] = Math.random() < 0.5 ? [novoTimeId, outroId] : [outroId, novoTimeId];
       partidas.push({
-        id: `rr_add_${Date.now()}_${matchIdx++}`,
+        id: `rr_add_${ts}_${i}`,
         rodada: maxRound,
         timeA: home,
         timeB: away,
