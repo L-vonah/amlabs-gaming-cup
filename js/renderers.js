@@ -544,15 +544,13 @@ function renderPartidasPlayoffs(state, admin) {
       const nameU = tU ? UI.escapeHtml(tU.nome) : '?';
       const nameL = tL ? UI.escapeHtml(tL.nome) : '?';
       const sc = concluded ? UI.scoreClass(m.golsUpper, m.golsLower) : '';
-      const onclick = "openScoreModal('grand-final','" + nameU.replace(/'/g,"\\'") + "','" + nameL.replace(/'/g,"\\'") + "',true)";
-
       let desktopBtn = '';
       let mobileBtn = '';
       if (admin && !concluded) {
-        desktopBtn = '<button class="btn btn-sm btn-success admin-only" onclick="' + onclick + '">Registrar</button>';
+        desktopBtn = '<button class="btn btn-sm btn-success admin-only btn-score-action" data-match-id="grand-final" data-gf="1">Registrar</button>';
         mobileBtn = desktopBtn;
       } else if (admin && concluded) {
-        desktopBtn = '<button class="btn btn-sm btn-secondary admin-only" onclick="' + onclick + '">Editar</button>';
+        desktopBtn = '<button class="btn btn-sm btn-secondary admin-only btn-score-action" data-match-id="grand-final" data-gf="1">Editar</button>';
         mobileBtn = desktopBtn;
       }
 
@@ -604,15 +602,13 @@ function renderPartidasPlayoffs(state, admin) {
       const nameA = tA ? UI.escapeHtml(tA.nome) : '?';
       const nameB = tB ? UI.escapeHtml(tB.nome) : '?';
       const sc = concluded ? UI.scoreClass(m.golsA, m.golsB) : '';
-      const onclick = "openScoreModal('" + m.id + "','" + nameA.replace(/'/g,"\\'") + "','" + nameB.replace(/'/g,"\\'") + "',false)";
-
       let desktopBtn = '';
       let mobileBtn = '';
       if (admin && !concluded) {
-        desktopBtn = '<button class="btn btn-sm btn-success admin-only" onclick="' + onclick + '">Registrar</button>';
+        desktopBtn = '<button class="btn btn-sm btn-success admin-only btn-score-action" data-match-id="' + m.id + '" data-gf="0">Registrar</button>';
         mobileBtn = desktopBtn;
       } else if (admin && concluded) {
-        desktopBtn = '<button class="btn btn-sm btn-secondary admin-only" onclick="' + onclick + '">Editar</button>';
+        desktopBtn = '<button class="btn btn-sm btn-secondary admin-only btn-score-action" data-match-id="' + m.id + '" data-gf="0">Editar</button>';
         mobileBtn = desktopBtn;
       }
 
@@ -671,16 +667,14 @@ function renderMatchCardWithAction(p, state, admin) {
   const partA = tA && tA.participante ? `<span class="team-participant">${UI.escapeHtml(tA.participante)}</span>` : '';
   const partB = tB && tB.participante ? `<span class="team-participant">${UI.escapeHtml(tB.participante)}</span>` : '';
 
-  const onclick = `openScoreModal('${p.id}','${nameA.replace(/'/g,"\\'")}','${nameB.replace(/'/g,"\\'")}',false)`;
-
   let desktopBtn = '';
   let mobileBtn = '';
   if (admin && !concluded) {
-    desktopBtn = `<button class="btn btn-sm btn-success admin-only" onclick="${onclick}">Registrar</button>`;
-    mobileBtn = `<button class="btn btn-sm btn-success admin-only" onclick="${onclick}">Registrar</button>`;
+    desktopBtn = `<button class="btn btn-sm btn-success admin-only btn-score-action" data-match-id="${p.id}" data-gf="0">Registrar</button>`;
+    mobileBtn = desktopBtn;
   } else if (admin && concluded) {
-    desktopBtn = `<button class="btn btn-sm btn-secondary admin-only" onclick="${onclick}">Editar</button>`;
-    mobileBtn = `<button class="btn btn-sm btn-secondary admin-only" onclick="${onclick}">Editar</button>`;
+    desktopBtn = `<button class="btn btn-sm btn-secondary admin-only btn-score-action" data-match-id="${p.id}" data-gf="0">Editar</button>`;
+    mobileBtn = desktopBtn;
   }
 
   return `
