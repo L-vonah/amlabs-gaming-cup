@@ -1872,6 +1872,15 @@ body {
    ROUND ACTION BUTTONS (Match Cards)
    ============================================= */
 
+/* Desktop: show text buttons, hide round buttons */
+.match-action-mobile { display: none; }
+.match-action-desktop { display: inline-flex; }
+
+@media (max-width: 768px) {
+  .match-action-mobile { display: flex; }
+  .match-action-desktop { display: none !important; }
+}
+
 .btn-round-action {
   display: flex;
   align-items: center;

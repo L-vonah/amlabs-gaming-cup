@@ -405,7 +405,7 @@ function renderPartidasPlayoffs(state, admin) {
           </div>
         </div>
         ${admin && !concluded ? '<button class="btn btn-sm btn-success admin-only" onclick="openScoreModal(\'' + m.id + '\',\'' + (tA?tA.nome:'?') + '\',\'' + (tB?tB.nome:'?') + '\',false)">Registrar</button>' : ''}
-        ${concluded ? '<span class="match-status-badge concluida">Conclu&iacute;da</span>' : (m.timeA && m.timeB ? '<span class="match-status-badge pendente">Pendente</span>' : '')}
+        ${concluded ? '<span class="match-status-badge concluida">Conclu&iacute;da</span>' : ''}
       </div>`;
     }).join('');
   }
@@ -425,14 +425,15 @@ function renderMatchCardWithAction(p, state, admin) {
   const partB = tB && tB.participante ? `<span class="team-participant">${tB.participante}</span>` : '';
 
   let actionBtn = '';
+  const onclick = `openScoreModal('${p.id}','${nameA.replace(/'/g,"\\'")}','${nameB.replace(/'/g,"\\'")}',false)`;
   if (admin && !concluded) {
-    actionBtn = `<button class="btn-round-action btn-round-register admin-only"
-      onclick="openScoreModal('${p.id}','${nameA.replace(/'/g,"\\'")}','${nameB.replace(/'/g,"\\'")}',false)">+</button>`;
+    actionBtn = `<button class="btn btn-sm btn-success admin-only match-action-desktop" onclick="${onclick}">Registrar</button>`
+      + `<button class="btn-round-action btn-round-register admin-only match-action-mobile" onclick="${onclick}">+</button>`;
   } else if (admin && concluded) {
-    actionBtn = `<button class="btn-round-action btn-round-edit admin-only"
-      onclick="openScoreModal('${p.id}','${nameA.replace(/'/g,"\\'")}','${nameB.replace(/'/g,"\\'")}',false)">&#9998;</button>`;
+    actionBtn = `<button class="btn btn-sm btn-secondary admin-only match-action-desktop" onclick="${onclick}">Editar</button>`
+      + `<button class="btn-round-action btn-round-edit admin-only match-action-mobile" onclick="${onclick}">&#9998;</button>`;
   } else if (!admin && concluded) {
-    actionBtn = `<span class="btn-round-action btn-round-done">&#10003;</span>`;
+    actionBtn = `<span class="btn-round-action btn-round-done match-action-mobile">&#10003;</span>`;
   }
 
   return `
@@ -453,6 +454,7 @@ function renderMatchCardWithAction(p, state, admin) {
         </div>
       </div>
       ${actionBtn}
+      ${concluded ? '<span class="match-status-badge concluida match-action-desktop">Conclu&iacute;da</span>' : ''}
     </div>`;
 }
 
