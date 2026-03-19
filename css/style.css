@@ -2335,3 +2335,114 @@ body {
 @keyframes btnSpin {
   to { transform: translateY(-50%) rotate(360deg); }
 }
+
+/* =============================================
+   Extracted inline-style classes (renderers)
+   ============================================= */
+
+/* Bracket mini-view match row (home dashboard) */
+.bracket-mini-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--color-surface-2);
+  border-radius: var(--radius);
+}
+.bracket-mini-phase {
+  font-size: .65rem;
+  font-weight: 700;
+  color: var(--color-text-dim);
+  min-width: 40px;
+}
+.bracket-mini-team {
+  flex: 1;
+  font-size: .8rem;
+}
+.bracket-mini-score {
+  font-weight: 800;
+  font-size: .85rem;
+}
+.bracket-mini-separator {
+  color: var(--color-text-dim);
+}
+
+/* Section label (bracket phases, round headers) */
+.phase-label {
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--color-text-dim);
+  text-align: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+.phase-label-small {
+  font-size: .65rem;
+  font-weight: 700;
+  color: var(--color-text-dim);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+/* Mini classification table (home dashboard) */
+.mini-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+.mini-table th {
+  padding: 10px 6px;
+  text-align: center;
+  font-size: .65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--color-text-dim);
+}
+.mini-table th:first-child,
+.mini-table th:nth-child(2) { text-align: left; padding-left: 12px; }
+.mini-table th:last-child { padding-right: 12px; }
+.mini-table td { padding: 8px 6px; text-align: center; }
+.mini-table td:first-child { padding-left: 12px; color: var(--color-text-dim); font-weight: 700; width: 24px; }
+.mini-table td:last-child { padding-right: 12px; font-weight: 800; font-size: .9rem; }
+.mini-table tr { border-bottom: 1px solid var(--color-border); }
+.mini-table thead tr { border-bottom: 1px solid var(--color-border); }
+.mini-table .team-cell { display: flex; align-items: center; gap: 8px; }
+.mini-table .team-cell span { font-weight: 600; }
+
+/* Stat display row (goleada, mais gols) */
+.stat-match-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+}
+.stat-match-name { flex: 1; font-size: .88rem; }
+.stat-match-name.winner { font-weight: 700; }
+.stat-match-score { font-weight: 800; font-size: 1.1rem; min-width: 20px; text-align: center; }
+.stat-match-note { font-size: .7rem; color: var(--color-text-dim); text-align: center; }
+
+/* Registration card */
+.registration-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.registration-card-info { flex: 1; min-width: 120px; }
+.registration-card-name { font-weight: 700; font-size: .9rem; }
+.registration-card-meta { font-size: .75rem; color: var(--color-text-dim); }
+.registration-card-badge {
+  font-size: .7rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 10px;
+}
+
+/* Playoff section header in partidas */
+.playoff-phase-header {
+  font-size: .6rem;
+}
