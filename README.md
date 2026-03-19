@@ -3,6 +3,7 @@
 Plataforma web para gerenciar campeonatos de futebol virtual da AMLabs. Atualmente rodando o **1o Campeonato EA Sports FC AMLabs 2026**.
 
 **Site:** https://amlabs-cup.netlify.app
+**Backup:** https://l-vonah.github.io/amlabs-gaming-cup/
 
 ## Sobre
 
@@ -133,6 +134,14 @@ npx netlify deploy --dir=. --prod
 - **Branch de producao:** master
 - **Build command:** nenhum (site estatico)
 - **Publish directory:** `/` (raiz do repo)
+
+### Backup (GitHub Pages)
+
+O GitHub Pages esta ativo como fallback caso os creditos do Netlify acabem. Ele faz deploy automatico de todo push no master, sem limite de creditos.
+
+- **URL:** https://l-vonah.github.io/amlabs-gaming-cup/
+- Nao tem preview por PR
+- Requer `l-vonah.github.io` autorizado no Firebase Auth
 
 ## Como Configurar (do zero)
 
