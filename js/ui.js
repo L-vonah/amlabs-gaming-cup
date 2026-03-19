@@ -34,7 +34,7 @@ function renderAvatar(time, size = 28, className = '') {
   if (!time) return `<div class="team-avatar ${className}" style="width:${size}px;height:${size}px;background:#dee2e6;font-size:${Math.floor(size*0.35)}px"></div>`;
   const abbr = (time.abreviacao || time.nome.slice(0, 3)).toUpperCase();
   const rgb = hexToRgb(time.cor || '#6c5ce7');
-  return `<div class="team-avatar ${className}" style="width:${size}px;height:${size}px;background:${time.cor || '#6c5ce7'};box-shadow:0 0 0 1px rgba(${rgb.r},${rgb.g},${rgb.b},0.3);font-size:${Math.floor(size*0.35)}px">${abbr.slice(0,3)}</div>`;
+  return `<div class="team-avatar ${className}" style="width:${size}px;height:${size}px;background:${time.cor || '#6c5ce7'};box-shadow:0 0 0 1px rgba(${rgb.r},${rgb.g},${rgb.b},0.3);font-size:${Math.floor(size*0.35)}px">${escapeHtml(abbr.slice(0,3))}</div>`;
 }
 
 // ------------------------------------------------------------------
@@ -187,6 +187,12 @@ function scoreClass(golsA, golsB) {
 // Exports
 // ------------------------------------------------------------------
 
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
 window.UI = {
   getRandomColor,
   renderAvatar,
@@ -201,5 +207,6 @@ window.UI = {
   signedNumber,
   scoreClass,
   getStatusLabel,
+  escapeHtml,
   PRESET_COLORS
 };

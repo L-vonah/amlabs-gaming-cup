@@ -14,40 +14,6 @@ const INSCRICOES_LOCAL_KEY = 'campeonato_amlabs_inscricoes_v1';
 let _firestoreCache = null;
 let _firestoreListenerUnsubscribe = null;
 
-/**
- * Creates a DDD-structured tournament template.
- */
-function createTournamentTemplate(name) {
-  return {
-    id: TOURNAMENT_ID,
-    metadata: {
-      nome: name || '1\u00BA Campeonato FC Football AMLabs 2026',
-      jogo: 'FC Football',
-      ano: 2026,
-      status: 'configuracao',
-      criadoEm: new Date().toISOString(),
-      atualizadoEm: new Date().toISOString()
-    },
-    config: {
-      formato: 'grupos+playoffs',
-      regrasClassificacao: {
-        vitoria: 3,
-        empate: 1,
-        derrota: 0,
-        criteriosDesempate: ['pontos', 'saldoGols', 'golsPro', 'confrontoDireto']
-      },
-      vantagemFinal: {
-        tipo: 'potes',
-        descricao: 'Chave superior escolhe pote alto, inferior escolhe pote baixo'
-      },
-      potes: { alto: [], baixo: [] }
-    },
-    times: [],
-    fases: [],
-    campeao: null
-  };
-}
-
 const FirestoreService = {
   isActive() {
     return FIREBASE_CONFIGURED;
@@ -136,28 +102,6 @@ const FirestoreService = {
   },
 
   /**
-   * Initialize tournament document if it does not exist.
-   */
-  async initTournament(name) {
-    if (!FIREBASE_CONFIGURED || !isAdmin()) return false;
-
-    try {
-      const docRef = firebase.firestore()
-        .collection(CAMPEONATOS_COLLECTION)
-        .doc(TOURNAMENT_ID);
-
-      const doc = await docRef.get();
-      if (!doc.exists) {
-        await docRef.set(createTournamentTemplate(name));
-      }
-      return true;
-    } catch (error) {
-      console.error('Error initializing tournament:', error);
-      return false;
-    }
-  },
-
-  /**
    * Add audit log entry to Firestore.
    */
   async addAuditLog(action, details) {
@@ -176,24 +120,6 @@ const FirestoreService = {
         });
     } catch (error) {
       console.error('Error adding audit log:', error);
-    }
-  },
-
-  async loadAuditLog() {
-    if (!FIREBASE_CONFIGURED) return [];
-    try {
-      const snapshot = await firebase.firestore()
-        .collection(AUDIT_COLLECTION)
-        .where('torneiId', '==', TOURNAMENT_ID)
-        .orderBy('timestamp', 'desc')
-        .get();
-      return snapshot.docs.map(doc => {
-        const d = doc.data();
-        return { id: doc.id, timestamp: d.timestamp, usuario: d.usuario, acao: d.acao, detalhes: d.detalhes || null };
-      });
-    } catch (error) {
-      console.error('Error loading audit log:', error);
-      return [];
     }
   },
 

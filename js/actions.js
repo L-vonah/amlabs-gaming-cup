@@ -80,7 +80,7 @@ function setLoading(btn, loading) {
 // ------------------------------------------------------------------
 
 function submitAddTime() {
-  if (typeof isAdmin === 'function' && !isAdmin()) { showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
+  if (typeof isAdmin === 'function' && !isAdmin()) { UI.showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
   const participante = UI.getFormValue('inputPartTimo');
   const nome = UI.getFormValue('inputNomeTimo');
   let abrev = UI.getFormValue('inputAbrevTimo').replace(/[^A-Za-z]/g, '');
@@ -138,7 +138,7 @@ function submitAddTime() {
 }
 
 function deleteTime(id) {
-  if (typeof isAdmin === 'function' && !isAdmin()) { showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
+  if (typeof isAdmin === 'function' && !isAdmin()) { UI.showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
   const state = AppState.load();
   const time = AppState.getTimeById(state, id);
   if (!time) return;
@@ -160,7 +160,7 @@ function deleteTime(id) {
 // ------------------------------------------------------------------
 
 function openEditTeamModal(id) {
-  if (typeof isAdmin === 'function' && !isAdmin()) { showToast('Apenas o admin pode editar.', 'error'); return; }
+  if (typeof isAdmin === 'function' && !isAdmin()) { UI.showToast('Apenas o admin pode editar.', 'error'); return; }
   const state = AppState.load();
   const time = AppState.getTimeById(state, id);
   if (!time) return;
@@ -210,7 +210,7 @@ window.saveEditTeam = saveEditTeam;
 // ------------------------------------------------------------------
 
 function gerarFaseGrupos() {
-  if (typeof isAdmin === 'function' && !isAdmin()) { showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
+  if (typeof isAdmin === 'function' && !isAdmin()) { UI.showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
   const state = AppState.load();
 
   if (state.times.length < 5) {
@@ -233,7 +233,7 @@ function gerarFaseGrupos() {
 }
 
 function iniciarPlayoffs() {
-  if (typeof isAdmin === 'function' && !isAdmin()) { showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
+  if (typeof isAdmin === 'function' && !isAdmin()) { UI.showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
   const state = AppState.load();
 
   if (!canStartPlayoffs(state)) {
@@ -260,19 +260,11 @@ function iniciarPlayoffs() {
 /**
  * Saves a group stage result. Called by the score modal (submitScoreModal).
  * @param {string} partidaId
+ * @param {number} golsA
+ * @param {number} golsB
  */
-function saveInlineResult(partidaId) {
-  if (typeof isAdmin === 'function' && !isAdmin()) { showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
-  const golsAEl = document.getElementById(`inline_golsA_${partidaId}`);
-  const golsBEl = document.getElementById(`inline_golsB_${partidaId}`);
-
-  if (!golsAEl || !golsBEl) {
-    UI.showToast('Erro ao encontrar campos do placar.', 'error');
-    return;
-  }
-
-  const golsA = parseInt(golsAEl.value);
-  const golsB = parseInt(golsBEl.value);
+function saveInlineResult(partidaId, golsA, golsB) {
+  if (typeof isAdmin === 'function' && !isAdmin()) { UI.showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
 
   if (isNaN(golsA) || isNaN(golsB) || golsA < 0 || golsB < 0) {
     UI.showToast('Informe placar válido (números não negativos).', 'error');
@@ -322,18 +314,8 @@ function saveInlineResult(partidaId) {
 // Playoff Results
 // ------------------------------------------------------------------
 
-function savePlayoffResult(matchId) {
-  if (typeof isAdmin === 'function' && !isAdmin()) { showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
-  const golsAEl = document.getElementById(`playoff_golsA_${matchId}`);
-  const golsBEl = document.getElementById(`playoff_golsB_${matchId}`);
-
-  if (!golsAEl || !golsBEl) {
-    UI.showToast('Erro ao encontrar campos do placar.', 'error');
-    return;
-  }
-
-  const golsA = parseInt(golsAEl.value);
-  const golsB = parseInt(golsBEl.value);
+function savePlayoffResult(matchId, golsA, golsB) {
+  if (typeof isAdmin === 'function' && !isAdmin()) { UI.showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
 
   if (isNaN(golsA) || isNaN(golsB) || golsA < 0 || golsB < 0) {
     UI.showToast('Informe placar válido.', 'error');
@@ -376,56 +358,6 @@ function savePlayoffResult(matchId) {
   Renderers.bracket();
 }
 
-function saveGrandFinalResult() {
-  if (typeof isAdmin === 'function' && !isAdmin()) { showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
-  const golsUpperEl = document.getElementById('gfGolsUpper');
-  const golsLowerEl = document.getElementById('gfGolsLower');
-
-  if (!golsUpperEl || !golsLowerEl) return;
-
-  const golsUpper = parseInt(golsUpperEl.value);
-  const golsLower = parseInt(golsLowerEl.value);
-
-  if (isNaN(golsUpper) || isNaN(golsLower) || golsUpper < 0 || golsLower < 0) {
-    UI.showToast('Informe placar válido.', 'error');
-    return;
-  }
-
-  if (golsUpper > 99 || golsLower > 99) {
-    UI.showToast('Placar maximo permitido: 99.', 'error');
-    return;
-  }
-
-  if (golsUpper === golsLower) {
-    UI.showToast('Empates não são permitidos na Grande Final. Defina o vencedor.', 'error');
-    return;
-  }
-
-  const state = AppState.load();
-  const tU = AppState.getTimeById(state, state.playoffs.grandFinal.timeUpper);
-  const tL = AppState.getTimeById(state, state.playoffs.grandFinal.timeLower);
-
-  const ok = AppState.registrarResultadoGrandFinal(state, golsUpper, golsLower);
-
-  if (!ok) {
-    UI.showToast('Erro ao salvar resultado da Grande Final.', 'error');
-    return;
-  }
-
-  AppState.save(state);
-
-  const winner = AppState.getTimeById(state, state.playoffs.grandFinal.vencedor);
-  const scoreStr = `${tU ? tU.nome : '?'} ${golsUpper} x ${golsLower} ${tL ? tL.nome : '?'}`;
-  AppState.addAuditLog(getAuditUser(), `Registrou resultado da Grande Final: ${scoreStr} — Campeão: ${winner ? winner.nome : '?'}`, { golsUpper, golsLower, campeao: winner ? winner.id : null });
-  UI.showToast(`\u{1F3C6} ${winner ? winner.nome : '?'} \u00E9 CAMPE\u00C3O!`, 'success', 6000);
-
-  Renderers.bracket();
-  Renderers.home();
-  UI.updateHeaderBadge('encerrado');
-  UI.updateLifecycleBar('encerrado');
-}
-
-
 // ------------------------------------------------------------------
 // Reset
 // ------------------------------------------------------------------
@@ -435,7 +367,7 @@ function confirmReset() {
 }
 
 function executeReset() {
-  if (typeof isAdmin === 'function' && !isAdmin()) { showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
+  if (typeof isAdmin === 'function' && !isAdmin()) { UI.showToast('Voce precisa estar logado como admin para editar.', 'error'); return; }
   AppState.reset();
   UI.closeModal('modalReset');
   UI.showToast('Campeonato resetado com sucesso.', 'info');
@@ -613,11 +545,21 @@ function importData(event) {
   reader.onload = (e) => {
     try {
       const data = JSON.parse(e.target.result);
+
+      // Validate structure
+      const stateObj = data.state || data;
+      if (!stateObj || typeof stateObj !== 'object' ||
+          !stateObj.campeonato || typeof stateObj.campeonato !== 'object' ||
+          !Array.isArray(stateObj.times) ||
+          !stateObj.faseGrupos || typeof stateObj.faseGrupos !== 'object') {
+        UI.showToast('Arquivo invalido: estrutura de dados nao reconhecida (campeonato, times, faseGrupos).', 'error');
+        return;
+      }
+
       // Support both old format (plain state) and new format (wrapped)
       if (data.state) {
         localStorage.setItem('campeonato_amlabs_v1', JSON.stringify(data.state));
         if (data.auditLog) localStorage.setItem('campeonato_amlabs_audit_v1', JSON.stringify(data.auditLog));
-        if (data.potes) localStorage.setItem('campeonato_amlabs_potes_v1', JSON.stringify(data.potes));
       } else {
         localStorage.setItem('campeonato_amlabs_v1', JSON.stringify(data));
       }

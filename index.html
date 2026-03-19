@@ -857,33 +857,20 @@
     UI.closeModal('modalScore');
 
     if (isGF) {
-      // Set values and call existing function
-      const elA = document.getElementById('gfGolsUpper');
-      const elB = document.getElementById('gfGolsLower');
-      if (elA) elA.value = golsA;
-      if (elB) elB.value = golsB;
-      saveGrandFinalResult();
+      const state = AppState.load();
+      AppState.registrarResultadoGrandFinal(state, golsA, golsB);
+      AppState.save(state);
+      AppState.addAuditLog(getAuditUser(), 'Registrou resultado da Grande Final: ' + golsA + ' x ' + golsB);
+      Renderers.bracket();
+      Renderers.home();
     } else {
       // Check if it's a group stage or playoff match
       const state = AppState.load();
       const grp = state.faseGrupos.partidas.find(p => p.id === matchId);
       if (grp) {
-        // Temporarily create inline elements for saveInlineResult
-        const tmpA = document.createElement('input'); tmpA.id = 'inline_golsA_' + matchId; tmpA.value = golsA;
-        const tmpB = document.createElement('input'); tmpB.id = 'inline_golsB_' + matchId; tmpB.value = golsB;
-        document.body.appendChild(tmpA);
-        document.body.appendChild(tmpB);
-        saveInlineResult(matchId);
-        tmpA.remove();
-        tmpB.remove();
+        saveInlineResult(matchId, golsA, golsB);
       } else {
-        const tmpA = document.createElement('input'); tmpA.id = 'playoff_golsA_' + matchId; tmpA.value = golsA;
-        const tmpB = document.createElement('input'); tmpB.id = 'playoff_golsB_' + matchId; tmpB.value = golsB;
-        document.body.appendChild(tmpA);
-        document.body.appendChild(tmpB);
-        savePlayoffResult(matchId);
-        tmpA.remove();
-        tmpB.remove();
+        savePlayoffResult(matchId, golsA, golsB);
       }
     }
 

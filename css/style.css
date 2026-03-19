@@ -69,12 +69,6 @@ body {
    LAYOUT
    ============================================= */
 
-.app-wrapper {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-}
-
 .main-content {
   flex: 1;
   max-width: 1280px;
@@ -112,11 +106,6 @@ body {
   gap: 10px;
   text-decoration: none;
   flex-shrink: 0;
-}
-
-.logo-icon {
-  font-size: 1.5rem;
-  line-height: 1;
 }
 
 .logo-text {
@@ -289,13 +278,6 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-weight: 600;
-}
-
-.hero-actions {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-  flex-wrap: wrap;
 }
 
 /* =============================================
@@ -568,11 +550,6 @@ body {
   color: var(--color-text);
 }
 
-.team-abbr {
-  font-size: 0.75rem;
-  color: var(--color-text-dim);
-}
-
 .stat-pts {
   font-weight: 800;
   font-size: 1rem;
@@ -636,12 +613,6 @@ body {
 .match-card:hover {
   border-color: var(--color-border-light);
   background: var(--color-surface-3);
-}
-
-.match-layout {
-  display: flex;
-  align-items: center;
-  gap: 12px;
 }
 
 .match-round-badge {
@@ -738,71 +709,12 @@ body {
 .match-status-badge.concluida { background: var(--color-win-bg); color: var(--color-win); border: 1px solid rgba(0,184,148,0.3); }
 
 /* =============================================
-   REGISTER RESULTS FORM
-   ============================================= */
-
-.register-section {
-  display: grid;
-  gap: 24px;
-}
-
-.result-form {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.result-form select,
-.result-form input {
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  color: var(--color-text);
-  padding: 10px 14px;
-  font-size: 0.875rem;
-  font-family: var(--font-main);
-  transition: border-color var(--transition);
-}
-
-.result-form select:focus,
-.result-form input:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-glow);
-}
-
-.result-form select {
-  flex: 1;
-  min-width: 140px;
-  cursor: pointer;
-}
-
-.result-form input[type="number"] {
-  width: 72px;
-  text-align: center;
-  font-size: 1.1rem;
-  font-weight: 700;
-}
-
-.vs-divider {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--color-text-dim);
-  letter-spacing: 0.05em;
-}
-
-/* =============================================
    BRACKET VISUALIZATION
    ============================================= */
 
 .bracket-container {
   overflow-x: auto;
   padding-bottom: 16px;
-}
-
-.bracket-wrapper {
-  min-width: 900px;
 }
 
 .bracket-label {
@@ -821,32 +733,6 @@ body {
 .bracket-label.upper { background: var(--color-upper-bg); color: var(--color-upper); border: 1px solid rgba(108,92,231,0.3); }
 .bracket-label.lower { background: var(--color-lower-bg); color: var(--color-lower); border: 1px solid rgba(225,112,85,0.3); }
 .bracket-label.grand { background: var(--color-champion-bg); color: var(--color-champion); border: 1px solid rgba(249,168,37,0.3); }
-
-.bracket-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr) auto repeat(2, 1fr);
-  gap: 0;
-  align-items: center;
-}
-
-.bracket-col {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 0 16px;
-}
-
-.bracket-col-label {
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--color-text-dim);
-  text-align: center;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--color-border);
-  margin-bottom: 8px;
-}
 
 .bracket-match {
   background: var(--color-surface-2);
@@ -1203,12 +1089,6 @@ body {
   letter-spacing: 0.08em;
   font-weight: 600;
   margin-top: 4px;
-}
-
-.stat-card-sub {
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-  margin-top: 2px;
 }
 
 .top-list {
@@ -1619,12 +1499,6 @@ body {
   flex-wrap: wrap;
 }
 
-.team-name-block {
-  font-weight: 600;
-  font-size: 0.9rem;
-  color: var(--color-text);
-}
-
 .team-participant {
   font-size: 0.65rem;
   color: var(--color-text-dim);
@@ -1809,8 +1683,6 @@ body {
   .hero-stats { gap: 16px; margin-bottom: 20px; }
   .hero-stat-value { font-size: 1.4rem; }
   .hero-stat-label { font-size: 0.6rem; }
-  .hero-actions { gap: 8px; }
-  .hero-actions .btn { font-size: 0.78rem; padding: 8px 12px; }
 
   /* ----- Section headers ----- */
   .section-header { flex-direction: column; align-items: flex-start; gap: 8px; }
@@ -2153,71 +2025,8 @@ body {
 }
 
 /* =============================================
-   UNIFIED MATCH INPUT FORM
+   SCORE INPUT
    ============================================= */
-
-.unified-match-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.unified-match-select-row {
-  width: 100%;
-}
-
-.unified-match-select-row select {
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  color: var(--color-text);
-  padding: 10px 14px;
-  font-size: 0.875rem;
-  font-family: var(--font-main);
-  transition: border-color var(--transition);
-  cursor: pointer;
-}
-
-.unified-match-select-row select:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-glow);
-}
-
-.unified-score-row {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: 16px;
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  padding: 20px;
-}
-
-.unified-team-side {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.unified-team-side-right {
-  justify-content: flex-end;
-  text-align: right;
-}
-
-.unified-team-name {
-  font-weight: 700;
-  font-size: 1rem;
-  color: var(--color-text);
-}
-
-.unified-score-inputs {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-}
 
 .score-input {
   width: 72px;
@@ -2238,14 +2047,6 @@ body {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--color-primary-glow);
-}
-
-.unified-form-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
 }
 
 /* =============================================
@@ -2331,18 +2132,6 @@ body {
   width: auto;
   border-radius: 4px;
   flex-shrink: 0;
-}
-
-.hero-logo {
-  height: 100px;
-  width: auto;
-  margin-bottom: 20px;
-}
-
-@media (max-width: 768px) {
-  .hero-logo {
-    height: 72px;
-  }
 }
 
 /* =============================================

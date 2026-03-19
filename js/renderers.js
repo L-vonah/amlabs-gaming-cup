@@ -37,7 +37,7 @@ function renderHome() {
               <span class="champion-trophy-icon">&#127942;</span>
             </div>
             <div class="champion-label">CAMPEAO DO CAMPEONATO 2026</div>
-            <div class="champion-name">${winner ? winner.nome : '?'}</div>
+            <div class="champion-name">${winner ? UI.escapeHtml(winner.nome) : '?'}</div>
             ${winner ? `<div class="champion-avatar-wrapper">${UI.renderAvatar(winner, 80)}</div>` : ''}
             <div class="champion-score">${gf.golsUpper} &times; ${gf.golsLower} &mdash; Grande Final</div>
             <div class="champion-badge">1&ordm; Campeonato FC Football AMLabs 2026</div>
@@ -83,7 +83,7 @@ function renderHome() {
                 const isQ = i < 4;
                 return '<tr style="border-bottom:1px solid var(--color-border);' + (isQ ? 'border-left:2px solid var(--color-win)' : '') + '">' +
                   '<td style="padding:8px 12px;color:var(--color-text-dim);font-weight:700;width:24px">' + (i + 1) + '</td>' +
-                  '<td style="padding:8px 4px"><div style="display:flex;align-items:center;gap:8px">' + UI.renderAvatar(t, 22) + '<span style="font-weight:600">' + t.nome + '</span></div></td>' +
+                  '<td style="padding:8px 4px"><div style="display:flex;align-items:center;gap:8px">' + UI.renderAvatar(t, 22) + '<span style="font-weight:600">' + UI.escapeHtml(t.nome) + '</span></div></td>' +
                   '<td style="padding:8px 6px;text-align:center;color:var(--color-text-muted)">' + t.jogos + '</td>' +
                   '<td style="padding:8px 6px;text-align:center;color:var(--color-win);font-weight:700">' + t.vitorias + '</td>' +
                   '<td style="padding:8px 6px;text-align:center;font-weight:700;color:' + (t.saldoGols > 0 ? 'var(--color-win)' : t.saldoGols < 0 ? 'var(--color-loss)' : 'var(--color-text-muted)') + '">' + UI.signedNumber(t.saldoGols) + '</td>' +
@@ -125,8 +125,8 @@ function renderTimes() {
     <div class="team-card">
       ${UI.renderAvatar(t, 44, 'team-card-avatar')}
       <div class="team-card-info">
-        <div class="team-card-name">${t.nome}</div>
-        <div class="team-card-abbr">${t.participante || ''}</div>
+        <div class="team-card-name">${UI.escapeHtml(t.nome)}</div>
+        <div class="team-card-abbr">${UI.escapeHtml(t.participante || '')}</div>
       </div>
       <div class="team-card-actions admin-only">
         <button class="btn-icon" onclick="openEditTeamModal('${t.id}')" title="Editar time">&#9998;</button>
@@ -199,8 +199,8 @@ function renderClassificacao() {
                   <div class="team-name-cell">
                     ${UI.renderAvatar(t, 28)}
                     <div>
-                      <div class="team-name-text">${t.nome}</div>
-                      ${t.participante ? '<div class="team-participant-sub">' + t.participante + '</div>' : ''}
+                      <div class="team-name-text">${UI.escapeHtml(t.nome)}</div>
+                      ${t.participante ? '<div class="team-participant-sub">' + UI.escapeHtml(t.participante) + '</div>' : ''}
                     </div>
                   </div>
                 </td>
@@ -360,7 +360,7 @@ function renderPartidasPlayoffs(state, admin) {
         <div class="match-round-badge" style="color:var(--color-champion)">Final</div>
         <div class="match-teams">
           <div class="match-team home">
-            <span class="team-name-text">${tU ? tU.nome : '?'}</span>
+            <span class="team-name-text">${tU ? UI.escapeHtml(tU.nome) : '?'}</span>
             ${UI.renderAvatar(tU, 24)}
           </div>
           <div class="match-score ${concluded ? UI.scoreClass(gf.golsUpper, gf.golsLower) : ''}">
@@ -370,10 +370,10 @@ function renderPartidasPlayoffs(state, admin) {
           </div>
           <div class="match-team away">
             ${UI.renderAvatar(tL, 24)}
-            <span class="team-name-text">${tL ? tL.nome : '?'}</span>
+            <span class="team-name-text">${tL ? UI.escapeHtml(tL.nome) : '?'}</span>
           </div>
         </div>
-        ${admin && !concluded ? '<button class="btn btn-sm btn-success admin-only" onclick="openScoreModal(\'grand-final\',\'' + (tU?tU.nome:'?') + '\',\'' + (tL?tL.nome:'?') + '\',true)">Registrar</button>' : ''}
+        ${admin && !concluded ? '<button class="btn btn-sm btn-success admin-only" onclick="openScoreModal(\'grand-final\',\'' + UI.escapeHtml((tU?tU.nome:'?').replace(/'/g,"\\'")) + '\',\'' + UI.escapeHtml((tL?tL.nome:'?').replace(/'/g,"\\'")) + '\',true)">Registrar</button>' : ''}
         ${concluded ? '<span class="match-status-badge concluida">Conclu&iacute;da</span>' : '<span class="match-status-badge pendente">Pendente</span>'}
       </div>
     </div>`;
@@ -392,7 +392,7 @@ function renderPartidasPlayoffs(state, admin) {
         <div class="match-round-badge" style="font-size:.6rem">${m.fase}</div>
         <div class="match-teams">
           <div class="match-team home">
-            <span class="team-name-text">${tA ? tA.nome : '?'}</span>
+            <span class="team-name-text">${tA ? UI.escapeHtml(tA.nome) : '?'}</span>
             ${UI.renderAvatar(tA, 24)}
           </div>
           <div class="match-score ${concluded ? UI.scoreClass(m.golsA, m.golsB) : ''}">
@@ -402,10 +402,10 @@ function renderPartidasPlayoffs(state, admin) {
           </div>
           <div class="match-team away">
             ${UI.renderAvatar(tB, 24)}
-            <span class="team-name-text">${tB ? tB.nome : '?'}</span>
+            <span class="team-name-text">${tB ? UI.escapeHtml(tB.nome) : '?'}</span>
           </div>
         </div>
-        ${admin && !concluded ? '<button class="btn btn-sm btn-success admin-only" onclick="openScoreModal(\'' + m.id + '\',\'' + (tA?tA.nome:'?') + '\',\'' + (tB?tB.nome:'?') + '\',false)">Registrar</button>' : ''}
+        ${admin && !concluded ? '<button class="btn btn-sm btn-success admin-only" onclick="openScoreModal(\'' + m.id + '\',\'' + UI.escapeHtml((tA?tA.nome:'?').replace(/'/g,"\\'")) + '\',\'' + UI.escapeHtml((tB?tB.nome:'?').replace(/'/g,"\\'")) + '\',false)">Registrar</button>' : ''}
         ${concluded ? '<span class="match-status-badge concluida">Conclu&iacute;da</span>' : ''}
       </div>`;
     }).join('');
@@ -417,13 +417,13 @@ function renderPartidasPlayoffs(state, admin) {
 function renderMatchCardWithAction(p, state, admin) {
   const tA = AppState.getTimeById(state, p.timeA);
   const tB = AppState.getTimeById(state, p.timeB);
-  const nameA = tA ? tA.nome : 'Time A';
-  const nameB = tB ? tB.nome : 'Time B';
+  const nameA = tA ? UI.escapeHtml(tA.nome) : 'Time A';
+  const nameB = tB ? UI.escapeHtml(tB.nome) : 'Time B';
   const concluded = p.status === 'concluida';
   const sc = concluded ? UI.scoreClass(p.golsA, p.golsB) : '';
 
-  const partA = tA && tA.participante ? `<span class="team-participant">${tA.participante}</span>` : '';
-  const partB = tB && tB.participante ? `<span class="team-participant">${tB.participante}</span>` : '';
+  const partA = tA && tA.participante ? `<span class="team-participant">${UI.escapeHtml(tA.participante)}</span>` : '';
+  const partB = tB && tB.participante ? `<span class="team-participant">${UI.escapeHtml(tB.participante)}</span>` : '';
 
   const onclick = `openScoreModal('${p.id}','${nameA.replace(/'/g,"\\'")}','${nameB.replace(/'/g,"\\'")}',false)`;
 
@@ -462,12 +462,12 @@ function renderMatchCardWithAction(p, state, admin) {
       <div class="match-mobile">
         <div class="match-mobile-row">
           ${UI.renderAvatar(tA, 28)}
-          <span class="match-mobile-name">${nameA}${partA ? ' <span class="team-participant">' + tA.participante + '</span>' : ''}</span>
+          <span class="match-mobile-name">${nameA}${partA ? ' <span class="team-participant">' + UI.escapeHtml(tA.participante) + '</span>' : ''}</span>
           <span class="match-mobile-score ${concluded && p.golsA > p.golsB ? 'win' : concluded && p.golsA < p.golsB ? 'loss' : ''}">${concluded ? p.golsA : '-'}</span>
         </div>
         <div class="match-mobile-row">
           ${UI.renderAvatar(tB, 28)}
-          <span class="match-mobile-name">${nameB}${partB ? ' <span class="team-participant">' + tB.participante + '</span>' : ''}</span>
+          <span class="match-mobile-name">${nameB}${partB ? ' <span class="team-participant">' + UI.escapeHtml(tB.participante) + '</span>' : ''}</span>
           <span class="match-mobile-score ${concluded && p.golsB > p.golsA ? 'win' : concluded && p.golsB < p.golsA ? 'loss' : ''}">${concluded ? p.golsB : '-'}</span>
         </div>
         ${mobileBtn ? '<div class="match-mobile-action">' + mobileBtn + '</div>' : ''}
@@ -627,7 +627,7 @@ function renderBracketSlot(time, gols, isWinner) {
   return `
     <div class="bracket-slot ${isWinner ? 'winner' : ''}">
       ${UI.renderAvatar(time, 22, 'bracket-slot-avatar')}
-      <span class="bracket-slot-name">${time.nome}</span>
+      <span class="bracket-slot-name">${UI.escapeHtml(time.nome)}</span>
       <span class="bracket-slot-score">${gols !== null ? gols : ''}</span>
     </div>`;
 }
@@ -640,13 +640,13 @@ function renderGrandFinalBracket(gf, state) {
     <div class="bracket-match grand-match">
       <div class="bracket-slot ${gf.vencedor === gf.timeUpper ? 'winner' : ''}">
         ${tU ? UI.renderAvatar(tU, 22, 'bracket-slot-avatar') : ''}
-        <span class="bracket-slot-name ${!tU ? 'tbd' : ''}">${tU ? tU.nome : 'A definir'}</span>
+        <span class="bracket-slot-name ${!tU ? 'tbd' : ''}">${tU ? UI.escapeHtml(tU.nome) : 'A definir'}</span>
         ${tU ? `<span style="font-size:.6rem;background:var(--color-upper-bg);color:var(--color-upper);padding:1px 5px;border-radius:8px;font-weight:700;margin-right:4px">CS</span>` : ''}
         <span class="bracket-slot-score">${gf.golsUpper !== null ? gf.golsUpper : ''}</span>
       </div>
       <div class="bracket-slot ${gf.vencedor === gf.timeLower ? 'winner' : ''}">
         ${tL ? UI.renderAvatar(tL, 22, 'bracket-slot-avatar') : ''}
-        <span class="bracket-slot-name ${!tL ? 'tbd' : ''}">${tL ? tL.nome : 'A definir'}</span>
+        <span class="bracket-slot-name ${!tL ? 'tbd' : ''}">${tL ? UI.escapeHtml(tL.nome) : 'A definir'}</span>
         ${tL ? `<span style="font-size:.6rem;background:var(--color-lower-bg);color:var(--color-lower);padding:1px 5px;border-radius:8px;font-weight:700;margin-right:4px">CI</span>` : ''}
         <span class="bracket-slot-score">${gf.golsLower !== null ? gf.golsLower : ''}</span>
       </div>
@@ -684,7 +684,7 @@ function renderEstatisticas() {
           <span class="top-rank ${i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : ''}">${i + 1}&deg;</span>
           ${UI.renderAvatar(t, 28)}
           <div class="flex-1">
-            <div class="top-list-name">${t.nome}</div>
+            <div class="top-list-name">${UI.escapeHtml(t.nome)}</div>
             <div class="top-list-sub">${t.jogos} jogos</div>
           </div>
           <div>
@@ -706,7 +706,7 @@ function renderEstatisticas() {
           <span class="top-rank ${i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : ''}">${i + 1}&deg;</span>
           ${UI.renderAvatar(t, 28)}
           <div class="flex-1">
-            <div class="top-list-name">${t.nome}</div>
+            <div class="top-list-name">${UI.escapeHtml(t.nome)}</div>
             <div class="top-list-sub">${t.jogos} jogos</div>
           </div>
           <div>
@@ -730,13 +730,13 @@ function renderEstatisticas() {
         <div class="match-card">
           <div class="match-round-badge">Rod. ${p.rodada}</div>
           <div class="match-teams">
-            <div class="match-team home">${tA ? tA.nome : '?'}${UI.renderAvatar(tA, 24)}</div>
+            <div class="match-team home">${tA ? UI.escapeHtml(tA.nome) : '?'}${UI.renderAvatar(tA, 24)}</div>
             <div class="match-score ${UI.scoreClass(p.golsA, p.golsB)}">
               <span class="score-val">${p.golsA}</span>
               <span class="dash">:</span>
               <span class="score-val">${p.golsB}</span>
             </div>
-            <div class="match-team away">${UI.renderAvatar(tB, 24)}${tB ? tB.nome : '?'}</div>
+            <div class="match-team away">${UI.renderAvatar(tB, 24)}${tB ? UI.escapeHtml(tB.nome) : '?'}</div>
           </div>
         </div>`;
     }
@@ -792,11 +792,11 @@ async function renderHistorico() {
         return `
           <div class="audit-entry">
             <div class="audit-meta">
-              <span class="audit-user">${entry.usuario}</span>
+              <span class="audit-user">${UI.escapeHtml(entry.usuario)}</span>
               <span class="audit-datetime">${dateStr} às ${timeStr}</span>
             </div>
-            <div class="audit-action">${entry.acao}</div>
-            ${entry.detalhes ? `<div class="audit-details">${Object.entries(entry.detalhes).map(([k, v]) => `<span>${k}: <strong>${v}</strong></span>`).join(' &bull; ')}</div>` : ''}
+            <div class="audit-action">${UI.escapeHtml(entry.acao)}</div>
+            ${entry.detalhes ? `<div class="audit-details">${Object.entries(entry.detalhes).map(([k, v]) => `<span>${UI.escapeHtml(k)}: <strong>${UI.escapeHtml(String(v))}</strong></span>`).join(' &bull; ')}</div>` : ''}
           </div>`;
       }).join('')}
     </div>`;
@@ -839,7 +839,7 @@ async function renderInscricoes() {
   if (state.times.length > 0) {
     html += '<div class="section-header"><h3 class="section-title"><span class="section-title-icon icon-bg-green">&#9989;</span> Times Inscritos (' + state.times.length + ')</h3></div>';
     html += '<div class="teams-grid mb-24">';
-    html += state.times.map(t => '<div class="team-card"><div style="display:flex;align-items:center;gap:12px">' + UI.renderAvatar(t, 36) + '<div><div class="team-card-name">' + t.nome + '</div><div class="team-card-abbr">' + t.abreviacao + (t.participante ? ' &bull; ' + t.participante : '') + '</div></div></div></div>').join('');
+    html += state.times.map(t => '<div class="team-card"><div style="display:flex;align-items:center;gap:12px">' + UI.renderAvatar(t, 36) + '<div><div class="team-card-name">' + UI.escapeHtml(t.nome) + '</div><div class="team-card-abbr">' + UI.escapeHtml(t.abreviacao) + (t.participante ? ' &bull; ' + UI.escapeHtml(t.participante) : '') + '</div></div></div></div>').join('');
     html += '</div>';
   } else if (pendentes.length === 0) {
     html += '<div class="empty-state"><div class="empty-icon">&#128101;</div><div class="empty-title">Nenhum time inscrito ainda</div><div class="empty-desc">Seja o primeiro a inscrever seu time!</div></div>';
@@ -873,7 +873,7 @@ function renderRegistrationCard(r, status, showActions) {
 
   return '<div style="background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius);padding:14px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">'
     + UI.renderAvatar(avatar, 36)
-    + '<div style="flex:1;min-width:120px"><div style="font-weight:700;font-size:.9rem">' + r.nome + '</div><div style="font-size:.75rem;color:var(--color-text-dim)">' + r.abreviacao + (r.participante ? ' &bull; ' + r.participante : '') + ' &bull; ' + new Date(r.criadoEm).toLocaleDateString('pt-BR') + '</div></div>'
+    + '<div style="flex:1;min-width:120px"><div style="font-weight:700;font-size:.9rem">' + UI.escapeHtml(r.nome) + '</div><div style="font-size:.75rem;color:var(--color-text-dim)">' + UI.escapeHtml(r.abreviacao) + (r.participante ? ' &bull; ' + UI.escapeHtml(r.participante) : '') + ' &bull; ' + new Date(r.criadoEm).toLocaleDateString('pt-BR') + '</div></div>'
     + '<span style="font-size:.7rem;font-weight:700;padding:3px 10px;border-radius:10px;background:' + s.bg + ';color:' + s.color + ';border:1px solid ' + s.border + '">' + s.label + '</span>'
     + (showActions
       ? '<div style="display:flex;gap:6px"><button class="btn btn-sm btn-success" onclick="approveRegistration(\'' + r.id + '\')">Aprovar</button><button class="btn btn-sm btn-secondary" onclick="rejectRegistration(\'' + r.id + '\')">Rejeitar</button></div>'

@@ -29,7 +29,7 @@ function initAuth() {
 
 async function loginAdmin() {
   if (!FIREBASE_CONFIGURED) {
-    showToast('Firebase nao configurado. Modo local ativo.', 'info');
+    UI.showToast('Firebase nao configurado. Modo local ativo.', 'info');
     return;
   }
 
@@ -39,16 +39,16 @@ async function loginAdmin() {
     const result = await firebase.auth().signInWithPopup(provider);
 
     if (result.user.email !== ADMIN_EMAIL) {
-      showToast('Sem permissao de edicao. Apenas o administrador pode editar.', 'error');
+      UI.showToast('Sem permissao de edicao. Apenas o administrador pode editar.', 'error');
       await firebase.auth().signOut();
       return false;
     }
 
-    showToast('Login realizado com sucesso!', 'success');
+    UI.showToast('Login realizado com sucesso!', 'success');
     return true;
   } catch (error) {
     if (error.code !== 'auth/popup-closed-by-user') {
-      showToast('Erro ao fazer login: ' + error.message, 'error');
+      UI.showToast('Erro ao fazer login: ' + error.message, 'error');
     }
     return false;
   }
@@ -59,9 +59,9 @@ async function logoutAdmin() {
 
   try {
     await firebase.auth().signOut();
-    showToast('Logout realizado.', 'info');
+    UI.showToast('Logout realizado.', 'info');
   } catch (error) {
-    showToast('Erro ao fazer logout: ' + error.message, 'error');
+    UI.showToast('Erro ao fazer logout: ' + error.message, 'error');
   }
 }
 

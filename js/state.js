@@ -5,7 +5,6 @@
 
 const STATE_KEY = 'campeonato_amlabs_v1';
 const AUDIT_LOG_KEY = 'campeonato_amlabs_audit_v1';
-const POTES_KEY = 'campeonato_amlabs_potes_v1'; // kept only for cleanup in resetState
 
 const DEFAULT_STATE = {
   campeonato: {
@@ -159,7 +158,6 @@ function convertFirestoreToState(data) {
 function resetState() {
   localStorage.removeItem(STATE_KEY);
   localStorage.removeItem(AUDIT_LOG_KEY);
-  localStorage.removeItem(POTES_KEY);
   return JSON.parse(JSON.stringify(DEFAULT_STATE));
 }
 
@@ -604,6 +602,7 @@ function _propagarResultadoPlayoff(state) {
 
   // Check if grand final is complete
   if (gf.golsUpper !== null && gf.golsLower !== null) {
+    if (gf.golsUpper === gf.golsLower) return; // draw — don't set a winner
     gf.vencedor = gf.golsUpper > gf.golsLower ? gf.timeUpper : gf.timeLower;
     state.playoffs.status = 'concluido';
     state.campeonato.status = 'encerrado';
