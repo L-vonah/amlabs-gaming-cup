@@ -42,8 +42,8 @@ function openScoreModal(matchId, teamA, teamB, isGrandFinal) {
     const pm = state.playoffs.matches[matchId];
     if (pm.vencedor) { golsA = pm.golsA; golsB = pm.golsB; }
   }
-  document.getElementById('modalScoreGolsA').value = golsA !== null ? golsA : '';
-  document.getElementById('modalScoreGolsB').value = golsB !== null ? golsB : '';
+  document.getElementById('modalScoreGolsA').value = golsA !== null ? golsA : 0;
+  document.getElementById('modalScoreGolsB').value = golsB !== null ? golsB : 0;
 
   UI.openModal('modalScore');
   setTimeout(() => document.getElementById('modalScoreGolsA').focus(), 100);
