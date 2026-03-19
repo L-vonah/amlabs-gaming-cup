@@ -92,8 +92,8 @@ function _gfSlotHTML(state, matches, matchId, slot, badge, badgeBg, badgeColor, 
 
 function _grandFinalHTML(state, matches) {
   return `<div class="bracket-match grand-match">
-    ${_gfSlotHTML(state, matches, 'grand-final', 'A', 'CS', 'var(--color-upper-bg)', 'var(--color-upper)', 'Vencedor UB Final (CS)')}
-    ${_gfSlotHTML(state, matches, 'grand-final', 'B', 'CI', 'var(--color-lower-bg)', 'var(--color-lower)', 'Vencedor LB Final (CI)')}
+    ${_gfSlotHTML(state, matches, 'grand-final', 'A', 'CS', 'var(--color-upper-bg)', 'var(--color-upper)', 'Vencedor UB Final')}
+    ${_gfSlotHTML(state, matches, 'grand-final', 'B', 'CI', 'var(--color-lower-bg)', 'var(--color-lower)', 'Vencedor LB Final')}
   </div>`;
 }
 
@@ -251,7 +251,7 @@ const FORMAT_DOUBLE_ELIM_4 = {
     ]},
     { section: 'grand', title: 'Grande Final', phases: [
       { name: 'Grande Final', matches: [
-        { slotA: 'Vencedor UB Final (CS)', slotB: 'Vencedor LB Final (CI)' }
+        { slotA: 'Vencedor UB Final', slotB: 'Vencedor LB Final' }
       ]}
     ]}
   ],
@@ -537,7 +537,7 @@ const FORMAT_PLAY_IN_6 = {
     ]},
     { section: 'grand', title: 'Grande Final', phases: [
       { name: 'Grande Final', matches: [
-        { slotA: 'Vencedor UB Final (CS)', slotB: 'Vencedor LB Final (CI)' }
+        { slotA: 'Vencedor UB Final', slotB: 'Vencedor LB Final' }
       ]}
     ]}
   ],
@@ -807,7 +807,7 @@ const FORMAT_GAUNTLET_6 = {
     ]},
     { section: 'grand', title: 'Grande Final', phases: [
       { name: 'Grande Final', matches: [
-        { slotA: 'Vencedor UB Final (CS)', slotB: 'Vencedor LB Final (CI)' }
+        { slotA: 'Vencedor UB Final', slotB: 'Vencedor LB Final' }
       ]}
     ]}
   ],
