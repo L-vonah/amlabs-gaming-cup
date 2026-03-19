@@ -8,7 +8,7 @@
 // ------------------------------------------------------------------
 
 function renderHome() {
-  const state = AppState.load();
+  const state = AppState.loadReadOnly();
   const tabela = AppState.calcularClassificacao(state);
   const partidas = state.faseGrupos.partidas;
   const concluidas = partidas.filter(p => p.status === 'concluida').length;
@@ -267,7 +267,7 @@ function renderHome() {
 // ------------------------------------------------------------------
 
 function renderTimes() {
-  const state = AppState.load();
+  const state = AppState.loadReadOnly();
   const container = document.getElementById('timesGrid');
   const count = document.getElementById('timesCount');
 
@@ -313,7 +313,7 @@ function renderTimes() {
 // ------------------------------------------------------------------
 
 function renderClassificacao() {
-  const state = AppState.load();
+  const state = AppState.loadReadOnly();
   const tabela = AppState.calcularClassificacao(state);
   const container = document.getElementById('tabelaClassificacao');
   if (!container) return;
@@ -398,11 +398,11 @@ function renderClassificacao() {
 // ------------------------------------------------------------------
 
 function renderPartidas() {
-  const state = AppState.load();
+  const state = AppState.loadReadOnly();
   const container = document.getElementById('partidasContainer');
   if (!container) return;
 
-  const admin = typeof isAdmin === 'function' && isAdmin();
+  const admin = UI.checkAdmin();
   const hasGrupos = state.faseGrupos.partidas.length > 0;
   const hasPlayoffs = state.campeonato.status === 'playoffs' || state.campeonato.status === 'encerrado';
 
@@ -443,12 +443,12 @@ function renderPartidas() {
 let _currentRound = 1;
 
 function navigateRound(delta) {
-  const state = AppState.load();
+  const state = AppState.loadReadOnly();
   const rounds = [...new Set(state.faseGrupos.partidas.map(p => p.rodada))].sort((a, b) => a - b);
   const idx = rounds.indexOf(_currentRound) + delta;
   if (idx < 0 || idx >= rounds.length) return;
   _currentRound = rounds[idx];
-  const admin = typeof isAdmin === 'function' && isAdmin();
+  const admin = UI.checkAdmin();
   const gruposDiv = document.getElementById('partidaTabGrupos');
   if (gruposDiv) gruposDiv.innerHTML = renderPartidasGrupos(state, admin);
 }
@@ -720,7 +720,7 @@ function renderMatchCardWithAction(p, state, admin) {
 // ------------------------------------------------------------------
 
 function renderBracket() {
-  const state = AppState.load();
+  const state = AppState.loadReadOnly();
   const container = document.getElementById('bracketContainer');
   if (!container) return;
 
@@ -751,7 +751,6 @@ function renderBracket() {
   const ub = state.playoffs.upperBracket;
   const lb = state.playoffs.lowerBracket;
   const gf = state.playoffs.grandFinal;
-  const adminUser = typeof isAdmin === 'function' && isAdmin();
 
   container.innerHTML = `
     <div class="bracket-container">
@@ -823,7 +822,6 @@ function renderBracketMobile(container, state) {
   const ub = state.playoffs.upperBracket;
   const lb = state.playoffs.lowerBracket;
   const gf = state.playoffs.grandFinal;
-  const adminUser = typeof isAdmin === 'function' && isAdmin();
 
   let html = '';
   html += '<div class="bracket-mobile-stack">';
@@ -907,7 +905,7 @@ function renderGrandFinalBracket(gf, state) {
 // ------------------------------------------------------------------
 
 function renderEstatisticas() {
-  const state = AppState.load();
+  const state = AppState.loadReadOnly();
   const stats = AppState.calcularEstatisticas(state);
 
   // Overview cards
@@ -1077,7 +1075,7 @@ async function renderHistorico() {
 // ------------------------------------------------------------------
 
 async function renderInscricoes() {
-  const state = AppState.load();
+  const state = AppState.loadReadOnly();
   const container = document.getElementById('inscricoesContainer');
   if (!container) return;
 
@@ -1086,7 +1084,7 @@ async function renderInscricoes() {
   const aprovados = registrations.filter(r => r.status === 'aprovado');
   const rejeitados = registrations.filter(r => r.status === 'rejeitado');
   const isOpen = state.campeonato.status === 'configuracao';
-  const admin = typeof isAdmin === 'function' && isAdmin();
+  const admin = UI.checkAdmin();
 
   let html = '';
 

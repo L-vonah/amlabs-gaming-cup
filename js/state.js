@@ -63,31 +63,45 @@ let _stateCache = null;
 
 function invalidateCache() {
   _stateCache = null;
+  _classificacaoCache = null;
 }
 
-function loadState() {
-  try {
-    if (_stateCache) return JSON.parse(JSON.stringify(_stateCache));
-    const raw = localStorage.getItem(STATE_KEY);
-    if (!raw) {
+function _ensureCache() {
+  if (!_stateCache) {
+    try {
+      const raw = localStorage.getItem(STATE_KEY);
+      _stateCache = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(DEFAULT_STATE));
+    } catch (e) {
+      console.error('Erro ao carregar estado:', e);
       _stateCache = JSON.parse(JSON.stringify(DEFAULT_STATE));
-      return JSON.parse(JSON.stringify(_stateCache));
     }
-    _stateCache = JSON.parse(raw);
-    return JSON.parse(JSON.stringify(_stateCache));
-  } catch (e) {
-    console.error('Erro ao carregar estado:', e);
-    return JSON.parse(JSON.stringify(DEFAULT_STATE));
   }
+  return _stateCache;
+}
+
+/**
+ * Returns a deep clone of state — safe to mutate (used by actions that save).
+ */
+function loadState() {
+  return JSON.parse(JSON.stringify(_ensureCache()));
+}
+
+/**
+ * Returns the cached state directly — do NOT mutate the returned object.
+ * Use this in renderers and read-only code for better performance.
+ */
+function loadStateReadOnly() {
+  return _ensureCache();
 }
 
 function saveState(state) {
   try {
+    _classificacaoCache = null;
     _stateCache = JSON.parse(JSON.stringify(state));
     localStorage.setItem(STATE_KEY, JSON.stringify(state));
 
     // Sync to Firestore if configured and admin
-    if (typeof FirestoreService !== 'undefined' && FirestoreService.isActive() && typeof isAdmin === 'function' && isAdmin()) {
+    if (typeof FirestoreService !== 'undefined' && FirestoreService.isActive() && UI.checkAdmin()) {
       const firestoreData = convertStateToFirestore(state);
       FirestoreService.saveTournament(firestoreData).then(ok => {
         if (!ok && typeof UI !== 'undefined') {
@@ -333,10 +347,14 @@ function regenerarFaseGrupos(state) {
 }
 
 // ------------------------------------------------------------------
-// Standings Calculation
+// Standings Calculation (cached per save cycle)
 // ------------------------------------------------------------------
 
+let _classificacaoCache = null;
+
 function calcularClassificacao(state) {
+  // Return cached result if state hasn't changed (same reference = readOnly)
+  if (_classificacaoCache && state === _ensureCache()) return _classificacaoCache;
   const times = state.times;
   const partidas = state.faseGrupos.partidas.filter(p => p.status === 'concluida');
 
@@ -442,6 +460,8 @@ function calcularClassificacao(state) {
     i = j - 1;
   }
 
+  // Cache if reading from the shared cache (readOnly path)
+  if (state === _ensureCache()) _classificacaoCache = tabela;
   return tabela;
 }
 
@@ -674,6 +694,7 @@ function getDefaultPlayoffs() {
 window.AppState = {
   DEFAULT_STATE,
   load: loadState,
+  loadReadOnly: loadStateReadOnly,
   save: saveState,
   reset: resetState,
   addAuditLog,

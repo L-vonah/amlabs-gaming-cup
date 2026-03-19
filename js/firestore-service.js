@@ -33,7 +33,7 @@ const FirestoreService = {
       if (doc.exists) {
         _firestoreCache = doc.data();
         // Sync to localStorage for visitors; skip for admin to avoid overwriting local writes
-        const adminLoggedIn = typeof isAdmin === 'function' && isAdmin();
+        const adminLoggedIn = UI.checkAdmin();
         if (!adminLoggedIn && window.AppState && window.AppState.convertFirestoreToState) {
           const legacyState = window.AppState.convertFirestoreToState(_firestoreCache);
           if (legacyState) {
@@ -47,6 +47,9 @@ const FirestoreService = {
       if (onUpdate) onUpdate(_firestoreCache);
     }, (error) => {
       console.error('Firestore listener error:', error);
+      if (typeof UI !== 'undefined') {
+        UI.showToast('Erro de conexão com o servidor. Usando dados locais.', 'error');
+      }
     });
   },
 
@@ -83,7 +86,7 @@ const FirestoreService = {
    * Save full tournament state to Firestore. Only works if admin.
    */
   async saveTournament(data) {
-    if (!FIREBASE_CONFIGURED || !isAdmin()) return false;
+    if (!FIREBASE_CONFIGURED || !UI.checkAdmin()) return false;
 
     try {
       data.metadata = data.metadata || {};
