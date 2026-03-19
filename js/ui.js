@@ -34,7 +34,14 @@ function renderAvatar(time, size = 28, className = '') {
   if (!time) return `<div class="team-avatar ${className}" style="width:${size}px;height:${size}px;background:#dee2e6;font-size:${Math.floor(size*0.35)}px"></div>`;
   const abbr = (time.abreviacao || time.nome.slice(0, 3)).toUpperCase();
   const rgb = hexToRgb(time.cor || '#6c5ce7');
-  return `<div class="team-avatar ${className}" style="width:${size}px;height:${size}px;background:${time.cor || '#6c5ce7'};box-shadow:0 0 0 1px rgba(${rgb.r},${rgb.g},${rgb.b},0.3);font-size:${Math.floor(size*0.35)}px">${escapeHtml(abbr.slice(0,3))}</div>`;
+  const textColor = _isLightColor(rgb) ? '#1a1a2e' : '#fff';
+  return `<div class="team-avatar ${className}" style="width:${size}px;height:${size}px;background:${time.cor || '#6c5ce7'};color:${textColor};box-shadow:0 0 0 1px rgba(${rgb.r},${rgb.g},${rgb.b},0.3);font-size:${Math.floor(size*0.35)}px">${escapeHtml(abbr.slice(0,3))}</div>`;
+}
+
+function _isLightColor(rgb) {
+  // Relative luminance formula (WCAG)
+  const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
+  return luminance > 0.55;
 }
 
 // ------------------------------------------------------------------
