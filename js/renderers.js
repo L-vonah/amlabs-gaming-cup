@@ -447,7 +447,9 @@ function navigateRound(delta) {
   const idx = rounds.indexOf(_currentRound) + delta;
   if (idx < 0 || idx >= rounds.length) return;
   _currentRound = rounds[idx];
-  renderPartidas();
+  const admin = typeof isAdmin === 'function' && isAdmin();
+  const gruposDiv = document.getElementById('partidaTabGrupos');
+  if (gruposDiv) gruposDiv.innerHTML = renderPartidasGrupos(state, admin);
 }
 
 function renderPartidasGrupos(state, admin) {
