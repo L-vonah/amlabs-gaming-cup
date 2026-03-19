@@ -202,23 +202,23 @@ function renderHome() {
         const sA = scoreA !== null ? scoreA : '-';
         const sB = scoreB !== null ? scoreB : '-';
 
-        matchLines += '<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--color-surface-2);border-radius:var(--radius);border-left:3px solid ' + item.color + '">' +
-          '<span style="font-size:.65rem;font-weight:700;color:var(--color-text-dim);min-width:40px">' + item.phase + '</span>' +
-          '<span style="flex:1;font-size:.8rem;font-weight:' + (winnerA ? '700' : '400') + '">' + nameA + '</span>' +
-          '<span style="font-weight:800;font-size:.85rem">' + sA + '</span>' +
-          '<span style="color:var(--color-text-dim)">:</span>' +
-          '<span style="font-weight:800;font-size:.85rem">' + sB + '</span>' +
-          '<span style="flex:1;font-size:.8rem;font-weight:' + (winnerB ? '700' : '400') + ';text-align:right">' + nameB + '</span>' +
-        '</div>';
+        matchLines += `<div class="bracket-mini-row" style="border-left:3px solid ${item.color}">
+          <span class="bracket-mini-phase">${item.phase}</span>
+          <span class="bracket-mini-team" style="font-weight:${winnerA ? '700' : '400'}">${nameA}</span>
+          <span class="bracket-mini-score">${sA}</span>
+          <span class="bracket-mini-separator">:</span>
+          <span class="bracket-mini-score">${sB}</span>
+          <span class="bracket-mini-team" style="font-weight:${winnerB ? '700' : '400'};text-align:right">${nameB}</span>
+        </div>`;
       });
 
-      leaderEl.innerHTML = '<div style="padding:12px">' +
-        '<div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-dim);margin-bottom:12px">Chaveamento</div>' +
-        '<div style="display:flex;flex-direction:column;gap:8px">' + matchLines + '</div>' +
-        '<div style="text-align:center;margin-top:12px">' +
-          '<button class="btn btn-sm btn-secondary" onclick="UI.navigateTo(\'bracket\')">Ver chaveamento completo</button>' +
-        '</div>' +
-      '</div>';
+      leaderEl.innerHTML = `<div style="padding:12px">
+        <div class="phase-label" style="text-align:left;border-bottom:none;margin-bottom:12px">Chaveamento</div>
+        <div style="display:flex;flex-direction:column;gap:8px">${matchLines}</div>
+        <div style="text-align:center;margin-top:12px">
+          <button class="btn btn-sm btn-secondary" onclick="UI.navigateTo('bracket')">Ver chaveamento completo</button>
+        </div>
+      </div>`;
     } else {
       // Restore card title to "Classificação"
       if (leaderTitleEl) {
@@ -230,28 +230,29 @@ function renderHome() {
       } else {
         const top = tabela.slice(0, 6);
         leaderEl.innerHTML = `
-          <div style="padding:0">
-            <table style="width:100%;border-collapse:collapse;font-size:.8rem">
+          <div>
+            <table class="mini-table">
               <thead>
-                <tr style="border-bottom:1px solid var(--color-border)">
-                  <th style="padding:10px 12px;text-align:left;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-dim)" colspan="2">Time</th>
-                  <th style="padding:10px 6px;text-align:center;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-dim)">J</th>
-                  <th style="padding:10px 6px;text-align:center;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-dim)">V</th>
-                  <th style="padding:10px 6px;text-align:center;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-dim)">SG</th>
-                  <th style="padding:10px 12px;text-align:center;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-dim)">Pts</th>
+                <tr>
+                  <th colspan="2">Time</th>
+                  <th>J</th>
+                  <th>V</th>
+                  <th>SG</th>
+                  <th>Pts</th>
                 </tr>
               </thead>
               <tbody>
                 ${top.map((t, i) => {
                   const isQ = i < 4;
-                  return '<tr style="border-bottom:1px solid var(--color-border);' + (isQ ? 'border-left:2px solid var(--color-win)' : '') + '">' +
-                    '<td style="padding:8px 12px;color:var(--color-text-dim);font-weight:700;width:24px">' + (i + 1) + '</td>' +
-                    '<td style="padding:8px 4px"><div style="display:flex;align-items:center;gap:8px">' + UI.renderAvatar(t, 22) + '<span style="font-weight:600">' + UI.escapeHtml(t.nome) + '</span></div></td>' +
-                    '<td style="padding:8px 6px;text-align:center;color:var(--color-text-muted)">' + t.jogos + '</td>' +
-                    '<td style="padding:8px 6px;text-align:center;color:var(--color-win);font-weight:700">' + t.vitorias + '</td>' +
-                    '<td style="padding:8px 6px;text-align:center;font-weight:700;color:' + (t.saldoGols > 0 ? 'var(--color-win)' : t.saldoGols < 0 ? 'var(--color-loss)' : 'var(--color-text-muted)') + '">' + UI.signedNumber(t.saldoGols) + '</td>' +
-                    '<td style="padding:8px 12px;text-align:center;font-weight:800;font-size:.9rem">' + t.pontos + '</td>' +
-                  '</tr>';
+                  const sgColor = t.saldoGols > 0 ? 'var(--color-win)' : t.saldoGols < 0 ? 'var(--color-loss)' : 'var(--color-text-muted)';
+                  return `<tr${isQ ? ' style="border-left:2px solid var(--color-win)"' : ''}>
+                    <td>${i + 1}</td>
+                    <td><div class="team-cell">${UI.renderAvatar(t, 22)}<span>${UI.escapeHtml(t.nome)}</span></div></td>
+                    <td style="color:var(--color-text-muted)">${t.jogos}</td>
+                    <td style="color:var(--color-win);font-weight:700">${t.vitorias}</td>
+                    <td style="font-weight:700;color:${sgColor}">${UI.signedNumber(t.saldoGols)}</td>
+                    <td>${t.pontos}</td>
+                  </tr>`;
                 }).join('')}
               </tbody>
             </table>
@@ -974,16 +975,16 @@ function renderEstatisticas() {
       const tA = AppState.getTimeById(state, p.timeA);
       const tB = AppState.getTimeById(state, p.timeB);
       goleadaEl.innerHTML = `
-        <div style="display:flex;align-items:center;gap:12px;padding:8px 0">
+        <div class="stat-match-row">
           ${UI.renderAvatar(tA, 28)}
-          <span style="flex:1;font-weight:${p.golsA > p.golsB ? '700' : '400'};font-size:.88rem">${tA ? UI.escapeHtml(tA.nome) : '?'}</span>
-          <span style="font-weight:800;font-size:1.1rem;min-width:20px;text-align:center">${p.golsA}</span>
-          <span style="color:var(--color-text-dim)">:</span>
-          <span style="font-weight:800;font-size:1.1rem;min-width:20px;text-align:center">${p.golsB}</span>
-          <span style="flex:1;font-weight:${p.golsB > p.golsA ? '700' : '400'};font-size:.88rem;text-align:right">${tB ? UI.escapeHtml(tB.nome) : '?'}</span>
+          <span class="stat-match-name ${p.golsA > p.golsB ? 'winner' : ''}">${tA ? UI.escapeHtml(tA.nome) : '?'}</span>
+          <span class="stat-match-score">${p.golsA}</span>
+          <span class="bracket-mini-separator">:</span>
+          <span class="stat-match-score">${p.golsB}</span>
+          <span class="stat-match-name ${p.golsB > p.golsA ? 'winner' : ''}" style="text-align:right">${tB ? UI.escapeHtml(tB.nome) : '?'}</span>
           ${UI.renderAvatar(tB, 28)}
         </div>
-        <div style="font-size:.7rem;color:var(--color-text-dim);text-align:center">Diferen&ccedil;a de ${Math.abs(p.golsA - p.golsB)} gol${Math.abs(p.golsA - p.golsB) !== 1 ? 's' : ''}</div>`;
+        <div class="stat-match-note">Diferen&ccedil;a de ${Math.abs(p.golsA - p.golsB)} gol${Math.abs(p.golsA - p.golsB) !== 1 ? 's' : ''}</div>`;
     }
   }
 
@@ -997,16 +998,16 @@ function renderEstatisticas() {
       const tA = AppState.getTimeById(state, p.timeA);
       const tB = AppState.getTimeById(state, p.timeB);
       maisGolsEl.innerHTML = `
-        <div style="display:flex;align-items:center;gap:12px;padding:8px 0">
+        <div class="stat-match-row">
           ${UI.renderAvatar(tA, 28)}
-          <span style="flex:1;font-weight:${p.golsA > p.golsB ? '700' : '400'};font-size:.88rem">${tA ? UI.escapeHtml(tA.nome) : '?'}</span>
-          <span style="font-weight:800;font-size:1.1rem;min-width:20px;text-align:center">${p.golsA}</span>
-          <span style="color:var(--color-text-dim)">:</span>
-          <span style="font-weight:800;font-size:1.1rem;min-width:20px;text-align:center">${p.golsB}</span>
-          <span style="flex:1;font-weight:${p.golsB > p.golsA ? '700' : '400'};font-size:.88rem;text-align:right">${tB ? UI.escapeHtml(tB.nome) : '?'}</span>
+          <span class="stat-match-name ${p.golsA > p.golsB ? 'winner' : ''}">${tA ? UI.escapeHtml(tA.nome) : '?'}</span>
+          <span class="stat-match-score">${p.golsA}</span>
+          <span class="bracket-mini-separator">:</span>
+          <span class="stat-match-score">${p.golsB}</span>
+          <span class="stat-match-name ${p.golsB > p.golsA ? 'winner' : ''}" style="text-align:right">${tB ? UI.escapeHtml(tB.nome) : '?'}</span>
           ${UI.renderAvatar(tB, 28)}
         </div>
-        <div style="font-size:.7rem;color:var(--color-text-dim);text-align:center">${stats.partidaMaisGols.total} gols na partida</div>`;
+        <div class="stat-match-note">${stats.partidaMaisGols.total} gols na partida</div>`;
     }
   }
 }
@@ -1139,14 +1140,20 @@ function renderRegistrationCard(r, status, showActions) {
   const s = statusColors[status];
   const avatar = { nome: r.nome, abreviacao: r.abreviacao, cor: r.cor };
 
-  return '<div style="background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius);padding:14px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">'
-    + UI.renderAvatar(avatar, 36)
-    + '<div style="flex:1;min-width:120px"><div style="font-weight:700;font-size:.9rem">' + UI.escapeHtml(r.nome) + '</div><div style="font-size:.75rem;color:var(--color-text-dim)">' + UI.escapeHtml(r.abreviacao) + (r.participante ? ' &bull; ' + UI.escapeHtml(r.participante) : '') + ' &bull; ' + new Date(r.criadoEm).toLocaleDateString('pt-BR') + '</div></div>'
-    + '<span style="font-size:.7rem;font-weight:700;padding:3px 10px;border-radius:10px;background:' + s.bg + ';color:' + s.color + ';border:1px solid ' + s.border + '">' + s.label + '</span>'
-    + (showActions
-      ? '<div style="display:flex;gap:6px"><button class="btn btn-sm btn-success" onclick="approveRegistration(\'' + r.id + '\')">Aprovar</button><button class="btn btn-sm btn-secondary" onclick="rejectRegistration(\'' + r.id + '\')">Rejeitar</button></div>'
-      : '')
-    + '</div>';
+  const meta = UI.escapeHtml(r.abreviacao) + (r.participante ? ' &bull; ' + UI.escapeHtml(r.participante) : '') + ' &bull; ' + new Date(r.criadoEm).toLocaleDateString('pt-BR');
+  const actions = showActions
+    ? `<div style="display:flex;gap:6px"><button class="btn btn-sm btn-success" onclick="approveRegistration('${r.id}')">Aprovar</button><button class="btn btn-sm btn-secondary" onclick="rejectRegistration('${r.id}')">Rejeitar</button></div>`
+    : '';
+
+  return `<div class="registration-card">
+    ${UI.renderAvatar(avatar, 36)}
+    <div class="registration-card-info">
+      <div class="registration-card-name">${UI.escapeHtml(r.nome)}</div>
+      <div class="registration-card-meta">${meta}</div>
+    </div>
+    <span class="registration-card-badge" style="background:${s.bg};color:${s.color};border:1px solid ${s.border}">${s.label}</span>
+    ${actions}
+  </div>`;
 }
 
 // ------------------------------------------------------------------
