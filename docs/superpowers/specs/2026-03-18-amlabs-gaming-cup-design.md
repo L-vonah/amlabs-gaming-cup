@@ -2,21 +2,26 @@
 
 **Data:** 2026-03-18
 **Status:** Aprovado
+**Atualizado:** 2026-03-19
 
 ## Visao Geral
 
-Site estatico hospedado no GitHub Pages para gerenciar campeonatos de futebol virtual (FC Football e outros) da AMLabs. Autenticacao via Firebase Auth (Google Login), dados no Firestore com cache local, permissao de edicao restrita a um admin.
+Site estatico hospedado no Netlify para gerenciar campeonatos de futebol virtual (EA Sports FC e outros) da AMLabs. Autenticacao via Firebase Auth (Google Login), dados no Firestore com cache local, permissao de edicao restrita a um admin.
 
 ## Arquitetura
 
 ```
-GitHub Pages (amlabs-gaming-cup)
+Netlify (amlabs-cup.netlify.app)
+  |
+  +-- Deploy automatico via GitHub (push to master)
+  +-- Preview URLs automaticas por PR
   |
   +-- Firebase Auth (Google Login)
   |     - Popup Google -> valida token -> retorna email
   |
   +-- Firebase Firestore (Spark Plan - gratuito)
         - campeonatos/{tournamentId} (documento unico por torneio)
+        - inscricoes/{auto-id} (solicitacoes de inscricao)
         - auditLog/{auto-id} (colecao separada)
         - enablePersistence() para cache offline
 ```
@@ -29,8 +34,8 @@ GitHub Pages (amlabs-gaming-cup)
 {
   "id": "amlabs-2026",
   "metadata": {
-    "nome": "1o Campeonato FC Football AMLabs 2026",
-    "jogo": "FC Football",
+    "nome": "1o Campeonato EA Sports FC AMLabs 2026",
+    "jogo": "EA Sports FC",
     "ano": 2026,
     "status": "configuracao|grupos|playoffs|encerrado",
     "criadoEm": "timestamp",
@@ -42,37 +47,36 @@ GitHub Pages (amlabs-gaming-cup)
       "vitoria": 3,
       "empate": 1,
       "derrota": 0,
-      "criteriosDesempate": ["pontos", "saldoGols", "golsPro", "confrontoDireto"]
-    },
-    "vantagemFinal": {
-      "tipo": "potes",
-      "descricao": "Chave superior escolhe pote alto, inferior escolhe pote baixo"
-    },
-    "potes": { "alto": [], "baixo": [] }
+      "criteriosDesempate": ["pontos", "vitorias", "saldoGols", "golsMarcados", "confrontoDireto"]
+    }
   },
   "times": [
-    { "id": "t1", "nome": "...", "abreviacao": "...", "cor": "#..." }
+    { "id": "t1", "nome": "...", "abreviacao": "...", "cor": "#...", "participante": "..." }
   ],
-  "fases": [
-    {
-      "id": "fase-grupos",
-      "tipo": "todos-contra-todos",
-      "ordem": 1,
-      "config": { "turnoUnico": true, "classificam": 4 },
-      "partidas": [
-        { "id": "m1", "rodada": 1, "timeA": "t1", "timeB": "t2", "golsA": null, "golsB": null, "status": "pendente" }
-      ]
+  "faseGrupos": {
+    "status": "aguardando|andamento|concluida",
+    "partidas": [
+      { "id": "rr_1_0", "rodada": 1, "timeA": "t1", "timeB": "t2", "golsA": null, "golsB": null, "status": "pendente" }
+    ]
+  },
+  "playoffs": {
+    "status": "aguardando|andamento|concluido",
+    "upperBracket": {
+      "sf1": { "id": "ub-sf1", "timeA": null, "timeB": null, "golsA": null, "golsB": null, "vencedor": null, "perdedor": null },
+      "sf2": { "id": "ub-sf2", "..." : "..." },
+      "final": { "id": "ub-final", "..." : "..." }
     },
-    {
-      "id": "fase-playoffs",
-      "tipo": "dupla-eliminacao",
-      "ordem": 2,
-      "config": { "vantagemFinal": "potes" },
-      "partidas": [
-        { "id": "p1", "chave": "superior", "etapa": "semifinal", "timeA": "t1", "timeB": "t4", "golsA": null, "golsB": null, "status": "pendente" }
-      ]
+    "lowerBracket": {
+      "sf": { "id": "lb-sf", "..." : "..." },
+      "final": { "id": "lb-final", "..." : "..." }
+    },
+    "grandFinal": {
+      "id": "grand-final",
+      "timeUpper": null, "timeLower": null,
+      "golsUpper": null, "golsLower": null,
+      "vencedor": null, "vantagem": "upper"
     }
-  ],
+  },
   "campeao": null
 }
 ```
@@ -82,11 +86,27 @@ GitHub Pages (amlabs-gaming-cup)
 ```json
 {
   "torneiId": "amlabs-2026",
-  "usuario": "dev.vonah@gmail.com",
+  "usuario": "vonah.dev@gmail.com",
   "acao": "Registrou resultado",
-  "detalhes": "Time A 3 x 1 Time B",
+  "detalhes": { "partidaId": "rr_1_0", "golsA": 3, "golsB": 1 },
   "timestamp": "2026-03-18T...",
   "device": "PC-A3F2B1C0"
+}
+```
+
+### Inscricoes
+
+```json
+{
+  "torneiId": "amlabs-2026",
+  "participante": "Joao",
+  "nome": "Barcelona FC",
+  "abreviacao": "BAR",
+  "cor": "#6c5ce7",
+  "status": "pendente|aprovado|rejeitado",
+  "criadoEm": "timestamp",
+  "resolvidoEm": null,
+  "resolvidoPor": null
 }
 ```
 
@@ -100,10 +120,14 @@ service cloud.firestore {
       allow read: if true;
     }
     match /campeonatos/{id} {
-      allow write: if request.auth.token.email == "dev.vonah@gmail.com";
+      allow write: if request.auth.token.email == "vonah.dev@gmail.com";
     }
     match /auditLog/{entry} {
-      allow write: if request.auth.token.email == "dev.vonah@gmail.com";
+      allow write: if request.auth.token.email == "vonah.dev@gmail.com";
+    }
+    match /inscricoes/{entry} {
+      allow create: if true;
+      allow update, delete: if request.auth.token.email == "vonah.dev@gmail.com";
     }
   }
 }
@@ -112,34 +136,36 @@ service cloud.firestore {
 ## Fluxo de Autenticacao
 
 - Visitante: ve tudo, sem botoes de edicao
-- Admin (dev.vonah@gmail.com): botao discreto no footer, Google Login, libera edicao
+- Admin (vonah.dev@gmail.com): botao discreto no footer, Google Login, libera edicao
 - Outro email: toast "Sem permissao", permanece visitante
 
-## Persistencia (Opcao B)
+## Persistencia
 
 - Firestore com enablePersistence() = cache automatico no IndexedDB
-- Leituras: onSnapshot (tempo real)
-- Escritas: updateDoc (so admin)
-- Offline: site mostra ultimo cache
+- Leituras: onSnapshot (tempo real) para visitantes
+- Escritas: set/update (so admin), com sync localStorage -> Firestore
+- Offline: site mostra ultimo cache do localStorage
+- Admin escrevendo: localStorage primeiro, sync async para Firestore
 
 ## Estrutura de Arquivos
 
 ```
 amlabs-gaming-cup/
-  index.html
-  css/style.css
+  index.html                 Pagina principal (SPA)
+  css/style.css              Estilos
   js/
-    firebase-config.js    (config Firebase)
-    firestore-service.js  (CRUD Firestore + cache)
-    auth.js               (login/logout Google)
-    state.js              (refatorado para usar FirestoreService)
-    ui.js
-    renderers.js          (condiciona edicao a auth)
-    actions.js            (condiciona acoes a auth)
+    firebase-config.js       Config Firebase
+    auth.js                  Login/logout Google
+    firestore-service.js     CRUD Firestore + listener tempo real
+    state.js                 Estado, classificacao, estatisticas, playoffs
+    ui.js                    Helpers (toast, modal, avatar, navegacao, checkAdmin)
+    renderers-home.js        Home: dashboard, banner, mini bracket/tabela
+    renderers-matches.js     Partidas, playoffs, bracket desktop/mobile
+    renderers.js             Times, classificacao, stats, regras, historico, inscricoes
+    actions.js               Handlers de eventos
+    app.js                   Bootstrap, score modal, mobile bar
   assets/
     logo-amlabs.png
-  docs/
-    README.md
   firestore.rules
 ```
 
@@ -147,15 +173,7 @@ amlabs-gaming-cup/
 
 | Componente | Servico | Custo |
 |-----------|---------|-------|
-| Hospedagem | GitHub Pages | Gratis |
+| Hospedagem + Deploy | Netlify | Gratis |
 | Auth | Firebase Auth Spark | Gratis |
 | Banco | Firestore Spark | Gratis |
-| URL | L-vonah.github.io/amlabs-gaming-cup | Gratis |
-
-## Extensibilidade Futura
-
-- N campeonatos: criar N documentos em campeonatos/
-- Formatos: campo config.formato define comportamento
-- Fases: array fases[] com N fases em qualquer ordem
-- Jogos: metadata.jogo livre
-- Roles: expandir rules para roles por torneio
+| URL | amlabs-cup.netlify.app | Gratis |
