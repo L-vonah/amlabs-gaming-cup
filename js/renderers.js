@@ -107,7 +107,7 @@ function renderClassificacao() {
               <tr class="${tierClass}">
                 <td>
                   <div class="pos-cell">
-                    <span class="pos-number ${tier ? 'top' : ''}">${pos}</span>
+                    <span class="pos-number ${tier ? 'top' : ''}" ${tier ? 'style="color:' + tier.color + '"' : ''}>${pos}</span>
                   </div>
                 </td>
                 <td>

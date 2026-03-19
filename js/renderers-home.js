@@ -202,10 +202,13 @@ function renderHome() {
               </thead>
               <tbody>
                 ${top.map((t, i) => {
-                  const isQ = i < 4;
+                  const pos = i + 1;
+                  const fmtId = typeof getSelectedPlayoffFormatId === 'function' ? getSelectedPlayoffFormatId() : PlayoffFormats.DEFAULT;
+                  const fmt = PlayoffFormats.get(fmtId);
+                  const tier = fmt.classificationTiers.find(tr => pos >= tr.from && pos <= tr.to);
                   const sgColor = t.saldoGols > 0 ? 'var(--color-win)' : t.saldoGols < 0 ? 'var(--color-loss)' : 'var(--color-text-muted)';
-                  return `<tr${isQ ? ' style="border-left:2px solid var(--color-win)"' : ''}>
-                    <td>${i + 1}</td>
+                  return `<tr class="${tier ? tier.cssClass : ''}">
+                    <td ${tier ? 'style="color:' + tier.color + '"' : ''}>${pos}</td>
                     <td><div class="team-cell">${UI.renderAvatar(t, 22)}<span>${UI.escapeHtml(t.nome)}</span></div></td>
                     <td style="color:var(--color-text-muted)">${t.jogos}</td>
                     <td style="color:var(--color-win);font-weight:700">${t.vitorias}</td>

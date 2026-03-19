@@ -2592,8 +2592,8 @@ body {
 /* Classification tiers */
 .classified-green-dark { background: rgba(0,100,50,.08); border-left: 3px solid #1a7a3a; }
 .classified-green-light { background: rgba(46,204,113,.07); border-left: 3px solid #2ecc71; }
-.classified-yellow-dark { background: rgba(200,160,40,.06); border-left: 3px solid #c8a028; }
-.classified-yellow-light { background: rgba(220,190,80,.05); border-left: 3px solid #dcbe50; }
+.classified-blue-light { background: rgba(116,185,255,.08); border-left: 3px solid #74b9ff; }
+.classified-yellow-light { background: rgba(220,190,80,.06); border-left: 3px solid #dcbe50; }
 .classified-green { background: rgba(0,184,148,.07); border-left: 3px solid var(--color-win); }
 
 .classification-tier-legend {
