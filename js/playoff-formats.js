@@ -258,44 +258,44 @@ const FORMAT_DOUBLE_ELIM_4 = {
 
   infoCards: {
     path: [
-      { seed: '1º-2º', desc: 'UB SF → UB Final → GF', games: '3 jogos mín' },
-      { seed: '3º-4º', desc: 'UB SF → UB Final → GF', games: '3 jogos mín' }
+      { seed: '1º-2º', desc: 'Semifinal → Final Superior → Grande Final', games: '3 jogos mín' },
+      { seed: '3º-4º', desc: 'Semifinal → Final Superior → Grande Final', games: '3 jogos mín' }
     ],
     mechanics: [
-      'Upper: SF (1ºvs4º, 2ºvs3º) → Final → Grande Final',
-      'Perdedores do Upper caem para a Chave Inferior',
-      'Lower: SF (perdedores) → Final (vs perdedor UB Final)',
+      'Semifinal: 1º vs 4º e 2º vs 3º',
+      'Vencedores disputam a Final Superior',
+      'Perdedores caem para a Chave Inferior',
       'Todos os 4 times têm dupla eliminação'
     ],
     advantages: [
-      '1º e 2º — Enfrentam seeds mais fracos na SF',
+      '1º e 2º — Enfrentam seeds mais fracos na Semifinal',
       'Chave Superior — Vantagem de ban na Grande Final'
     ]
   },
 
   rules: [
     {
-      title: 'Chave Superior (sem derrota)',
+      title: 'Chave Superior',
       icon: '★',
       iconBg: 'icon-bg-purple',
       items: [
         'Os 4 classificados entram diretamente na Chave Superior.',
-        '<strong>Semifinal 1:</strong> 1º colocado vs 4º colocado',
-        '<strong>Semifinal 2:</strong> 2º colocado vs 3º colocado',
-        'Os vencedores das semifinais disputam a <strong>Final Superior</strong>.',
-        'O vencedor da Final Superior avança diretamente para a <strong>Grande Final</strong>.',
-        'Os perdedores caem para a <strong>Chave Inferior</strong>.'
+        '<strong>Semifinal 1:</strong> 1º colocado vs 4º colocado.',
+        '<strong>Semifinal 2:</strong> 2º colocado vs 3º colocado.',
+        'Vencedores das Semifinais disputam a <strong>Final Superior</strong>.',
+        'Vencedor da Final Superior avança para a <strong>Grande Final</strong>.',
+        'Perdedores caem para a <strong>Chave Inferior</strong>.'
       ]
     },
     {
-      title: 'Chave Inferior (Segunda Chance)',
+      title: 'Chave Inferior',
       icon: '↓',
       iconBg: 'icon-bg-orange',
       items: [
-        'Os <strong>perdedores das semifinais da Chave Superior</strong> disputam a Semifinal Inferior.',
-        'O vencedor da Semifinal Inferior enfrenta o <strong>perdedor da Final Superior</strong> na Final Inferior.',
-        'O vencedor da Final Inferior conquista sua vaga na <strong>Grande Final</strong>.',
-        'Qualquer derrota na Chave Inferior elimina o time definitivamente.'
+        'Perdedores das Semifinais disputam a <strong>Semifinal Inferior</strong>.',
+        'Vencedor da Semifinal Inferior enfrenta o <strong>perdedor da Final Superior</strong> na Final Inferior.',
+        'Vencedor da Final Inferior conquista sua vaga na <strong>Grande Final</strong>.',
+        'Qualquer derrota na Chave Inferior elimina o time.'
       ]
     }
   ],
@@ -314,7 +314,7 @@ const FORMAT_DOUBLE_ELIM_4 = {
         ${_connector(64)}
         <div style="display:flex;flex-direction:column;justify-content:center">
           <div style="margin-bottom:48px">${_phaseHeader('Final Superior')}</div>
-          ${_matchHTML(state, m, 'ub-final', 'upper', 'Vencedor SF1', 'Vencedor SF2')}
+          ${_matchHTML(state, m, 'ub-final', 'upper', 'Vencedor UB SF1', 'Vencedor UB SF2')}
         </div>
         ${_connector(48)}
         <div style="display:flex;flex-direction:column;justify-content:center">
@@ -327,7 +327,7 @@ const FORMAT_DOUBLE_ELIM_4 = {
       <div style="display:grid;grid-template-columns:1fr 48px 1fr;gap:0;align-items:center;min-width:500px;max-width:700px;margin-bottom:16px">
         <div>
           ${_phaseHeader('Semifinal Inferior')}
-          ${_matchHTML(state, m, 'lb-sf', 'lower', 'Perdedor SF1', 'Perdedor SF2')}
+          ${_matchHTML(state, m, 'lb-sf', 'lower', 'Perdedor UB SF1', 'Perdedor UB SF2')}
         </div>
         ${_connector(44)}
         <div>
@@ -544,44 +544,44 @@ const FORMAT_PLAY_IN_6 = {
 
   infoCards: {
     path: [
-      { seed: '1º-2º', desc: 'UB SF → UB Final → GF', games: '3 jogos mín' },
-      { seed: '3º-4º', desc: 'UB QF → UB SF → UB Final → GF', games: '4 jogos mín' },
-      { seed: '5º-6º', desc: 'UB QF → (perde) → LB → GF', games: '5 jogos mín' }
+      { seed: '1º-2º', desc: 'Semifinal → Final Superior → Grande Final', games: '3 jogos mín' },
+      { seed: '3º-4º', desc: 'Quartas → Semifinal → Final Superior → Grande Final', games: '4 jogos mín' },
+      { seed: '5º-6º', desc: 'Quartas → (perde) → Chave Inferior → Grande Final', games: '5 jogos mín' }
     ],
     mechanics: [
-      'Upper tem QF → SF → Final (1º e 2º entram na SF com bye)',
-      '4 perdedores do Upper caem para LB Quartas cruzadas',
-      'Perdedor da UB Final entra na LB Final',
+      'Quartas de Final: 3º vs 6º e 4º vs 5º (1º e 2º têm bye)',
+      'Semifinal: 1º e 2º entram contra os vencedores das Quartas',
+      '4 perdedores do Upper caem para as Quartas cruzadas da Chave Inferior',
       'Todos os 6 times têm dupla eliminação'
     ],
     advantages: [
-      '1º e 2º — BYE nas Quartas (entram na Semifinal)',
+      '1º e 2º — BYE nas Quartas (entram direto na Semifinal)',
       'Chave Superior — Vantagem de ban na Grande Final'
     ]
   },
 
   rules: [
     {
-      title: 'Chave Superior (com bye)',
+      title: 'Chave Superior',
       icon: '★',
       iconBg: 'icon-bg-purple',
       items: [
         'Os 6 classificados entram na Chave Superior.',
-        '<strong>Quartas:</strong> 3º vs 6º e 4º vs 5º (1º e 2º têm bye).',
-        '<strong>Semifinal:</strong> 1º vs Vencedor(4ºvs5º) e 2º vs Vencedor(3ºvs6º).',
+        '<strong>Quartas de Final:</strong> 3º vs 6º e 4º vs 5º (1º e 2º têm bye).',
+        '<strong>Semifinal:</strong> 1º vs Vencedor QF (4º vs 5º) e 2º vs Vencedor QF (3º vs 6º).',
         'Vencedores das Semifinais disputam a <strong>Final Superior</strong>.',
         'Perdedores caem para a <strong>Chave Inferior</strong>.'
       ]
     },
     {
-      title: 'Chave Inferior — Cruzada',
+      title: 'Chave Inferior',
       icon: '↓',
       iconBg: 'icon-bg-orange',
       items: [
-        'Os 4 perdedores do Upper disputam as <strong>Quartas Cruzadas</strong>.',
-        'Cruzamento invertido: perdedor da SF enfrenta perdedor da QF do lado oposto (evita rematch).',
-        'Vencedores das LB Quartas disputam a <strong>Semifinal Inferior</strong>.',
-        'Vencedor da LB SF enfrenta o <strong>perdedor da Final Superior</strong> na Final Inferior.',
+        'Os 4 perdedores do Upper disputam as <strong>Quartas de Final cruzadas</strong>.',
+        'Cruzamento invertido: perdedor da Semifinal enfrenta perdedor das Quartas do lado oposto (evita rematch).',
+        'Vencedores das Quartas disputam a <strong>Semifinal Inferior</strong>.',
+        'Vencedor da Semifinal Inferior enfrenta o <strong>perdedor da Final Superior</strong> na Final Inferior.',
         'Qualquer derrota na Chave Inferior elimina o time.'
       ]
     }
@@ -602,8 +602,8 @@ const FORMAT_PLAY_IN_6 = {
         ${_connector(64)}
         <div style="display:flex;flex-direction:column;gap:16px">
           ${_phaseHeader('Semifinal')}
-          ${_matchHTML(state, m, 'ub-sf1', 'upper', '1º Colocado (BYE)', 'Venc. QF (4º vs 5º)')}
-          ${_matchHTML(state, m, 'ub-sf2', 'upper', '2º Colocado (BYE)', 'Venc. QF (3º vs 6º)')}
+          ${_matchHTML(state, m, 'ub-sf1', 'upper', '1º Colocado (BYE)', 'Vencedor UB QF (4º vs 5º)')}
+          ${_matchHTML(state, m, 'ub-sf2', 'upper', '2º Colocado (BYE)', 'Vencedor UB QF (3º vs 6º)')}
         </div>
         ${_connector(48)}
         <div style="display:flex;flex-direction:column;justify-content:center">
@@ -654,18 +654,18 @@ const FORMAT_GAUNTLET_6 = {
     { from: 1, to: 1, cssClass: 'classified-green-dark', label: 'UB Final — 2 jogos mín', color: 'var(--color-win)' },
     { from: 2, to: 2, cssClass: 'classified-green-light', label: 'UB R2 — 3 jogos mín', color: '#2ecc71' },
     { from: 3, to: 4, cssClass: 'classified-yellow-dark', label: 'UB R1 — Dupla eliminação', color: '#b8860b' },
-    { from: 5, to: 6, cssClass: 'classified-yellow-light', label: 'LB R1 — Sem 2ª chance', color: '#d4a843' }
+    { from: 5, to: 6, cssClass: 'classified-yellow-light', label: 'LB Oitavas — Sem 2ª chance', color: '#d4a843' }
   ],
 
   defaultMatches() {
     return {
-      'ub-r1': _newMatch('ub-r1', 'Upper Bracket Round 1', '3º vs 4º'),
-      'ub-r2': _newMatch('ub-r2', 'Upper Bracket Round 2', '2º vs Venc. R1'),
-      'ub-final': _newMatch('ub-final', 'Final da Chave Superior', '1º vs Venc. R2'),
-      'lb-r1': _newMatch('lb-r1', 'Lower Bracket Round 1', '5º vs 6º'),
-      'lb-r2': _newMatch('lb-r2', 'Lower Bracket Round 2', 'Venc. LB R1 vs Perd. UB R1'),
-      'lb-r3': _newMatch('lb-r3', 'Lower Bracket Round 3', 'Venc. LB R2 vs Perd. UB R2'),
-      'lb-final': _newMatch('lb-final', 'Final da Chave Inferior', 'Venc. LB R3 vs Perd. UB Final'),
+      'ub-r1': _newMatch('ub-r1', 'Quartas de Final', '3º vs 4º'),
+      'ub-r2': _newMatch('ub-r2', 'Semifinal', '2º vs Venc. QF'),
+      'ub-final': _newMatch('ub-final', 'Final da Chave Superior', '1º vs Venc. SF'),
+      'lb-r1': _newMatch('lb-r1', 'Oitavas de Final', '5º vs 6º'),
+      'lb-r2': _newMatch('lb-r2', 'Quartas de Final', 'Venc. LB Oitavas vs Perd. UB QF'),
+      'lb-r3': _newMatch('lb-r3', 'Semifinal Inferior', 'Venc. LB QF vs Perd. UB SF'),
+      'lb-final': _newMatch('lb-final', 'Final da Chave Inferior', 'Venc. LB SF vs Perd. UB Final'),
       'grand-final': _newMatch('grand-final', 'Grande Final', 'Grande Final')
     };
   },
@@ -772,9 +772,9 @@ const FORMAT_GAUNTLET_6 = {
     { matchId: 'ub-r1', phase: 'UB R1', color: 'var(--color-upper)' },
     { matchId: 'ub-r2', phase: 'UB R2', color: 'var(--color-upper)' },
     { matchId: 'ub-final', phase: 'UB Final', color: 'var(--color-upper)' },
-    { matchId: 'lb-r1', phase: 'LB R1', color: 'var(--color-lower)' },
-    { matchId: 'lb-r2', phase: 'LB R2', color: 'var(--color-lower)' },
-    { matchId: 'lb-r3', phase: 'LB R3', color: 'var(--color-lower)' },
+    { matchId: 'lb-r1', phase: 'LB Oit.', color: 'var(--color-lower)' },
+    { matchId: 'lb-r2', phase: 'LB QF', color: 'var(--color-lower)' },
+    { matchId: 'lb-r3', phase: 'LB SF', color: 'var(--color-lower)' },
     { matchId: 'lb-final', phase: 'LB Final', color: 'var(--color-lower)' },
     { matchId: 'grand-final', phase: 'GF', color: 'var(--color-champion)' }
   ],
@@ -792,17 +792,17 @@ const FORMAT_GAUNTLET_6 = {
       ]}
     ]},
     { section: 'lower', title: 'Chave Inferior', phases: [
-      { name: 'LB Round 1', matches: [
+      { name: 'Oitavas de Final', matches: [
         { slotA: '5º Colocado', slotB: '6º Colocado' }
       ], note: 'Perdedor eliminado (sem 2ª chance)' },
-      { name: 'LB Round 2', matches: [
-        { slotA: 'Vencedor LB R1', slotB: 'Perdedor UB R1' }
+      { name: 'Quartas de Final', matches: [
+        { slotA: 'Vencedor LB Oitavas', slotB: 'Perdedor UB QF' }
       ]},
-      { name: 'LB Round 3', matches: [
-        { slotA: 'Vencedor LB R2', slotB: 'Perdedor UB R2' }
+      { name: 'Semifinal Inferior', matches: [
+        { slotA: 'Vencedor LB QF', slotB: 'Perdedor UB SF' }
       ]},
       { name: 'LB Final', matches: [
-        { slotA: 'Vencedor LB R3', slotB: 'Perdedor UB Final' }
+        { slotA: 'Vencedor LB SF', slotB: 'Perdedor UB Final' }
       ]}
     ]},
     { section: 'grand', title: 'Grande Final', phases: [
@@ -814,35 +814,35 @@ const FORMAT_GAUNTLET_6 = {
 
   infoCards: {
     path: [
-      { seed: '1º', desc: 'UB Final → GF', games: '2 jogos mín' },
-      { seed: '2º', desc: 'UB R2 → UB Final → GF', games: '3 jogos mín' },
-      { seed: '3º-4º', desc: 'UB R1 → UB R2 → UB Final → GF', games: '4 jogos mín' },
-      { seed: '5º-6º', desc: 'LB R1 → R2 → R3 → LB Final → GF', games: '5 jogos mín' }
+      { seed: '1º', desc: 'Final Superior → Grande Final', games: '2 jogos mín' },
+      { seed: '2º', desc: 'Semifinal → Final Superior → Grande Final', games: '3 jogos mín' },
+      { seed: '3º-4º', desc: 'Quartas → Semifinal → Final Superior → Grande Final', games: '4 jogos mín' },
+      { seed: '5º-6º', desc: 'Oitavas → Quartas → Semifinal Inferior → Final Inferior → Grande Final', games: '5 jogos mín' }
     ],
     mechanics: [
       'Upper sobe em degraus — cada seed entra num nível',
-      'Perdedor do Upper cai para o próximo round da Lower',
-      'Lower recebe um novo adversário a cada round',
+      'Perdedor do Upper cai para a fase correspondente da Chave Inferior',
+      'Chave Inferior recebe um novo adversário a cada fase',
       '1º-4º têm dupla eliminação, 5º-6º têm apenas 1 chance'
     ],
     advantages: [
-      '1º — BYE até a UB Final (só 2 jogos)',
-      '2º — BYE até a UB R2 (só 3 jogos)',
+      '1º — BYE até a Final Superior (só 2 jogos)',
+      '2º — BYE até a Semifinal (só 3 jogos)',
       'Chave Superior — Vantagem de ban na Grande Final'
     ]
   },
 
   rules: [
     {
-      title: 'Chave Superior (Escada)',
+      title: 'Chave Superior',
       icon: '★',
       iconBg: 'icon-bg-purple',
       items: [
-        '<strong>Round 1:</strong> 3º vs 4º (1º e 2º têm bye).',
-        '<strong>Round 2:</strong> 2º vs Vencedor do R1.',
-        '<strong>UB Final:</strong> 1º vs Vencedor do R2.',
-        'Perdedores caem para a Chave Inferior no round correspondente.',
-        '1º só entra na UB Final — mínimo 2 jogos para o título.'
+        '<strong>Quartas de Final:</strong> 3º vs 4º (1º e 2º têm bye).',
+        '<strong>Semifinal:</strong> 2º vs Vencedor das Quartas.',
+        '<strong>Final Superior:</strong> 1º vs Vencedor da Semifinal.',
+        'Perdedores caem para a Chave Inferior na fase correspondente.',
+        '1º só entra na Final Superior — mínimo 2 jogos para o título.'
       ]
     },
     {
@@ -850,11 +850,11 @@ const FORMAT_GAUNTLET_6 = {
       icon: '↓',
       iconBg: 'icon-bg-orange',
       items: [
-        '<strong>LB R1:</strong> 5º vs 6º (perdedor eliminado, sem 2ª chance).',
-        '<strong>LB R2:</strong> Vencedor LB R1 vs Perdedor UB R1.',
-        '<strong>LB R3:</strong> Vencedor LB R2 vs Perdedor UB R2.',
-        '<strong>LB Final:</strong> Vencedor LB R3 vs Perdedor UB Final.',
-        'Qualquer derrota na Lower elimina o time.'
+        '<strong>Oitavas de Final:</strong> 5º vs 6º (perdedor eliminado, sem 2ª chance).',
+        '<strong>Quartas de Final:</strong> Vencedor LB Oitavas vs Perdedor UB Quartas.',
+        '<strong>Semifinal Inferior:</strong> Vencedor LB Quartas vs Perdedor UB Semifinal.',
+        '<strong>Final Inferior:</strong> Vencedor LB Semifinal vs Perdedor UB Final Superior.',
+        'Qualquer derrota na Chave Inferior elimina o time.'
       ]
     }
   ],
@@ -864,50 +864,50 @@ const FORMAT_GAUNTLET_6 = {
     return `
     <div class="bracket-container">
       <div style="margin-bottom:8px"><span class="bracket-label upper">&#9733; Chave Superior</span></div>
-      <div style="display:grid;grid-template-columns:1fr 36px 1fr 36px 1fr 36px 1fr;gap:0;align-items:center;min-width:900px;margin-bottom:32px">
+      <div style="display:grid;grid-template-columns:1fr 36px 1fr 36px 1fr 36px 1fr;gap:0;align-items:start;min-width:900px;margin-bottom:32px">
         <div>
           ${_phaseHeader('Quartas de Final')}
           ${_matchHTML(state, m, 'ub-r1', 'upper', '3º Colocado', '4º Colocado')}
           <div style="font-size:.7rem;color:var(--color-text-dim);text-align:center;font-style:italic;margin-top:4px">1º e 2º não jogam</div>
         </div>
-        ${_connector(48)}
+        <div class="bracket-connector" style="display:flex;align-items:center;justify-content:center;height:100%"><div style="width:2px;height:48px;background:var(--color-border)"></div></div>
         <div>
           ${_phaseHeader('Semifinal')}
           ${_matchHTML(state, m, 'ub-r2', 'upper', '2º Colocado (BYE)', 'Vencedor UB QF')}
         </div>
-        ${_connector(48)}
+        <div class="bracket-connector" style="display:flex;align-items:center;justify-content:center;height:100%"><div style="width:2px;height:48px;background:var(--color-border)"></div></div>
         <div>
           ${_phaseHeader('Final Superior')}
           ${_matchHTML(state, m, 'ub-final', 'upper', '1º Colocado (BYE)', 'Vencedor UB SF')}
         </div>
-        ${_connector(48)}
+        <div class="bracket-connector" style="display:flex;align-items:center;justify-content:center;height:100%"><div style="width:2px;height:48px;background:var(--color-border)"></div></div>
         <div>
           <div class="phase-label" style="color:var(--color-champion);border-bottom-color:rgba(249,168,37,.3)">Grande Final</div>
-          <div style="margin-top:16px">${_grandFinalHTML(state, m)}</div>
+          ${_grandFinalHTML(state, m)}
         </div>
       </div>
       <hr class="bracket-divider">
       <div style="margin-bottom:8px"><span class="bracket-label lower">&#8595; Chave Inferior</span></div>
-      <div style="display:grid;grid-template-columns:1fr 36px 1fr 36px 1fr 36px 1fr;gap:0;align-items:center;min-width:900px;max-width:1000px;margin-bottom:16px">
+      <div style="display:grid;grid-template-columns:1fr 36px 1fr 36px 1fr 36px 1fr;gap:0;align-items:start;min-width:900px;max-width:1000px;margin-bottom:16px">
         <div>
-          ${_phaseHeader('Primeira Rodada')}
+          ${_phaseHeader('Oitavas de Final')}
           ${_matchHTML(state, m, 'lb-r1', 'lower', '5º Colocado', '6º Colocado')}
           <div style="font-size:.65rem;color:var(--color-loss);text-align:center;margin-top:4px">Perdedor eliminado</div>
         </div>
-        ${_connector(44)}
+        <div class="bracket-connector" style="display:flex;align-items:center;justify-content:center;height:100%"><div style="width:2px;height:44px;background:var(--color-border)"></div></div>
         <div>
-          ${_phaseHeader('Segunda Rodada')}
-          ${_matchHTML(state, m, 'lb-r2', 'lower', 'Vencedor LB R1', 'Perdedor UB QF')}
+          ${_phaseHeader('Quartas de Final')}
+          ${_matchHTML(state, m, 'lb-r2', 'lower', 'Vencedor LB Oitavas', 'Perdedor UB QF')}
         </div>
-        ${_connector(44)}
+        <div class="bracket-connector" style="display:flex;align-items:center;justify-content:center;height:100%"><div style="width:2px;height:44px;background:var(--color-border)"></div></div>
         <div>
-          ${_phaseHeader('Terceira Rodada')}
-          ${_matchHTML(state, m, 'lb-r3', 'lower', 'Vencedor LB R2', 'Perdedor UB SF')}
+          ${_phaseHeader('Semifinal Inferior')}
+          ${_matchHTML(state, m, 'lb-r3', 'lower', 'Vencedor LB QF', 'Perdedor UB SF')}
         </div>
-        ${_connector(44)}
+        <div class="bracket-connector" style="display:flex;align-items:center;justify-content:center;height:100%"><div style="width:2px;height:44px;background:var(--color-border)"></div></div>
         <div>
           ${_phaseHeader('Final Inferior')}
-          ${_matchHTML(state, m, 'lb-final', 'lower', 'Vencedor LB R3', 'Perdedor UB Final')}
+          ${_matchHTML(state, m, 'lb-final', 'lower', 'Vencedor LB SF', 'Perdedor UB Final')}
         </div>
       </div>
       <div class="bracket-advantage-note"><span>&#9733;</span><span><strong>Vantagem na Grande Final:</strong> O time da Chave Superior tem vantagem de ban.</span></div>
