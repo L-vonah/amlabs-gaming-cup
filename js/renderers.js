@@ -925,16 +925,16 @@ function renderEstatisticas() {
       topGolsEl.innerHTML = '<div class="empty-state" style="padding:24px"><div class="empty-title">Sem dados ainda</div></div>';
     } else {
       topGolsEl.innerHTML = stats.topGoleadores.map((t, i) => `
-        <div class="top-list-item">
-          <span class="top-rank ${i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : ''}">${i + 1}&deg;</span>
-          ${UI.renderAvatar(t, 28)}
-          <div class="flex-1">
-            <div class="top-list-name">${UI.escapeHtml(t.nome)}</div>
-            <div class="top-list-sub">${t.participante ? UI.escapeHtml(t.participante) + ' &bull; ' : ''}${t.jogos} jogos</div>
+        <div class="stat-rank-item">
+          <span class="stat-rank-pos ${i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : ''}">${i + 1}</span>
+          ${UI.renderAvatar(t, 36)}
+          <div class="stat-rank-info">
+            <div class="stat-rank-name">${UI.escapeHtml(t.nome)}</div>
+            ${t.participante ? '<div class="stat-rank-participant">' + UI.escapeHtml(t.participante) + '</div>' : ''}
           </div>
-          <div>
-            <div class="top-list-value" style="font-size:1.2rem;color:var(--color-primary)">${t.golsMarcados}</div>
-            <div class="top-list-sub">gols</div>
+          <div class="stat-rank-numbers">
+            <span class="stat-rank-value" style="color:var(--color-primary)">${t.golsMarcados}</span>
+            <span class="stat-rank-label">${t.jogos}J</span>
           </div>
         </div>`).join('');
     }
@@ -947,16 +947,16 @@ function renderEstatisticas() {
       topDefEl.innerHTML = '<div class="empty-state" style="padding:24px"><div class="empty-title">Sem dados ainda</div></div>';
     } else {
       topDefEl.innerHTML = stats.menosVazados.map((t, i) => `
-        <div class="top-list-item">
-          <span class="top-rank ${i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : ''}">${i + 1}&deg;</span>
-          ${UI.renderAvatar(t, 28)}
-          <div class="flex-1">
-            <div class="top-list-name">${UI.escapeHtml(t.nome)}</div>
-            <div class="top-list-sub">${t.participante ? UI.escapeHtml(t.participante) + ' &bull; ' : ''}${t.jogos} jogos</div>
+        <div class="stat-rank-item">
+          <span class="stat-rank-pos ${i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : ''}">${i + 1}</span>
+          ${UI.renderAvatar(t, 36)}
+          <div class="stat-rank-info">
+            <div class="stat-rank-name">${UI.escapeHtml(t.nome)}</div>
+            ${t.participante ? '<div class="stat-rank-participant">' + UI.escapeHtml(t.participante) + '</div>' : ''}
           </div>
-          <div>
-            <div class="top-list-value" style="font-size:1.2rem;color:var(--color-win)">${t.golsSofridos}</div>
-            <div class="top-list-sub">sofridos</div>
+          <div class="stat-rank-numbers">
+            <span class="stat-rank-value" style="color:var(--color-win)">${t.golsSofridos}</span>
+            <span class="stat-rank-label">${t.jogos}J</span>
           </div>
         </div>`).join('');
     }
