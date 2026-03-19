@@ -318,15 +318,33 @@
     <div class="section-header">
       <h2 class="section-title">
         <span class="section-title-icon icon-bg-purple">&#127942;</span>
-        Chaveamento &mdash; Dupla Elimina&ccedil;&atilde;o
+        <span id="bracketTitle">Chaveamento</span>
       </h2>
-      <div style="display:flex;gap:8px">
+      <div style="display:flex;gap:8px;align-items:center">
         <button class="btn btn-sm btn-secondary" onclick="renderBracket()">Atualizar</button>
         <button class="btn btn-sm btn-secondary admin-only" onclick="resetPlayoffs()" style="color:var(--color-loss)" id="btnRefazerPlayoffs">Refazer Playoffs</button>
       </div>
     </div>
 
+    <!-- Format selector (admin only, pre-playoffs) -->
+    <div id="formatSelectorContainer" class="admin-only" style="display:none">
+      <div class="format-selector-card">
+        <div class="format-selector-header">
+          <label class="form-label" for="playoffFormatSelect">Formato dos Playoffs</label>
+          <select id="playoffFormatSelect" class="form-input format-select" onchange="onFormatChange()"></select>
+        </div>
+        <div id="formatWarning" class="format-warning" style="display:none"></div>
+        <div style="margin-top:12px">
+          <button class="btn btn-primary" id="btnGerarPlayoffs" onclick="iniciarPlayoffs()">Gerar Playoffs</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preview bracket (pre-playoffs) or live bracket (during playoffs) -->
     <div id="bracketContainer"></div>
+
+    <!-- Info cards (rendered by format) -->
+    <div id="bracketInfoCards"></div>
   </section>
 
   <!-- ---------------------------------------------------------------

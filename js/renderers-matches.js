@@ -1,6 +1,7 @@
 /**
  * Renderers — Matches & Bracket
  * Group stage calendar, playoff matches, bracket views
+ * All playoff rendering delegates to the format strategy.
  */
 
 // ------------------------------------------------------------------
@@ -26,7 +27,6 @@ function renderPartidas() {
     return;
   }
 
-  // Tabs if playoffs exist
   let html = '';
   if (hasPlayoffs) {
     html += `<div class="tab-bar" style="margin-bottom:20px">
@@ -35,12 +35,10 @@ function renderPartidas() {
     </div>`;
   }
 
-  // Grupos (hidden by default when playoffs exist)
   html += '<div id="partidaTabGrupos"' + (hasPlayoffs ? ' style="display:none"' : '') + '>';
   html += renderPartidasGrupos(state, admin);
   html += '</div>';
 
-  // Playoffs (shown by default when playoffs exist)
   if (hasPlayoffs) {
     html += '<div id="partidaTabPlayoffs">';
     html += renderPartidasPlayoffs(state, admin);
@@ -86,9 +84,7 @@ function renderPartidasGrupos(state, admin) {
 
   let html = `<div class="stats-counter-row">
     <span style="font-size:.8rem;color:var(--color-text-muted)">${doneCount} de ${partidas.length} partidas conclu&iacute;das</span>
-    ${pendingCount === 0
-      ? '<span class="completed-badge">Fase de Grupos Conclu&iacute;da!</span>'
-      : ''}
+    ${pendingCount === 0 ? '<span class="completed-badge">Fase de Grupos Conclu&iacute;da!</span>' : ''}
   </div>`;
 
   html += `<div class="round-pagination">
@@ -107,160 +103,105 @@ function renderPartidasGrupos(state, admin) {
   return html;
 }
 
+// ------------------------------------------------------------------
+// PLAYOFF MATCHES — format-agnostic
+// ------------------------------------------------------------------
+
 function renderPartidasPlayoffs(state, admin) {
-  const ub = state.playoffs.upperBracket;
-  const lb = state.playoffs.lowerBracket;
-  const gf = state.playoffs.grandFinal;
-
-  // Bracket importance order (most important first): Grand Final, LB Final, LB SF, UB Final, UB SF1, UB SF2
-  const importanceOrder = ['grand-final', 'lb-final', 'lb-sf', 'ub-final', 'ub-sf1', 'ub-sf2'];
-
-  // Build all match entries (regular + grand final) with unified structure
-  const allEntries = [];
-
-  // Regular playoff matches
-  const regularMatches = [
-    { ...ub.sf1, tipo: 'upper' },
-    { ...ub.sf2, tipo: 'upper' },
-    { ...ub.final, tipo: 'upper' },
-    { ...lb.sf, tipo: 'lower' },
-    { ...lb.final, tipo: 'lower' }
-  ];
-
-  regularMatches.forEach(m => {
-    if (!m.timeA || !m.timeB) return;
-    allEntries.push({ kind: 'regular', match: m, concluded: m.vencedor !== null, id: m.id });
-  });
-
-  // Grand final
-  if (gf.timeUpper && gf.timeLower) {
-    allEntries.push({ kind: 'grand', match: gf, concluded: gf.vencedor !== null, id: 'grand-final' });
+  const format = PlayoffFormats.getSelected(state);
+  const matches = state.playoffs.matches;
+  if (!matches || Object.keys(matches).length === 0) {
+    return '<div class="empty-state"><div class="empty-icon">&#9203;</div><div class="empty-title">Aguardando propaga&ccedil;&atilde;o</div></div>';
   }
 
-  // Sort: pending first, then concluded. Within each group, sort by bracket importance order.
+  const allEntries = [];
+  format.getAllMatches(matches).forEach(m => {
+    if (!m.timeA && !m.timeB) return;
+    const meta = format.getMatchMeta(m.id);
+    const isGF = format.isGrandFinal(m.id);
+    allEntries.push({
+      match: m,
+      concluded: m.vencedor !== null,
+      id: m.id,
+      isGF,
+      color: meta.color,
+      bracket: meta.bracket
+    });
+  });
+
+  // Sort: pending first, then by importance
+  const importanceOrder = format.matchImportanceOrder;
   allEntries.sort((a, b) => {
     if (a.concluded !== b.concluded) return a.concluded ? 1 : -1;
     return importanceOrder.indexOf(a.id) - importanceOrder.indexOf(b.id);
   });
 
   let html = '';
-
   allEntries.forEach(entry => {
-    if (entry.kind === 'grand') {
-      const m = entry.match;
-      const tU = AppState.getTimeById(state, m.timeUpper);
-      const tL = AppState.getTimeById(state, m.timeLower);
-      const concluded = entry.concluded;
-      const nameU = tU ? UI.escapeHtml(tU.nome) : '?';
-      const nameL = tL ? UI.escapeHtml(tL.nome) : '?';
-      const sc = concluded ? UI.scoreClass(m.golsUpper, m.golsLower) : '';
-      let desktopBtn = '';
-      let mobileBtn = '';
-      if (admin && !concluded) {
-        desktopBtn = '<button class="btn btn-sm btn-success admin-only btn-score-action" data-match-id="grand-final" data-gf="1">Registrar</button>';
-        mobileBtn = desktopBtn;
-      } else if (admin && concluded) {
-        desktopBtn = '<button class="btn btn-sm btn-secondary admin-only btn-score-action" data-match-id="grand-final" data-gf="1">Editar</button>';
-        mobileBtn = desktopBtn;
-      }
+    const m = entry.match;
+    const tA = AppState.getTimeById(state, m.timeA);
+    const tB = AppState.getTimeById(state, m.timeB);
+    const concluded = entry.concluded;
+    const nameA = tA ? UI.escapeHtml(tA.nome) : '?';
+    const nameB = tB ? UI.escapeHtml(tB.nome) : '?';
+    const sc = concluded ? UI.scoreClass(m.golsA, m.golsB) : '';
+    const gfAttr = entry.isGF ? '1' : '0';
 
-      const partU = tU && tU.participante ? '<span class="team-participant">' + UI.escapeHtml(tU.participante) + '</span>' : '';
-      const partL = tL && tL.participante ? '<span class="team-participant">' + UI.escapeHtml(tL.participante) + '</span>' : '';
-
-      html += '<div style="margin-bottom:8px">' +
-        '<div class="playoff-section-header" style="color:var(--color-champion);border-bottom-color:rgba(249,168,37,0.3)">&#127942; Grande Final</div>' +
-        '<div class="match-card" style="border-left:3px solid var(--color-champion)">' +
-          '<div class="match-desktop">' +
-            '<div class="match-teams">' +
-              '<div class="match-team home">' +
-                '<div class="match-team-info" style="text-align:right"><span class="team-name-text">' + nameU + '</span>' + partU + '</div>' +
-                UI.renderAvatar(tU, 24) +
-              '</div>' +
-              '<div class="match-score ' + sc + '">' +
-                '<span class="score-val">' + (concluded ? m.golsUpper : '-') + '</span>' +
-                '<span class="dash">:</span>' +
-                '<span class="score-val">' + (concluded ? m.golsLower : '-') + '</span>' +
-              '</div>' +
-              '<div class="match-team away">' +
-                UI.renderAvatar(tL, 24) +
-                '<div class="match-team-info"><span class="team-name-text">' + nameL + '</span>' + partL + '</div>' +
-              '</div>' +
-            '</div>' +
-            '<div class="match-action-slot">' + desktopBtn + '</div>' +
-          '</div>' +
-          '<div class="match-mobile">' +
-            '<div class="match-mobile-row">' +
-              UI.renderAvatar(tU, 28) +
-              '<span class="match-mobile-name">' + nameU + '</span>' +
-              '<span class="match-mobile-score ' + (concluded && m.golsUpper > m.golsLower ? 'win' : concluded && m.golsUpper < m.golsLower ? 'loss' : '') + '">' + (concluded ? m.golsUpper : '-') + '</span>' +
-            '</div>' +
-            '<div class="match-mobile-row">' +
-              UI.renderAvatar(tL, 28) +
-              '<span class="match-mobile-name">' + nameL + '</span>' +
-              '<span class="match-mobile-score ' + (concluded && m.golsLower > m.golsUpper ? 'win' : concluded && m.golsLower < m.golsUpper ? 'loss' : '') + '">' + (concluded ? m.golsLower : '-') + '</span>' +
-            '</div>' +
-            (mobileBtn ? '<div class="match-mobile-action">' + mobileBtn + '</div>' : '') +
-          '</div>' +
-        '</div>' +
-      '</div>';
-    } else {
-      const m = entry.match;
-      const tA = AppState.getTimeById(state, m.timeA);
-      const tB = AppState.getTimeById(state, m.timeB);
-      const concluded = entry.concluded;
-      const colorVar = m.tipo === 'upper' ? 'var(--color-upper)' : 'var(--color-lower)';
-      const nameA = tA ? UI.escapeHtml(tA.nome) : '?';
-      const nameB = tB ? UI.escapeHtml(tB.nome) : '?';
-      const sc = concluded ? UI.scoreClass(m.golsA, m.golsB) : '';
-      let desktopBtn = '';
-      let mobileBtn = '';
-      if (admin && !concluded) {
-        desktopBtn = '<button class="btn btn-sm btn-success admin-only btn-score-action" data-match-id="' + m.id + '" data-gf="0">Registrar</button>';
-        mobileBtn = desktopBtn;
-      } else if (admin && concluded) {
-        desktopBtn = '<button class="btn btn-sm btn-secondary admin-only btn-score-action" data-match-id="' + m.id + '" data-gf="0">Editar</button>';
-        mobileBtn = desktopBtn;
-      }
-
-      const partA = tA && tA.participante ? '<span class="team-participant">' + UI.escapeHtml(tA.participante) + '</span>' : '';
-      const partB = tB && tB.participante ? '<span class="team-participant">' + UI.escapeHtml(tB.participante) + '</span>' : '';
-      const phaseLabel = m.fase;
-
-      html += '<div class="match-card" style="border-left:3px solid ' + colorVar + ';margin-bottom:8px">' +
-        '<div class="match-round-badge" style="font-size:.6rem">' + UI.escapeHtml(phaseLabel) + '</div>' +
-        '<div class="match-desktop">' +
-          '<div class="match-teams">' +
-            '<div class="match-team home">' +
-              '<div class="match-team-info" style="text-align:right"><span class="team-name-text">' + nameA + '</span>' + partA + '</div>' +
-              UI.renderAvatar(tA, 24) +
-            '</div>' +
-            '<div class="match-score ' + sc + '">' +
-              '<span class="score-val">' + (concluded ? m.golsA : '-') + '</span>' +
-              '<span class="dash">:</span>' +
-              '<span class="score-val">' + (concluded ? m.golsB : '-') + '</span>' +
-            '</div>' +
-            '<div class="match-team away">' +
-              UI.renderAvatar(tB, 24) +
-              '<div class="match-team-info"><span class="team-name-text">' + nameB + '</span>' + partB + '</div>' +
-            '</div>' +
-          '</div>' +
-          '<div class="match-action-slot">' + desktopBtn + '</div>' +
-        '</div>' +
-        '<div class="match-mobile">' +
-          '<div class="match-mobile-row">' +
-            UI.renderAvatar(tA, 28) +
-            '<span class="match-mobile-name">' + nameA + '</span>' +
-            '<span class="match-mobile-score ' + (concluded && m.golsA > m.golsB ? 'win' : concluded && m.golsA < m.golsB ? 'loss' : '') + '">' + (concluded ? m.golsA : '-') + '</span>' +
-          '</div>' +
-          '<div class="match-mobile-row">' +
-            UI.renderAvatar(tB, 28) +
-            '<span class="match-mobile-name">' + nameB + '</span>' +
-            '<span class="match-mobile-score ' + (concluded && m.golsB > m.golsA ? 'win' : concluded && m.golsB < m.golsA ? 'loss' : '') + '">' + (concluded ? m.golsB : '-') + '</span>' +
-          '</div>' +
-          (mobileBtn ? '<div class="match-mobile-action">' + mobileBtn + '</div>' : '') +
-        '</div>' +
-      '</div>';
+    let desktopBtn = '';
+    let mobileBtn = '';
+    if (admin && !concluded) {
+      desktopBtn = `<button class="btn btn-sm btn-success admin-only btn-score-action" data-match-id="${m.id}" data-gf="${gfAttr}">Registrar</button>`;
+      mobileBtn = desktopBtn;
+    } else if (admin && concluded) {
+      desktopBtn = `<button class="btn btn-sm btn-secondary admin-only btn-score-action" data-match-id="${m.id}" data-gf="${gfAttr}">Editar</button>`;
+      mobileBtn = desktopBtn;
     }
+
+    const partA = tA && tA.participante ? `<span class="team-participant">${UI.escapeHtml(tA.participante)}</span>` : '';
+    const partB = tB && tB.participante ? `<span class="team-participant">${UI.escapeHtml(tB.participante)}</span>` : '';
+
+    // Grand final header
+    if (entry.isGF) {
+      html += `<div style="margin-bottom:8px">
+        <div class="playoff-section-header" style="color:var(--color-champion);border-bottom-color:rgba(249,168,37,0.3)">&#127942; Grande Final</div>`;
+    }
+
+    html += `<div class="match-card" style="border-left:3px solid ${entry.color};margin-bottom:8px">
+      ${!entry.isGF ? '<div class="match-round-badge" style="font-size:.6rem">' + UI.escapeHtml(m.fase) + '</div>' : ''}
+      <div class="match-desktop">
+        <div class="match-teams">
+          <div class="match-team home">
+            <div class="match-team-info" style="text-align:right"><span class="team-name-text">${nameA}</span>${partA}</div>
+            ${UI.renderAvatar(tA, 24)}
+          </div>
+          <div class="match-score ${sc}">
+            <span class="score-val">${concluded ? m.golsA : '-'}</span>
+            <span class="dash">:</span>
+            <span class="score-val">${concluded ? m.golsB : '-'}</span>
+          </div>
+          <div class="match-team away">
+            ${UI.renderAvatar(tB, 24)}
+            <div class="match-team-info"><span class="team-name-text">${nameB}</span>${partB}</div>
+          </div>
+        </div>
+        <div class="match-action-slot">${desktopBtn}</div>
+      </div>
+      <div class="match-mobile">
+        <div class="match-mobile-row">
+          ${UI.renderAvatar(tA, 28)}
+          <span class="match-mobile-name">${nameA}</span>
+          <span class="match-mobile-score ${concluded && m.golsA > m.golsB ? 'win' : concluded && m.golsA < m.golsB ? 'loss' : ''}">${concluded ? m.golsA : '-'}</span>
+        </div>
+        <div class="match-mobile-row">
+          ${UI.renderAvatar(tB, 28)}
+          <span class="match-mobile-name">${nameB}</span>
+          <span class="match-mobile-score ${concluded && m.golsB > m.golsA ? 'win' : concluded && m.golsB < m.golsA ? 'loss' : ''}">${concluded ? m.golsB : '-'}</span>
+        </div>
+        ${mobileBtn ? '<div class="match-mobile-action">' + mobileBtn + '</div>' : ''}
+      </div>
+    </div>`;
+
+    if (entry.isGF) html += '</div>';
   });
 
   return html || '<div class="empty-state"><div class="empty-icon">&#9203;</div><div class="empty-title">Aguardando propaga&ccedil;&atilde;o</div></div>';
@@ -305,9 +246,7 @@ function renderMatchCardWithAction(p, state, admin) {
             <div class="match-team-info"><span class="team-name-text">${nameB}</span>${partB}</div>
           </div>
         </div>
-        <div class="match-action-slot">
-          ${desktopBtn}
-        </div>
+        <div class="match-action-slot">${desktopBtn}</div>
       </div>
       <div class="match-mobile">
         <div class="match-mobile-row">
@@ -326,160 +265,254 @@ function renderMatchCardWithAction(p, state, admin) {
 }
 
 // ------------------------------------------------------------------
-// BRACKET (Chaveamento)
+// BRACKET — format selector, preview, live bracket
 // ------------------------------------------------------------------
 
 function renderBracket() {
   const state = AppState.loadReadOnly();
   const container = document.getElementById('bracketContainer');
+  const infoContainer = document.getElementById('bracketInfoCards');
+  const titleEl = document.getElementById('bracketTitle');
   if (!container) return;
 
-  // Show/hide refazer button based on playoff status
+  const format = PlayoffFormats.getSelected(state);
+  const isPrePlayoffs = state.campeonato.status === 'configuracao' || state.campeonato.status === 'grupos';
+  const isPlayoffs = state.campeonato.status === 'playoffs' || state.campeonato.status === 'encerrado';
+
+  // Show/hide refazer button
   const refazerBtn = document.getElementById('btnRefazerPlayoffs');
-  if (refazerBtn) {
-    refazerBtn.style.display = (state.campeonato.status === 'playoffs' || state.campeonato.status === 'encerrado') ? '' : 'none';
-  }
+  if (refazerBtn) refazerBtn.style.display = isPlayoffs ? '' : 'none';
   if (typeof updateAdminUI === 'function') updateAdminUI();
 
-  const isMobile = window.innerWidth <= 768;
-  if (isMobile) {
-    renderBracketMobile(container, state);
-    return;
+  // Update title
+  if (titleEl) {
+    titleEl.textContent = isPlayoffs ? 'Chaveamento \u2014 ' + format.name : 'Chaveamento';
   }
 
-  if (state.campeonato.status === 'configuracao' || state.campeonato.status === 'grupos') {
-    container.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-icon">&#127942;</div>
-        <div class="empty-title">Playoffs ainda não iniciados</div>
-        <div class="empty-desc">Conclua a fase de grupos com pelo menos 4 times classificados.</div>
-        ${state.campeonato.status === 'grupos' && canStartPlayoffs(state) ? `<button class="btn btn-primary mt-16" onclick="iniciarPlayoffs()">Iniciar Playoffs</button>` : ''}
-      </div>`;
-    return;
+  // Format selector (admin only, pre-playoffs)
+  const selectorContainer = document.getElementById('formatSelectorContainer');
+  if (selectorContainer) {
+    if (isPrePlayoffs) {
+      selectorContainer.style.display = '';
+      _renderFormatSelector(state);
+    } else {
+      selectorContainer.style.display = 'none';
+    }
   }
 
-  const ub = state.playoffs.upperBracket;
-  const lb = state.playoffs.lowerBracket;
-  const gf = state.playoffs.grandFinal;
-
-  container.innerHTML = `
-    <div class="bracket-container">
-      <!-- CHAVE SUPERIOR -->
-      <div style="margin-bottom:8px">
-        <span class="bracket-label upper">&#9733; Chave Superior &mdash; sem derrota</span>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 48px 1fr 48px 1fr;gap:0;align-items:center;min-width:800px;margin-bottom:32px">
-        <!-- Semifinais -->
-        <div style="display:flex;flex-direction:column;gap:16px">
-          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--color-text-dim);text-align:center;padding-bottom:8px;border-bottom:1px solid var(--color-border)">Semifinal</div>
-          ${renderBracketMatch(ub.sf1, state, 'upper')}
-          ${renderBracketMatch(ub.sf2, state, 'upper')}
-        </div>
-        <div class="bracket-connector" style="display:flex;flex-direction:column;align-items:center;gap:32px;padding-top:40px">
-          <div style="width:2px;height:64px;background:var(--color-border)"></div>
-        </div>
-        <!-- Final Superior -->
-        <div style="display:flex;flex-direction:column;justify-content:center">
-          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--color-text-dim);text-align:center;padding-bottom:8px;border-bottom:1px solid var(--color-border);margin-bottom:48px">Final Superior</div>
-          ${renderBracketMatch(ub.final, state, 'upper')}
-        </div>
-        <div class="bracket-connector" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:40px">
-          <div style="width:2px;height:48px;background:var(--color-border)"></div>
-        </div>
-        <!-- Grande Final placeholder -->
-        <div style="display:flex;flex-direction:column;justify-content:center">
-          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--color-champion);text-align:center;padding-bottom:8px;border-bottom:1px solid rgba(249,168,37,.3);margin-bottom:48px">Grande Final</div>
-          ${renderGrandFinalBracket(gf, state)}
-        </div>
-      </div>
-
-      <hr class="bracket-divider">
-
-      <!-- CHAVE INFERIOR -->
-      <div style="margin-bottom:8px">
-        <span class="bracket-label lower">&#8595; Chave Inferior &mdash; segunda chance</span>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 48px 1fr;gap:0;align-items:center;min-width:500px;max-width:700px;margin-bottom:16px">
-        <!-- Semifinal Inferior -->
-        <div>
-          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--color-text-dim);text-align:center;padding-bottom:8px;border-bottom:1px solid var(--color-border);margin-bottom:12px">Semifinal Inferior</div>
-          ${renderBracketMatch(lb.sf, state, 'lower')}
-        </div>
-        <div class="bracket-connector" style="display:flex;align-items:center;justify-content:center;padding-top:24px">
-          <div style="width:2px;height:44px;background:var(--color-border)"></div>
-        </div>
-        <!-- Final Inferior -->
-        <div>
-          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--color-text-dim);text-align:center;padding-bottom:8px;border-bottom:1px solid var(--color-border);margin-bottom:12px">Final Inferior</div>
-          ${renderBracketMatch(lb.final, state, 'lower')}
-        </div>
-      </div>
-
-      <div class="bracket-advantage-note">
-        <span>&#9733;</span>
-        <span><strong>Vantagem na Grande Final:</strong> O time que chegou pela Chave Superior (sem derrota) tem direito de escolher com qual time/configura&ccedil;&atilde;o deseja jogar.</span>
-      </div>
-    </div>`;
+  if (isPrePlayoffs) {
+    // Show preview bracket
+    const selectedId = _getSelectedFormatId();
+    const previewFormat = PlayoffFormats.get(selectedId);
+    container.innerHTML = _renderPreviewBracket(previewFormat);
+    if (infoContainer) infoContainer.innerHTML = _renderInfoCards(previewFormat);
+  } else {
+    // Show live bracket with real data
+    container.innerHTML = _renderLiveBracketMobile(state, format);
+    if (infoContainer) infoContainer.innerHTML = _renderInfoCards(format);
+  }
 }
 
-function renderBracketMobile(container, state) {
-  if (state.campeonato.status === 'configuracao' || state.campeonato.status === 'grupos') {
-    container.innerHTML = '<div class="empty-state"><div class="empty-icon">&#127942;</div><div class="empty-title">Playoffs ainda n&atilde;o iniciados</div><div class="empty-desc">Conclua a fase de grupos com pelo menos 4 times classificados.</div>' +
-      (state.campeonato.status === 'grupos' && canStartPlayoffs(state) ? '<button class="btn btn-primary mt-16" onclick="iniciarPlayoffs()">Iniciar Playoffs</button>' : '') + '</div>';
-    return;
-  }
-
-  const ub = state.playoffs.upperBracket;
-  const lb = state.playoffs.lowerBracket;
-  const gf = state.playoffs.grandFinal;
-
-  let html = '';
-  html += '<div class="bracket-mobile-stack">';
-
-  // Upper bracket
-  html += '<div class="bracket-mobile-section" style="border-left:3px solid var(--color-upper)">';
-  html += '<div class="bracket-mobile-section-title" style="color:var(--color-upper)">&#9733; Chave Superior</div>';
-  html += renderBracketMatch(ub.sf1, state, 'upper');
-  html += renderBracketMatch(ub.sf2, state, 'upper');
-  html += '<div style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--color-border)">';
-  html += '<div style="font-size:.65rem;font-weight:700;color:var(--color-text-dim);margin-bottom:8px;text-transform:uppercase;letter-spacing:.08em">Final Superior</div>';
-  html += renderBracketMatch(ub.final, state, 'upper');
-  html += '</div></div>';
-
-  // Lower bracket
-  html += '<div class="bracket-mobile-section" style="border-left:3px solid var(--color-lower)">';
-  html += '<div class="bracket-mobile-section-title" style="color:var(--color-lower)">&#8595; Chave Inferior</div>';
-  html += renderBracketMatch(lb.sf, state, 'lower');
-  html += '<div style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--color-border)">';
-  html += '<div style="font-size:.65rem;font-weight:700;color:var(--color-text-dim);margin-bottom:8px;text-transform:uppercase;letter-spacing:.08em">Final Inferior</div>';
-  html += renderBracketMatch(lb.final, state, 'lower');
-  html += '</div></div>';
-
-  // Grand final
-  html += '<div class="bracket-mobile-section" style="border-left:3px solid var(--color-champion);background:var(--color-champion-bg)">';
-  html += '<div class="bracket-mobile-section-title" style="color:var(--color-champion)">&#127942; Grande Final</div>';
-  html += renderGrandFinalBracket(gf, state);
-  html += '<div style="font-size:.7rem;color:var(--color-champion);margin-top:8px">&#9733; Chave Superior tem vantagem de escolha de time</div>';
-  html += '</div>';
-
-  html += '</div>';
-  container.innerHTML = html;
+function _getSelectedFormatId() {
+  const sel = document.getElementById('playoffFormatSelect');
+  return sel ? sel.value : PlayoffFormats.DEFAULT;
 }
 
-function renderBracketMatch(m, state, tipo) {
+function _renderFormatSelector(state) {
+  const sel = document.getElementById('playoffFormatSelect');
+  const warning = document.getElementById('formatWarning');
+  const btnGerar = document.getElementById('btnGerarPlayoffs');
+  if (!sel) return;
+
+  const currentFormatId = state.playoffs.formato || PlayoffFormats.DEFAULT;
+
+  // Populate dropdown if empty
+  if (sel.options.length === 0) {
+    Object.values(PlayoffFormats.FORMATS).forEach(f => {
+      const opt = document.createElement('option');
+      opt.value = f.id;
+      opt.textContent = f.name;
+      sel.appendChild(opt);
+    });
+    sel.value = currentFormatId;
+  }
+
+  const selectedFormat = PlayoffFormats.get(sel.value);
+  const teamCount = state.times.length;
+  const groupsDone = state.faseGrupos.partidas.length > 0 &&
+    state.faseGrupos.partidas.filter(p => p.status === 'pendente').length === 0;
+
+  let canGenerate = true;
+  let warningMsg = '';
+
+  if (teamCount < selectedFormat.classified) {
+    canGenerate = false;
+    warningMsg = `Este formato classifica ${selectedFormat.classified} times, mas apenas ${teamCount} est&atilde;o cadastrados. Cadastre pelo menos ${selectedFormat.classified} times.`;
+  } else if (!groupsDone) {
+    canGenerate = false;
+    warningMsg = 'Conclua todas as partidas da fase de grupos antes de gerar os playoffs.';
+  } else {
+    const tabela = AppState.calcularClassificacao(state);
+    if (tabela.length < selectedFormat.classified) {
+      canGenerate = false;
+      warningMsg = `Necess&aacute;rio pelo menos ${selectedFormat.classified} times na classifica&ccedil;&atilde;o.`;
+    }
+  }
+
+  if (warning) {
+    warning.style.display = warningMsg ? '' : 'none';
+    warning.innerHTML = warningMsg;
+  }
+  if (btnGerar) {
+    btnGerar.disabled = !canGenerate;
+    btnGerar.title = canGenerate ? '' : 'N\u00e3o \u00e9 poss\u00edvel gerar playoffs neste momento';
+  }
+}
+
+function onFormatChange() {
+  const state = AppState.loadReadOnly();
+  _renderFormatSelector(state);
+  // Re-render preview + info cards
+  const container = document.getElementById('bracketContainer');
+  const infoContainer = document.getElementById('bracketInfoCards');
+  const selectedId = _getSelectedFormatId();
+  const previewFormat = PlayoffFormats.get(selectedId);
+  if (container) container.innerHTML = _renderPreviewBracket(previewFormat);
+  if (infoContainer) infoContainer.innerHTML = _renderInfoCards(previewFormat);
+  // Update classification colors
+  if (window.Renderers && window.Renderers.classificacao) Renderers.classificacao();
+}
+window.onFormatChange = onFormatChange;
+
+// ------------------------------------------------------------------
+// PREVIEW BRACKET (generic names, pre-playoffs)
+// ------------------------------------------------------------------
+
+function _renderPreviewBracket(format) {
+  let html = '<div class="preview-bracket">';
+
+  format.previewSlots.forEach(section => {
+    const labelClass = section.section; // 'upper', 'lower', 'grand'
+    const icon = section.section === 'upper' ? '&#9733;' : section.section === 'lower' ? '&#8595;' : '&#127942;';
+    html += `<div class="preview-section">
+      <span class="preview-section-label ${labelClass}">${icon} ${UI.escapeHtml(section.title)}</span>`;
+
+    section.phases.forEach(phase => {
+      html += `<div class="preview-phase-title">${UI.escapeHtml(phase.name)}</div>`;
+      phase.matches.forEach(m => {
+        html += `<div class="preview-match">
+          <div class="preview-slot">${UI.escapeHtml(m.slotA)}</div>
+          <div class="preview-slot">${UI.escapeHtml(m.slotB)}</div>
+        </div>`;
+      });
+      if (phase.note) {
+        html += `<div class="preview-phase-note">${UI.escapeHtml(phase.note)}</div>`;
+      }
+    });
+
+    html += '</div>';
+  });
+
+  html += '</div>';
+  return html;
+}
+
+// ------------------------------------------------------------------
+// LIVE BRACKET (during playoffs — mobile-first stacked)
+// ------------------------------------------------------------------
+
+function _renderLiveBracketMobile(state, format) {
+  const matches = state.playoffs.matches;
+  if (!matches || Object.keys(matches).length === 0) {
+    return '<div class="empty-state"><div class="empty-icon">&#127942;</div><div class="empty-title">Playoffs ainda n&atilde;o iniciados</div></div>';
+  }
+
+  let html = '<div class="bracket-mobile-stack">';
+
+  // Group matches by bracket section
+  format.previewSlots.forEach(section => {
+    const labelClass = section.section;
+    const icon = section.section === 'upper' ? '&#9733;' : section.section === 'lower' ? '&#8595;' : '&#127942;';
+    const borderColor = section.section === 'upper' ? 'var(--color-upper)' : section.section === 'lower' ? 'var(--color-lower)' : 'var(--color-champion)';
+    const bgStyle = section.section === 'grand' ? 'background:var(--color-champion-bg);' : '';
+
+    html += `<div class="bracket-mobile-section" style="border-left:3px solid ${borderColor};${bgStyle}">
+      <div class="bracket-mobile-section-title" style="color:${borderColor}">${icon} ${UI.escapeHtml(section.title)}</div>`;
+
+    section.phases.forEach((phase, phaseIdx) => {
+      if (phaseIdx > 0) {
+        html += '<div style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--color-border)">';
+        html += `<div class="phase-label-small">${UI.escapeHtml(phase.name)}</div>`;
+      }
+
+      // Find actual matches for this phase
+      phase.matches.forEach((previewMatch, matchIdx) => {
+        // Map preview slot index to actual match — use match order within section
+        const sectionMatchIds = _getPhaseMatchIds(format, section.section, phase.name);
+        const matchId = sectionMatchIds[matchIdx];
+        const m = matchId ? matches[matchId] : null;
+
+        if (m) {
+          const tipo = section.section === 'grand' ? 'grand' : section.section;
+          html += _renderBracketMatch(m, state, tipo);
+        }
+      });
+
+      if (phaseIdx > 0) html += '</div>';
+    });
+
+    if (section.section === 'grand') {
+      html += '<div style="font-size:.7rem;color:var(--color-champion);margin-top:8px">&#9733; Chave Superior tem vantagem de ban</div>';
+    }
+
+    html += '</div>';
+  });
+
+  html += '</div>';
+  return html;
+}
+
+/**
+ * Maps phase names to match IDs for a given format section.
+ * This bridges the preview structure to actual match data.
+ */
+function _getPhaseMatchIds(format, section, phaseName) {
+  // Build mapping from miniBracketEntries
+  const sectionMatches = format.miniBracketEntries
+    .filter(e => {
+      const meta = format.getMatchMeta(e.matchId);
+      return meta.bracket === section || (section === 'grand' && format.isGrandFinal(e.matchId));
+    })
+    .map(e => e.matchId);
+
+  // For each phase in previewSlots, count how many matches it has
+  const sectionConfig = format.previewSlots.find(s => s.section === section);
+  if (!sectionConfig) return sectionMatches;
+
+  let idx = 0;
+  for (const phase of sectionConfig.phases) {
+    if (phase.name === phaseName) {
+      return sectionMatches.slice(idx, idx + phase.matches.length);
+    }
+    idx += phase.matches.length;
+  }
+  return [];
+}
+
+function _renderBracketMatch(m, state, tipo) {
   const tA = m.timeA ? AppState.getTimeById(state, m.timeA) : null;
   const tB = m.timeB ? AppState.getTimeById(state, m.timeB) : null;
 
   return `
     <div class="bracket-match ${tipo}-match" style="margin-bottom:8px">
-      ${renderBracketSlot(tA, m.golsA, m.vencedor === m.timeA)}
-      ${renderBracketSlot(tB, m.golsB, m.vencedor === m.timeB)}
+      ${_renderBracketSlot(tA, m.golsA, m.vencedor === m.timeA)}
+      ${_renderBracketSlot(tB, m.golsB, m.vencedor === m.timeB)}
     </div>`;
 }
 
-function renderBracketSlot(time, gols, isWinner) {
+function _renderBracketSlot(time, gols, isWinner) {
   if (!time) {
-    return `<div class="bracket-slot tbd"><span>A definir</span></div>`;
+    return '<div class="bracket-slot tbd"><span>A definir</span></div>';
   }
   return `
     <div class="bracket-slot ${isWinner ? 'winner' : ''}">
@@ -489,30 +522,60 @@ function renderBracketSlot(time, gols, isWinner) {
     </div>`;
 }
 
-function renderGrandFinalBracket(gf, state) {
-  const tU = gf.timeUpper ? AppState.getTimeById(state, gf.timeUpper) : null;
-  const tL = gf.timeLower ? AppState.getTimeById(state, gf.timeLower) : null;
+// ------------------------------------------------------------------
+// INFO CARDS
+// ------------------------------------------------------------------
 
-  return `
-    <div class="bracket-match grand-match">
-      <div class="bracket-slot ${gf.vencedor === gf.timeUpper ? 'winner' : ''}">
-        ${tU ? UI.renderAvatar(tU, 22, 'bracket-slot-avatar') : ''}
-        <span class="bracket-slot-name ${!tU ? 'tbd' : ''}">${tU ? UI.escapeHtml(tU.nome) : 'A definir'}</span>
-        ${tU ? `<span style="font-size:.6rem;background:var(--color-upper-bg);color:var(--color-upper);padding:1px 5px;border-radius:8px;font-weight:700;margin-right:4px">CS</span>` : ''}
-        <span class="bracket-slot-score">${gf.golsUpper !== null ? gf.golsUpper : ''}</span>
-      </div>
-      <div class="bracket-slot ${gf.vencedor === gf.timeLower ? 'winner' : ''}">
-        ${tL ? UI.renderAvatar(tL, 22, 'bracket-slot-avatar') : ''}
-        <span class="bracket-slot-name ${!tL ? 'tbd' : ''}">${tL ? UI.escapeHtml(tL.nome) : 'A definir'}</span>
-        ${tL ? `<span style="font-size:.6rem;background:var(--color-lower-bg);color:var(--color-lower);padding:1px 5px;border-radius:8px;font-weight:700;margin-right:4px">CI</span>` : ''}
-        <span class="bracket-slot-score">${gf.golsLower !== null ? gf.golsLower : ''}</span>
-      </div>
-    </div>`;
+function _renderInfoCards(format) {
+  const cards = format.infoCards;
+  let html = '<div class="bracket-info-cards">';
+
+  // Path card
+  html += `<div class="info-card">
+    <div class="info-card-title" style="color:var(--color-champion)">Caminho at&eacute; o t&iacute;tulo</div>`;
+  cards.path.forEach(p => {
+    html += `<div class="info-card-line"><span class="seed">${UI.escapeHtml(p.seed)}</span> &mdash; ${UI.escapeHtml(p.desc)} <span class="games">(${UI.escapeHtml(p.games)})</span></div>`;
+  });
+  html += '</div>';
+
+  // Mechanics card
+  html += `<div class="info-card">
+    <div class="info-card-title" style="color:var(--color-upper)">Mec&acirc;nica</div>`;
+  cards.mechanics.forEach(m => {
+    html += `<div class="info-card-line">${UI.escapeHtml(m)}</div>`;
+  });
+  html += '</div>';
+
+  // Advantages card
+  html += `<div class="info-card">
+    <div class="info-card-title" style="color:var(--color-win)">Vantagens</div>`;
+  cards.advantages.forEach(a => {
+    html += `<div class="info-card-line">${UI.escapeHtml(a)}</div>`;
+  });
+  html += '</div>';
+
+  html += '</div>';
+  return html;
 }
 
-// Helpers used by actions
+// ------------------------------------------------------------------
+// HELPERS
+// ------------------------------------------------------------------
+
 function canStartPlayoffs(state) {
   const tabela = AppState.calcularClassificacao(state);
   const pending = state.faseGrupos.partidas.filter(p => p.status === 'pendente').length;
   return tabela.length >= 4 && pending === 0;
 }
+
+/**
+ * Returns the currently selected format ID (from dropdown or state).
+ * Used by other modules (actions, app) to determine active format.
+ */
+function getSelectedPlayoffFormatId() {
+  const sel = document.getElementById('playoffFormatSelect');
+  if (sel && sel.value) return sel.value;
+  const state = AppState.loadReadOnly();
+  return state.playoffs.formato || PlayoffFormats.DEFAULT;
+}
+window.getSelectedPlayoffFormatId = getSelectedPlayoffFormatId;
