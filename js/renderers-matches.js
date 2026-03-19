@@ -116,7 +116,7 @@ function renderPartidasPlayoffs(state, admin) {
 
   const allEntries = [];
   format.getAllMatches(matches).forEach(m => {
-    if (!m.timeA && !m.timeB) return;
+    if (!m.timeA || !m.timeB) return;
     const meta = format.getMatchMeta(m.id);
     const isGF = format.isGrandFinal(m.id);
     allEntries.push({

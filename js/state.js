@@ -519,6 +519,7 @@ function registrarResultadoPlayoff(state, matchId, golsA, golsB) {
   const format = PlayoffFormats.getSelected(state);
   const match = state.playoffs.matches[matchId];
   if (!match) return false;
+  if (!match.timeA || !match.timeB) return false;
   if (golsA === golsB) return false;
 
   const newWinner = golsA > golsB ? match.timeA : match.timeB;
