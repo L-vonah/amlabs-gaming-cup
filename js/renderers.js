@@ -222,9 +222,9 @@ function renderClassificacao() {
         </tbody>
       </table>
     </div>
-    <div style="padding:12px 24px;border-top:1px solid var(--color-border);display:flex;align-items:center;gap:16px;font-size:0.8rem;color:var(--color-text-dim)">
-      <span style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:var(--color-win);opacity:.6"></span>Classificado para os Playoffs (Top ${qualify})</span>
-      <span>&bull; Desempate: Pontos &rarr; Vit&oacute;rias &rarr; Saldo de Gols &rarr; Gols Marcados</span>
+    <div class="classification-legend" style="padding:12px 24px;border-top:1px solid var(--color-border);display:flex;align-items:center;gap:16px;font-size:0.8rem;color:var(--color-text-dim)">
+      <span class="classification-legend-item" style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:var(--color-win);opacity:.6"></span>Classificado para os Playoffs (Top ${qualify})</span>
+      <span class="classification-legend-item">&bull; Desempate: Pontos &rarr; Vit&oacute;rias &rarr; Saldo de Gols &rarr; Gols Marcados</span>
     </div>`;
 }
 
@@ -425,14 +425,18 @@ function renderMatchCardWithAction(p, state, admin) {
   const partB = tB && tB.participante ? `<span class="team-participant">${tB.participante}</span>` : '';
 
   let actionBtn = '';
-  if (admin) {
-    actionBtn = `<button class="btn btn-sm ${concluded ? 'btn-secondary' : 'btn-success'} admin-only"
-      onclick="openScoreModal('${p.id}','${nameA.replace(/'/g,"\\'")}','${nameB.replace(/'/g,"\\'")}',false)">${concluded ? 'Editar' : 'Registrar'}</button>`;
+  if (admin && !concluded) {
+    actionBtn = `<button class="btn-round-action btn-round-register admin-only"
+      onclick="openScoreModal('${p.id}','${nameA.replace(/'/g,"\\'")}','${nameB.replace(/'/g,"\\'")}',false)">+</button>`;
+  } else if (admin && concluded) {
+    actionBtn = `<button class="btn-round-action btn-round-edit admin-only"
+      onclick="openScoreModal('${p.id}','${nameA.replace(/'/g,"\\'")}','${nameB.replace(/'/g,"\\'")}',false)">&#9998;</button>`;
+  } else if (!admin && concluded) {
+    actionBtn = `<span class="btn-round-action btn-round-done">&#10003;</span>`;
   }
 
   return `
     <div class="match-card">
-      <div class="match-round-badge">Rod. ${p.rodada}</div>
       <div class="match-teams">
         <div class="match-team home">
           <div style="text-align:right"><span class="team-name-text">${nameA}</span><br>${partA}</div>
@@ -449,7 +453,6 @@ function renderMatchCardWithAction(p, state, admin) {
         </div>
       </div>
       ${actionBtn}
-      <span class="match-status-badge ${p.status}">${concluded ? 'Conclu&iacute;da' : 'Pendente'}</span>
     </div>`;
 }
 

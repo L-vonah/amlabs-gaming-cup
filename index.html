@@ -139,8 +139,6 @@
       </div>
       <div class="card-body" style="display:flex;gap:12px;flex-wrap:wrap">
         <button class="btn btn-primary" onclick="UI.navigateTo('times');setTimeout(()=>document.getElementById('inputNomeTimo').focus(),100)">+ Adicionar Time</button>
-        <button class="btn btn-secondary" id="quickGerarGrupos" onclick="gerarFaseGrupos()">Gerar Fase de Grupos</button>
-        <button class="btn btn-secondary" id="quickIniciarPlayoffs" onclick="iniciarPlayoffs()">Iniciar Playoffs</button>
         <button class="btn btn-secondary" onclick="exportData()">Exportar Dados</button>
         <label class="btn btn-secondary" style="cursor:pointer">
           Importar Dados
@@ -197,25 +195,6 @@
                 <input type="color" id="inputInscCor" value="#6c5ce7">
                 <span style="font-size:.8rem;color:var(--color-text-muted)">Escolha a cor do escudo</span>
               </div>
-              <div class="insc-color-presets" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
-                <script>
-                  (function() {
-                    const presetContainer = document.currentScript.parentElement;
-                    document.addEventListener('DOMContentLoaded', () => {
-                    UI.PRESET_COLORS.forEach(c => {
-                      const btn = document.createElement('button');
-                      btn.style.cssText = 'width:22px;height:22px;border-radius:50%;background:' + c + ';border:2px solid transparent;cursor:pointer;transition:.15s';
-                      btn.onclick = () => {
-                        document.getElementById('inputInscCor').value = c;
-                        presetContainer.querySelectorAll('button').forEach(b => b.style.borderColor = 'transparent');
-                        btn.style.borderColor = '#fff';
-                      };
-                      presetContainer.appendChild(btn);
-                    });
-                  });
-                  })();
-                </script>
-              </div>
             </div>
             <button class="btn btn-primary w-full" onclick="submitPublicRegistration()">Enviar Inscri&ccedil;&atilde;o</button>
             <p style="font-size:.75rem;color:var(--color-text-dim);text-align:center;margin-top:-4px">Sua inscri&ccedil;&atilde;o ser&aacute; analisada pelo administrador</p>
@@ -246,7 +225,6 @@
           <button class="btn btn-primary" id="btnGerarGrupos" onclick="gerarFaseGrupos()" disabled>
             Gerar Fase de Grupos
           </button>
-          <span class="text-dim text-sm" id="gerarGruposHint">Adicione os times e clique para gerar o calend&aacute;rio round-robin</span>
         </div>
       </div>
 
@@ -281,26 +259,6 @@
               <div class="color-picker-wrapper">
                 <input type="color" id="inputCorTimo" value="#6c5ce7">
                 <span style="font-size:.8rem;color:var(--color-text-muted)">Escolha a cor do escudo</span>
-              </div>
-              <!-- Color presets -->
-              <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
-                <script>
-                  (function() {
-                    const presetContainer = document.currentScript.parentElement;
-                    document.addEventListener('DOMContentLoaded', () => {
-                    UI.PRESET_COLORS.forEach(c => {
-                      const btn = document.createElement('button');
-                      btn.style.cssText = `width:22px;height:22px;border-radius:50%;background:${c};border:2px solid transparent;cursor:pointer;transition:.15s`;
-                      btn.onclick = () => {
-                        document.getElementById('inputCorTimo').value = c;
-                        presetContainer.querySelectorAll('button').forEach(b => b.style.borderColor = 'transparent');
-                        btn.style.borderColor = '#fff';
-                      };
-                      presetContainer.appendChild(btn);
-                    });
-                  });
-                  })();
-                </script>
               </div>
             </div>
 
@@ -653,11 +611,11 @@
     <span>Partidas</span>
   </button>
   <button class="mobile-tab" data-nav="classificacao" onclick="mobileNavigate('classificacao')">
-    <span class="mobile-tab-icon">&#127942;</span>
+    <span class="mobile-tab-icon">&#128202;</span>
     <span>Tabela</span>
   </button>
   <button class="mobile-tab" data-nav="bracket" onclick="mobileNavigate('bracket')">
-    <span class="mobile-tab-icon">&#9878;</span>
+    <span class="mobile-tab-icon">&#127942;</span>
     <span>Chaves</span>
   </button>
   <button class="mobile-tab" id="mobileMoreBtn" onclick="toggleMobileMore()">
@@ -933,24 +891,6 @@
   }
   window.submitScoreModal = submitScoreModal;
 
-  // Also update home quick action buttons based on state
-  function updateQuickActions() {
-    const state = AppState.load();
-    const btnGerar = document.getElementById('quickGerarGrupos');
-    const btnPlayoffs = document.getElementById('quickIniciarPlayoffs');
-    if (btnGerar) btnGerar.disabled = state.campeonato.status !== 'configuracao' || state.times.length < 2;
-    if (btnPlayoffs) {
-      const pending = state.faseGrupos.partidas.filter(p => p.status === 'pendente').length;
-      const tabela = AppState.calcularClassificacao(state);
-      btnPlayoffs.disabled = !(pending === 0 && tabela.length >= 4 && state.campeonato.status === 'grupos');
-    }
-  }
-
-  const _origRenderHome = Renderers.home;
-  Renderers.home = function() {
-    _origRenderHome();
-    updateQuickActions();
-  };
 
   // Valid section names including new historico
   const VALID_SECTIONS = ['home', 'inscricoes', 'times', 'classificacao', 'partidas', 'bracket', 'estatisticas', 'regras', 'historico'];
@@ -993,6 +933,10 @@
   function toggleMobileMore() {
     const overlay = document.getElementById('mobileMoreOverlay');
     overlay.classList.toggle('open');
+    // Ensure admin-only items visibility is up to date when sheet opens
+    if (overlay.classList.contains('open') && typeof updateAdminUI === 'function') {
+      updateAdminUI();
+    }
   }
 
   function closeMobileMore() {
@@ -1034,11 +978,23 @@
     }
   };
 
+  // Random color generator for team color inputs
+  function randomColor() {
+    return '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+  }
+  window.randomColor = randomColor;
+
   // Boot
   document.addEventListener('DOMContentLoaded', () => {
     initAuth();
     initNavFromHash();
     updateInscricoesVisibility();
+
+    // Set random default colors on color inputs
+    const inputCorTimo = document.getElementById('inputCorTimo');
+    const inputInscCor = document.getElementById('inputInscCor');
+    if (inputCorTimo) inputCorTimo.value = randomColor();
+    if (inputInscCor) inputInscCor.value = randomColor();
 
     // Start Firestore listener if configured
     if (typeof FirestoreService !== 'undefined' && FirestoreService.isActive()) {

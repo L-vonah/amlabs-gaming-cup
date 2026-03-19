@@ -125,9 +125,9 @@ function submitAddTime() {
   AppState.addAuditLog(getAuditUser(), `Adicionou o time "${nome}" (${participante})`, { abreviacao: abrev, cor, participante });
 
   UI.clearForm('inputPartTimo', 'inputNomeTimo', 'inputAbrevTimo');
-  // Reset color to default primary
+  // Reset color to a new random color
   const colorInput = document.getElementById('inputCorTimo');
-  if (colorInput) colorInput.value = '#6c5ce7';
+  if (colorInput) colorInput.value = (typeof randomColor === 'function') ? randomColor() : '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
 
   const msg = novasPartidas > 0
     ? `Time "${nome}" adicionado! ${novasPartidas} partidas geradas.`
@@ -518,7 +518,7 @@ async function submitPublicRegistration() {
 
     UI.clearForm('inputInscParticipante', 'inputInscNome', 'inputInscAbrev');
     const colorInput = document.getElementById('inputInscCor');
-    if (colorInput) colorInput.value = '#6c5ce7';
+    if (colorInput) colorInput.value = (typeof randomColor === 'function') ? randomColor() : '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
 
     UI.showToast('Solicitacao enviada! Aguarde aprovacao do administrador.', 'success');
     Renderers.inscricoes();

@@ -1848,6 +1848,58 @@ body {
     padding-bottom: 8px;
     border-bottom: 1px solid var(--color-border);
   }
+
+  /* ----- Center header on mobile (change 6) ----- */
+  .header-inner { justify-content: center; }
+
+  /* ----- Classification legend: stack on mobile (change 7) ----- */
+  .classification-legend {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+  .classification-legend-item {
+    display: block;
+  }
+
+  /* ----- Generate button full width on mobile (change 8) ----- */
+  #btnGerarGrupos {
+    width: 100%;
+  }
+}
+
+/* =============================================
+   ROUND ACTION BUTTONS (Match Cards)
+   ============================================= */
+
+.btn-round-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.btn-round-register {
+  background: var(--color-win);
+  color: white;
+}
+
+.btn-round-edit {
+  background: var(--color-text-muted);
+  color: white;
+}
+
+.btn-round-done {
+  background: #e8f5e9;
+  color: var(--color-win);
+  cursor: default;
 }
 
 /* =============================================
