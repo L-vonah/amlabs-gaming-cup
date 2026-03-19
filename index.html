@@ -105,10 +105,10 @@
     </div>
 
     <div class="grid-2">
-      <!-- Classification -->
+      <!-- Classification / Bracket mini-view -->
       <div class="card">
         <div class="card-header">
-          <span class="card-title">
+          <span class="card-title" id="homeLeaderTitle">
             <span class="section-title-icon icon-bg-yellow">&#127942;</span>
             Classifica&ccedil;&atilde;o
           </span>
@@ -854,10 +854,25 @@
       return;
     }
 
+    // Check for downstream reset warning when editing an existing playoff result
+    const state = AppState.load();
+    if (isGF) {
+      if (state.playoffs.grandFinal.vencedor) {
+        if (!confirm('Editar este resultado pode resetar partidas seguintes do playoff. Deseja continuar?')) return;
+      }
+    } else if (!matchId.startsWith('rr_')) {
+      const ub = state.playoffs.upperBracket;
+      const lb = state.playoffs.lowerBracket;
+      const allPlayoffMatches = [ub.sf1, ub.sf2, ub.final, lb.sf, lb.final];
+      const playoffMatch = allPlayoffMatches.find(m => m.id === matchId);
+      if (playoffMatch && playoffMatch.vencedor) {
+        if (!confirm('Editar este resultado pode resetar partidas seguintes do playoff. Deseja continuar?')) return;
+      }
+    }
+
     UI.closeModal('modalScore');
 
     if (isGF) {
-      const state = AppState.load();
       AppState.registrarResultadoGrandFinal(state, golsA, golsB);
       AppState.save(state);
       AppState.addAuditLog(getAuditUser(), 'Registrou resultado da Grande Final: ' + golsA + ' x ' + golsB);
@@ -865,7 +880,6 @@
       Renderers.home();
     } else {
       // Check if it's a group stage or playoff match
-      const state = AppState.load();
       const grp = state.faseGrupos.partidas.find(p => p.id === matchId);
       if (grp) {
         saveInlineResult(matchId, golsA, golsB);

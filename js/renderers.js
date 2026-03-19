@@ -48,52 +48,215 @@ function renderHome() {
     }
   }
 
-  // Last results
-  const lastResults = partidas.filter(p => p.status === 'concluida').slice(-3).reverse();
+  // Last results — include both group stage and playoff concluded matches
+  const groupConcluded = partidas.filter(p => p.status === 'concluida').map(p => ({
+    type: 'group',
+    timeA: p.timeA,
+    timeB: p.timeB,
+    golsA: p.golsA,
+    golsB: p.golsB,
+    id: p.id,
+    status: p.status,
+    rodada: p.rodada,
+    original: p
+  }));
+
+  const playoffConcluded = [];
+  if (state.playoffs && state.playoffs.status !== 'aguardando') {
+    const ub = state.playoffs.upperBracket;
+    const lb = state.playoffs.lowerBracket;
+    const gf = state.playoffs.grandFinal;
+    [ub.sf1, ub.sf2, ub.final, lb.sf, lb.final].forEach(m => {
+      if (m.vencedor) {
+        playoffConcluded.push({
+          type: 'playoff',
+          timeA: m.timeA,
+          timeB: m.timeB,
+          golsA: m.golsA,
+          golsB: m.golsB,
+          fase: m.fase,
+          id: m.id
+        });
+      }
+    });
+    if (gf.vencedor) {
+      playoffConcluded.push({
+        type: 'playoff',
+        timeA: gf.timeUpper,
+        timeB: gf.timeLower,
+        golsA: gf.golsUpper,
+        golsB: gf.golsLower,
+        fase: 'Grande Final',
+        id: gf.id
+      });
+    }
+  }
+
+  // Combine: groups first, then playoffs, and take last 3
+  const allConcluded = [...groupConcluded, ...playoffConcluded];
+  const lastResults = allConcluded.slice(-3).reverse();
+
   const container = document.getElementById('homeLastResults');
   if (container) {
     if (lastResults.length === 0) {
       container.innerHTML = '<div class="empty-state"><div class="empty-icon">&#9917;</div><div class="empty-title">Nenhum resultado ainda</div><div class="empty-desc">Registre resultados na aba Resultados</div></div>';
     } else {
-      container.innerHTML = lastResults.map(p => renderMatchCardWithAction(p, state, false)).join('');
+      container.innerHTML = lastResults.map(r => {
+        if (r.type === 'group') {
+          return renderMatchCardWithAction(r.original, state, false);
+        }
+        // Playoff match card for home — simple display, no actions
+        const tA = AppState.getTimeById(state, r.timeA);
+        const tB = AppState.getTimeById(state, r.timeB);
+        const nameA = tA ? UI.escapeHtml(tA.nome) : '?';
+        const nameB = tB ? UI.escapeHtml(tB.nome) : '?';
+        const sc = UI.scoreClass(r.golsA, r.golsB);
+        return '<div class="match-card">' +
+          '<div class="match-desktop">' +
+            '<div class="match-teams">' +
+              '<div class="match-team home">' +
+                '<div class="match-team-info" style="text-align:right"><span class="team-name-text">' + nameA + '</span></div>' +
+                UI.renderAvatar(tA, 24) +
+              '</div>' +
+              '<div class="match-score ' + sc + '">' +
+                '<span class="score-val">' + r.golsA + '</span>' +
+                '<span class="dash">:</span>' +
+                '<span class="score-val">' + r.golsB + '</span>' +
+              '</div>' +
+              '<div class="match-team away">' +
+                UI.renderAvatar(tB, 24) +
+                '<div class="match-team-info"><span class="team-name-text">' + nameB + '</span></div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="match-action-slot"></div>' +
+          '</div>' +
+          '<div class="match-mobile">' +
+            '<div class="match-mobile-row">' +
+              UI.renderAvatar(tA, 28) +
+              '<span class="match-mobile-name">' + nameA + '</span>' +
+              '<span class="match-mobile-score ' + (r.golsA > r.golsB ? 'win' : r.golsA < r.golsB ? 'loss' : '') + '">' + r.golsA + '</span>' +
+            '</div>' +
+            '<div class="match-mobile-row">' +
+              UI.renderAvatar(tB, 28) +
+              '<span class="match-mobile-name">' + nameB + '</span>' +
+              '<span class="match-mobile-score ' + (r.golsB > r.golsA ? 'win' : r.golsB < r.golsA ? 'loss' : '') + '">' + r.golsB + '</span>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
     }
   }
 
-  // Mini classification table (top 6)
+  // Mini classification table (top 6) or Bracket mini-view when in playoffs
   const leaderEl = document.getElementById('homeLeader');
+  const leaderTitleEl = document.getElementById('homeLeaderTitle');
+
   if (leaderEl) {
-    if (tabela.length === 0) {
-      leaderEl.innerHTML = '<div class="text-dim text-sm" style="padding:16px">Aguardando cadastro de times...</div>';
+    const isPlayoffsOrEncerrado = state.campeonato.status === 'playoffs' || state.campeonato.status === 'encerrado';
+
+    if (isPlayoffsOrEncerrado) {
+      // Update card title to "Chaveamento"
+      if (leaderTitleEl) {
+        leaderTitleEl.innerHTML = '<span class="section-title-icon icon-bg-yellow">&#127942;</span> Chaveamento';
+      }
+
+      // Build bracket mini-view
+      const ub = state.playoffs.upperBracket;
+      const lb = state.playoffs.lowerBracket;
+      const gf = state.playoffs.grandFinal;
+
+      const bracketMatches = [
+        { match: ub.sf1, phase: 'SF CS1', color: 'var(--color-upper)', isGrand: false },
+        { match: ub.sf2, phase: 'SF CS2', color: 'var(--color-upper)', isGrand: false },
+        { match: ub.final, phase: 'Final CS', color: 'var(--color-upper)', isGrand: false },
+        { match: lb.sf, phase: 'SF CI', color: 'var(--color-lower)', isGrand: false },
+        { match: lb.final, phase: 'Final CI', color: 'var(--color-lower)', isGrand: false },
+        { match: gf, phase: 'GF', color: 'var(--color-champion)', isGrand: true }
+      ];
+
+      let matchLines = '';
+      bracketMatches.forEach(item => {
+        const m = item.match;
+        let tA, tB, scoreA, scoreB, winnerA, winnerB;
+        if (item.isGrand) {
+          if (!m.timeUpper && !m.timeLower) return;
+          tA = m.timeUpper ? AppState.getTimeById(state, m.timeUpper) : null;
+          tB = m.timeLower ? AppState.getTimeById(state, m.timeLower) : null;
+          scoreA = m.golsUpper;
+          scoreB = m.golsLower;
+          winnerA = m.vencedor === m.timeUpper;
+          winnerB = m.vencedor === m.timeLower;
+        } else {
+          if (!m.timeA && !m.timeB) return;
+          tA = m.timeA ? AppState.getTimeById(state, m.timeA) : null;
+          tB = m.timeB ? AppState.getTimeById(state, m.timeB) : null;
+          scoreA = m.golsA;
+          scoreB = m.golsB;
+          winnerA = m.vencedor === m.timeA;
+          winnerB = m.vencedor === m.timeB;
+        }
+
+        const nameA = tA ? UI.escapeHtml(tA.nome) : 'A definir';
+        const nameB = tB ? UI.escapeHtml(tB.nome) : 'A definir';
+        const sA = scoreA !== null ? scoreA : '-';
+        const sB = scoreB !== null ? scoreB : '-';
+
+        matchLines += '<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--color-surface-2);border-radius:var(--radius);border-left:3px solid ' + item.color + '">' +
+          '<span style="font-size:.65rem;font-weight:700;color:var(--color-text-dim);min-width:40px">' + item.phase + '</span>' +
+          '<span style="flex:1;font-size:.8rem;font-weight:' + (winnerA ? '700' : '400') + '">' + nameA + '</span>' +
+          '<span style="font-weight:800;font-size:.85rem">' + sA + '</span>' +
+          '<span style="color:var(--color-text-dim)">:</span>' +
+          '<span style="font-weight:800;font-size:.85rem">' + sB + '</span>' +
+          '<span style="flex:1;font-size:.8rem;font-weight:' + (winnerB ? '700' : '400') + ';text-align:right">' + nameB + '</span>' +
+        '</div>';
+      });
+
+      leaderEl.innerHTML = '<div style="padding:12px">' +
+        '<div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-dim);margin-bottom:12px">Chaveamento</div>' +
+        '<div style="display:flex;flex-direction:column;gap:8px">' + matchLines + '</div>' +
+        '<div style="text-align:center;margin-top:12px">' +
+          '<button class="btn btn-sm btn-secondary" onclick="UI.navigateTo(\'bracket\')">Ver chaveamento completo</button>' +
+        '</div>' +
+      '</div>';
     } else {
-      const top = tabela.slice(0, 6);
-      leaderEl.innerHTML = `
-        <div style="padding:0">
-          <table style="width:100%;border-collapse:collapse;font-size:.8rem">
-            <thead>
-              <tr style="border-bottom:1px solid var(--color-border)">
-                <th style="padding:10px 12px;text-align:left;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-dim)" colspan="2">Time</th>
-                <th style="padding:10px 6px;text-align:center;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-dim)">J</th>
-                <th style="padding:10px 6px;text-align:center;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-dim)">V</th>
-                <th style="padding:10px 6px;text-align:center;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-dim)">SG</th>
-                <th style="padding:10px 12px;text-align:center;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-dim)">Pts</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${top.map((t, i) => {
-                const isQ = i < 4;
-                return '<tr style="border-bottom:1px solid var(--color-border);' + (isQ ? 'border-left:2px solid var(--color-win)' : '') + '">' +
-                  '<td style="padding:8px 12px;color:var(--color-text-dim);font-weight:700;width:24px">' + (i + 1) + '</td>' +
-                  '<td style="padding:8px 4px"><div style="display:flex;align-items:center;gap:8px">' + UI.renderAvatar(t, 22) + '<span style="font-weight:600">' + UI.escapeHtml(t.nome) + '</span></div></td>' +
-                  '<td style="padding:8px 6px;text-align:center;color:var(--color-text-muted)">' + t.jogos + '</td>' +
-                  '<td style="padding:8px 6px;text-align:center;color:var(--color-win);font-weight:700">' + t.vitorias + '</td>' +
-                  '<td style="padding:8px 6px;text-align:center;font-weight:700;color:' + (t.saldoGols > 0 ? 'var(--color-win)' : t.saldoGols < 0 ? 'var(--color-loss)' : 'var(--color-text-muted)') + '">' + UI.signedNumber(t.saldoGols) + '</td>' +
-                  '<td style="padding:8px 12px;text-align:center;font-weight:800;font-size:.9rem">' + t.pontos + '</td>' +
-                '</tr>';
-              }).join('')}
-            </tbody>
-          </table>
-          ${tabela.length > 6 ? '<div style="padding:8px 12px;text-align:center"><button class="btn btn-sm btn-secondary" onclick="UI.navigateTo(\'classificacao\')">Ver completa</button></div>' : ''}
-        </div>`;
+      // Restore card title to "Classificação"
+      if (leaderTitleEl) {
+        leaderTitleEl.innerHTML = '<span class="section-title-icon icon-bg-yellow">&#127942;</span> Classifica&ccedil;&atilde;o';
+      }
+
+      if (tabela.length === 0) {
+        leaderEl.innerHTML = '<div class="text-dim text-sm" style="padding:16px">Aguardando cadastro de times...</div>';
+      } else {
+        const top = tabela.slice(0, 6);
+        leaderEl.innerHTML = `
+          <div style="padding:0">
+            <table style="width:100%;border-collapse:collapse;font-size:.8rem">
+              <thead>
+                <tr style="border-bottom:1px solid var(--color-border)">
+                  <th style="padding:10px 12px;text-align:left;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-dim)" colspan="2">Time</th>
+                  <th style="padding:10px 6px;text-align:center;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-dim)">J</th>
+                  <th style="padding:10px 6px;text-align:center;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-dim)">V</th>
+                  <th style="padding:10px 6px;text-align:center;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-dim)">SG</th>
+                  <th style="padding:10px 12px;text-align:center;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-dim)">Pts</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${top.map((t, i) => {
+                  const isQ = i < 4;
+                  return '<tr style="border-bottom:1px solid var(--color-border);' + (isQ ? 'border-left:2px solid var(--color-win)' : '') + '">' +
+                    '<td style="padding:8px 12px;color:var(--color-text-dim);font-weight:700;width:24px">' + (i + 1) + '</td>' +
+                    '<td style="padding:8px 4px"><div style="display:flex;align-items:center;gap:8px">' + UI.renderAvatar(t, 22) + '<span style="font-weight:600">' + UI.escapeHtml(t.nome) + '</span></div></td>' +
+                    '<td style="padding:8px 6px;text-align:center;color:var(--color-text-muted)">' + t.jogos + '</td>' +
+                    '<td style="padding:8px 6px;text-align:center;color:var(--color-win);font-weight:700">' + t.vitorias + '</td>' +
+                    '<td style="padding:8px 6px;text-align:center;font-weight:700;color:' + (t.saldoGols > 0 ? 'var(--color-win)' : t.saldoGols < 0 ? 'var(--color-loss)' : 'var(--color-text-muted)') + '">' + UI.signedNumber(t.saldoGols) + '</td>' +
+                    '<td style="padding:8px 12px;text-align:center;font-weight:800;font-size:.9rem">' + t.pontos + '</td>' +
+                  '</tr>';
+                }).join('')}
+              </tbody>
+            </table>
+            ${tabela.length > 6 ? '<div style="padding:8px 12px;text-align:center"><button class="btn btn-sm btn-secondary" onclick="UI.navigateTo(\'classificacao\')">Ver completa</button></div>' : ''}
+          </div>`;
+      }
     }
   }
 }
@@ -256,19 +419,19 @@ function renderPartidas() {
   let html = '';
   if (hasPlayoffs) {
     html += `<div class="tab-bar" style="margin-bottom:20px">
-      <button class="tab-btn active" id="tabPartGrupos" onclick="switchPartidaTab('grupos')">Fase de Grupos</button>
-      <button class="tab-btn" id="tabPartPlayoffs" onclick="switchPartidaTab('playoffs')">Playoffs</button>
+      <button class="tab-btn" id="tabPartGrupos" onclick="switchPartidaTab('grupos')">Fase de Grupos</button>
+      <button class="tab-btn active" id="tabPartPlayoffs" onclick="switchPartidaTab('playoffs')">Playoffs</button>
     </div>`;
   }
 
-  // Grupos
-  html += '<div id="partidaTabGrupos">';
+  // Grupos (hidden by default when playoffs exist)
+  html += '<div id="partidaTabGrupos"' + (hasPlayoffs ? ' style="display:none"' : '') + '>';
   html += renderPartidasGrupos(state, admin);
   html += '</div>';
 
-  // Playoffs
+  // Playoffs (shown by default when playoffs exist)
   if (hasPlayoffs) {
-    html += '<div id="partidaTabPlayoffs" style="display:none">';
+    html += '<div id="partidaTabPlayoffs">';
     html += renderPartidasPlayoffs(state, admin);
     html += '</div>';
   }
@@ -351,32 +514,60 @@ function renderPartidasPlayoffs(state, admin) {
     const tU = AppState.getTimeById(state, gf.timeUpper);
     const tL = AppState.getTimeById(state, gf.timeLower);
     const concluded = gf.vencedor !== null;
+    const nameU = tU ? UI.escapeHtml(tU.nome) : '?';
+    const nameL = tL ? UI.escapeHtml(tL.nome) : '?';
+    const sc = concluded ? UI.scoreClass(gf.golsUpper, gf.golsLower) : '';
+    const onclick = "openScoreModal('grand-final','" + nameU.replace(/'/g,"\\'") + "','" + nameL.replace(/'/g,"\\'") + "',true)";
 
-    html += `<div style="margin-bottom:24px">
-      <div class="playoff-section-header" style="color:var(--color-champion);border-bottom-color:rgba(249,168,37,0.3)">
-        &#127942; Grande Final
-      </div>
-      <div class="match-card" style="border-left:3px solid var(--color-champion)">
-        <div class="match-round-badge" style="color:var(--color-champion)">Final</div>
-        <div class="match-teams">
-          <div class="match-team home">
-            <span class="team-name-text">${tU ? UI.escapeHtml(tU.nome) : '?'}</span>
-            ${UI.renderAvatar(tU, 24)}
-          </div>
-          <div class="match-score ${concluded ? UI.scoreClass(gf.golsUpper, gf.golsLower) : ''}">
-            <span class="score-val">${concluded ? gf.golsUpper : '-'}</span>
-            <span class="dash">:</span>
-            <span class="score-val">${concluded ? gf.golsLower : '-'}</span>
-          </div>
-          <div class="match-team away">
-            ${UI.renderAvatar(tL, 24)}
-            <span class="team-name-text">${tL ? UI.escapeHtml(tL.nome) : '?'}</span>
-          </div>
-        </div>
-        ${admin && !concluded ? '<button class="btn btn-sm btn-success admin-only" onclick="openScoreModal(\'grand-final\',\'' + UI.escapeHtml((tU?tU.nome:'?').replace(/'/g,"\\'")) + '\',\'' + UI.escapeHtml((tL?tL.nome:'?').replace(/'/g,"\\'")) + '\',true)">Registrar</button>' : ''}
-        ${concluded ? '<span class="match-status-badge concluida">Conclu&iacute;da</span>' : '<span class="match-status-badge pendente">Pendente</span>'}
-      </div>
-    </div>`;
+    let desktopBtn = '';
+    let mobileBtn = '';
+    if (admin && !concluded) {
+      desktopBtn = '<button class="btn btn-sm btn-success admin-only" onclick="' + onclick + '">Registrar</button>';
+      mobileBtn = desktopBtn;
+    } else if (admin && concluded) {
+      desktopBtn = '<button class="btn btn-sm btn-secondary admin-only" onclick="' + onclick + '">Editar</button>';
+      mobileBtn = desktopBtn;
+    }
+
+    const partU = tU && tU.participante ? '<span class="team-participant">' + UI.escapeHtml(tU.participante) + '</span>' : '';
+    const partL = tL && tL.participante ? '<span class="team-participant">' + UI.escapeHtml(tL.participante) + '</span>' : '';
+
+    html += '<div style="margin-bottom:24px">' +
+      '<div class="playoff-section-header" style="color:var(--color-champion);border-bottom-color:rgba(249,168,37,0.3)">&#127942; Grande Final</div>' +
+      '<div class="match-card" style="border-left:3px solid var(--color-champion)">' +
+        '<div class="match-desktop">' +
+          '<div class="match-teams">' +
+            '<div class="match-team home">' +
+              '<div class="match-team-info" style="text-align:right"><span class="team-name-text">' + nameU + '</span>' + partU + '</div>' +
+              UI.renderAvatar(tU, 24) +
+            '</div>' +
+            '<div class="match-score ' + sc + '">' +
+              '<span class="score-val">' + (concluded ? gf.golsUpper : '-') + '</span>' +
+              '<span class="dash">:</span>' +
+              '<span class="score-val">' + (concluded ? gf.golsLower : '-') + '</span>' +
+            '</div>' +
+            '<div class="match-team away">' +
+              UI.renderAvatar(tL, 24) +
+              '<div class="match-team-info"><span class="team-name-text">' + nameL + '</span>' + partL + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="match-action-slot">' + desktopBtn + '</div>' +
+        '</div>' +
+        '<div class="match-mobile">' +
+          '<div class="match-mobile-row">' +
+            UI.renderAvatar(tU, 28) +
+            '<span class="match-mobile-name">' + nameU + '</span>' +
+            '<span class="match-mobile-score ' + (concluded && gf.golsUpper > gf.golsLower ? 'win' : concluded && gf.golsUpper < gf.golsLower ? 'loss' : '') + '">' + (concluded ? gf.golsUpper : '-') + '</span>' +
+          '</div>' +
+          '<div class="match-mobile-row">' +
+            UI.renderAvatar(tL, 28) +
+            '<span class="match-mobile-name">' + nameL + '</span>' +
+            '<span class="match-mobile-score ' + (concluded && gf.golsLower > gf.golsUpper ? 'win' : concluded && gf.golsLower < gf.golsUpper ? 'loss' : '') + '">' + (concluded ? gf.golsLower : '-') + '</span>' +
+          '</div>' +
+          (mobileBtn ? '<div class="match-mobile-action">' + mobileBtn + '</div>' : '') +
+        '</div>' +
+      '</div>' +
+    '</div>';
   }
 
   // Other playoff matches
@@ -387,27 +578,59 @@ function renderPartidasPlayoffs(state, admin) {
       const concluded = m.vencedor !== null;
       const colorVar = m.tipo === 'upper' ? 'var(--color-upper)' : 'var(--color-lower)';
       const label = m.tipo === 'upper' ? 'CS' : 'CI';
+      const nameA = tA ? UI.escapeHtml(tA.nome) : '?';
+      const nameB = tB ? UI.escapeHtml(tB.nome) : '?';
+      const sc = concluded ? UI.scoreClass(m.golsA, m.golsB) : '';
+      const onclick = "openScoreModal('" + m.id + "','" + nameA.replace(/'/g,"\\'") + "','" + nameB.replace(/'/g,"\\'") + "',false)";
 
-      return `<div class="match-card" style="border-left:3px solid ${colorVar};margin-bottom:8px">
-        <div class="match-round-badge" style="font-size:.6rem">${m.fase}</div>
-        <div class="match-teams">
-          <div class="match-team home">
-            <span class="team-name-text">${tA ? UI.escapeHtml(tA.nome) : '?'}</span>
-            ${UI.renderAvatar(tA, 24)}
-          </div>
-          <div class="match-score ${concluded ? UI.scoreClass(m.golsA, m.golsB) : ''}">
-            <span class="score-val">${concluded ? m.golsA : '-'}</span>
-            <span class="dash">:</span>
-            <span class="score-val">${concluded ? m.golsB : '-'}</span>
-          </div>
-          <div class="match-team away">
-            ${UI.renderAvatar(tB, 24)}
-            <span class="team-name-text">${tB ? UI.escapeHtml(tB.nome) : '?'}</span>
-          </div>
-        </div>
-        ${admin && !concluded ? '<button class="btn btn-sm btn-success admin-only" onclick="openScoreModal(\'' + m.id + '\',\'' + UI.escapeHtml((tA?tA.nome:'?').replace(/'/g,"\\'")) + '\',\'' + UI.escapeHtml((tB?tB.nome:'?').replace(/'/g,"\\'")) + '\',false)">Registrar</button>' : ''}
-        ${concluded ? '<span class="match-status-badge concluida">Conclu&iacute;da</span>' : ''}
-      </div>`;
+      let desktopBtn = '';
+      let mobileBtn = '';
+      if (admin && !concluded) {
+        desktopBtn = '<button class="btn btn-sm btn-success admin-only" onclick="' + onclick + '">Registrar</button>';
+        mobileBtn = desktopBtn;
+      } else if (admin && concluded) {
+        desktopBtn = '<button class="btn btn-sm btn-secondary admin-only" onclick="' + onclick + '">Editar</button>';
+        mobileBtn = desktopBtn;
+      }
+
+      const partA = tA && tA.participante ? '<span class="team-participant">' + UI.escapeHtml(tA.participante) + '</span>' : '';
+      const partB = tB && tB.participante ? '<span class="team-participant">' + UI.escapeHtml(tB.participante) + '</span>' : '';
+      const phaseLabel = m.fase;
+
+      return '<div class="match-card" style="border-left:3px solid ' + colorVar + ';margin-bottom:8px">' +
+        '<div class="match-round-badge" style="font-size:.6rem">' + UI.escapeHtml(phaseLabel) + '</div>' +
+        '<div class="match-desktop">' +
+          '<div class="match-teams">' +
+            '<div class="match-team home">' +
+              '<div class="match-team-info" style="text-align:right"><span class="team-name-text">' + nameA + '</span>' + partA + '</div>' +
+              UI.renderAvatar(tA, 24) +
+            '</div>' +
+            '<div class="match-score ' + sc + '">' +
+              '<span class="score-val">' + (concluded ? m.golsA : '-') + '</span>' +
+              '<span class="dash">:</span>' +
+              '<span class="score-val">' + (concluded ? m.golsB : '-') + '</span>' +
+            '</div>' +
+            '<div class="match-team away">' +
+              UI.renderAvatar(tB, 24) +
+              '<div class="match-team-info"><span class="team-name-text">' + nameB + '</span>' + partB + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="match-action-slot">' + desktopBtn + '</div>' +
+        '</div>' +
+        '<div class="match-mobile">' +
+          '<div class="match-mobile-row">' +
+            UI.renderAvatar(tA, 28) +
+            '<span class="match-mobile-name">' + nameA + '</span>' +
+            '<span class="match-mobile-score ' + (concluded && m.golsA > m.golsB ? 'win' : concluded && m.golsA < m.golsB ? 'loss' : '') + '">' + (concluded ? m.golsA : '-') + '</span>' +
+          '</div>' +
+          '<div class="match-mobile-row">' +
+            UI.renderAvatar(tB, 28) +
+            '<span class="match-mobile-name">' + nameB + '</span>' +
+            '<span class="match-mobile-score ' + (concluded && m.golsB > m.golsA ? 'win' : concluded && m.golsB < m.golsA ? 'loss' : '') + '">' + (concluded ? m.golsB : '-') + '</span>' +
+          '</div>' +
+          (mobileBtn ? '<div class="match-mobile-action">' + mobileBtn + '</div>' : '') +
+        '</div>' +
+      '</div>';
     }).join('');
   }
 
@@ -471,7 +694,6 @@ function renderMatchCardWithAction(p, state, admin) {
           <span class="match-mobile-score ${concluded && p.golsB > p.golsA ? 'win' : concluded && p.golsB < p.golsA ? 'loss' : ''}">${concluded ? p.golsB : '-'}</span>
         </div>
         ${mobileBtn ? '<div class="match-mobile-action">' + mobileBtn + '</div>' : ''}
-        ${!mobileBtn && concluded ? '<div class="match-mobile-action"><span class="match-status-badge concluida">Conclu&iacute;da</span></div>' : ''}
       </div>
     </div>`;
 }
@@ -505,8 +727,10 @@ function renderBracket() {
   const ub = state.playoffs.upperBracket;
   const lb = state.playoffs.lowerBracket;
   const gf = state.playoffs.grandFinal;
+  const adminUser = typeof isAdmin === 'function' && isAdmin();
 
   container.innerHTML = `
+    ${adminUser ? '<div style="margin-bottom:16px;text-align:right"><button class="btn btn-sm btn-secondary admin-only" onclick="resetPlayoffs()" style="color:var(--color-loss)">Refazer Playoffs</button></div>' : ''}
     <div class="bracket-container">
       <!-- CHAVE SUPERIOR -->
       <div style="margin-bottom:8px">
@@ -576,8 +800,13 @@ function renderBracketMobile(container, state) {
   const ub = state.playoffs.upperBracket;
   const lb = state.playoffs.lowerBracket;
   const gf = state.playoffs.grandFinal;
+  const adminUser = typeof isAdmin === 'function' && isAdmin();
 
-  let html = '<div class="bracket-mobile-stack">';
+  let html = '';
+  if (adminUser) {
+    html += '<div style="margin-bottom:16px;text-align:right"><button class="btn btn-sm btn-secondary admin-only" onclick="resetPlayoffs()" style="color:var(--color-loss)">Refazer Playoffs</button></div>';
+  }
+  html += '<div class="bracket-mobile-stack">';
 
   // Upper bracket
   html += '<div class="bracket-mobile-section" style="border-left:3px solid var(--color-upper)">';

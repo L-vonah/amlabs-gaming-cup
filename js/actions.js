@@ -534,6 +534,29 @@ async function rejectRegistration(id) {
 }
 
 // ------------------------------------------------------------------
+// Reset Playoffs
+// ------------------------------------------------------------------
+
+function resetPlayoffs() {
+  if (typeof isAdmin === 'function' && !isAdmin()) {
+    UI.showToast('Apenas o admin pode resetar.', 'error');
+    return;
+  }
+  if (!confirm('Tem certeza? Todos os dados dos playoffs ser\u00e3o resetados. A fase de grupos ser\u00e1 mantida.')) return;
+
+  const state = AppState.load();
+  state.playoffs = JSON.parse(JSON.stringify(AppState.getDefaultPlayoffs()));
+  state.campeonato.status = 'grupos';
+  AppState.save(state);
+  AppState.addAuditLog(getAuditUser(), 'Resetou os playoffs');
+  UI.showToast('Playoffs resetados!', 'success');
+  Renderers.bracket();
+  Renderers.home();
+  Renderers.partidas();
+}
+window.resetPlayoffs = resetPlayoffs;
+
+// ------------------------------------------------------------------
 // Import / Export
 // ------------------------------------------------------------------
 

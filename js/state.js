@@ -474,6 +474,21 @@ function calcularEstatisticas(state) {
   }, { diff: 0, partida: null });
 
   const tabela = calcularClassificacao(state);
+
+  // Add playoff goals to team stats
+  playoffPartidas.forEach(p => {
+    const idxA = tabela.findIndex(t => t.id === p.timeA);
+    const idxB = tabela.findIndex(t => t.id === p.timeB);
+    if (idxA !== -1) {
+      tabela[idxA].golsMarcados += p.golsA;
+      tabela[idxA].golsSofridos += p.golsB;
+    }
+    if (idxB !== -1) {
+      tabela[idxB].golsMarcados += p.golsB;
+      tabela[idxB].golsSofridos += p.golsA;
+    }
+  });
+
   const topGoleadores = [...tabela].sort((a, b) => b.golsMarcados - a.golsMarcados).slice(0, 5);
   const menosVazados = [...tabela].sort((a, b) => a.golsSofridos - b.golsSofridos).slice(0, 5);
 
@@ -628,6 +643,14 @@ function registrarResultadoGrandFinal(state, golsUpper, golsLower) {
 }
 
 // ------------------------------------------------------------------
+// Helpers
+// ------------------------------------------------------------------
+
+function getDefaultPlayoffs() {
+  return JSON.parse(JSON.stringify(DEFAULT_STATE.playoffs));
+}
+
+// ------------------------------------------------------------------
 // Export
 // ------------------------------------------------------------------
 
@@ -648,6 +671,7 @@ window.AppState = {
   popularPlayoffs,
   registrarResultadoPlayoff,
   registrarResultadoGrandFinal,
+  getDefaultPlayoffs,
   convertStateToFirestore,
   convertFirestoreToState,
   invalidateCache,
