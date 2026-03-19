@@ -179,9 +179,24 @@ const FirestoreService = {
     }
   },
 
-  /**
-   * Load audit log entries for this tournament.
-   */
+  async loadAuditLog() {
+    if (!FIREBASE_CONFIGURED) return [];
+    try {
+      const snapshot = await firebase.firestore()
+        .collection(AUDIT_COLLECTION)
+        .where('torneiId', '==', TOURNAMENT_ID)
+        .orderBy('timestamp', 'asc')
+        .get();
+      return snapshot.docs.map(doc => {
+        const d = doc.data();
+        return { id: doc.id, timestamp: d.timestamp, usuario: d.usuario, acao: d.acao, detalhes: d.detalhes || null };
+      });
+    } catch (error) {
+      console.error('Error loading audit log:', error);
+      return [];
+    }
+  },
+
   // ----- Registration (Inscricoes) -----
 
   async submitRegistration(data) {

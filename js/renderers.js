@@ -737,10 +737,18 @@ function renderRegras() {
 // AUDIT LOG (Histórico)
 // ------------------------------------------------------------------
 
-function renderHistorico() {
-  const logs = AppState.loadAuditLog();
+async function renderHistorico() {
   const container = document.getElementById('historicoContainer');
   if (!container) return;
+
+  // Load from Firestore if available, fallback to localStorage
+  let logs;
+  if (typeof FirestoreService !== 'undefined' && FirestoreService.isActive()) {
+    container.innerHTML = '<div style="text-align:center;padding:24px;color:var(--color-text-muted)">Carregando...</div>';
+    logs = await FirestoreService.loadAuditLog();
+  } else {
+    logs = AppState.loadAuditLog();
+  }
 
   if (logs.length === 0) {
     container.innerHTML = `
