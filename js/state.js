@@ -26,31 +26,9 @@ const DEFAULT_STATE = {
     partidas: []
   },
   playoffs: {
+    formato: 'double-elim-4',
     status: 'aguardando', // aguardando | andamento | concluido
-    upperBracket: {
-      // Semifinais: 1o vs 4o e 2o vs 3o
-      sf1: { id: 'ub-sf1', fase: 'Semifinal da Chave Superior 1', label: '1º vs 4º', timeA: null, timeB: null, golsA: null, golsB: null, vencedor: null, perdedor: null },
-      sf2: { id: 'ub-sf2', fase: 'Semifinal da Chave Superior 2', label: '2º vs 3º', timeA: null, timeB: null, golsA: null, golsB: null, vencedor: null, perdedor: null },
-      // Final da Chave Superior: vencedores das semis
-      final: { id: 'ub-final', fase: 'Final da Chave Superior', label: 'Final Superior', timeA: null, timeB: null, golsA: null, golsB: null, vencedor: null, perdedor: null }
-    },
-    lowerBracket: {
-      // Semifinal Inferior: os 2 perdedores das semis do upper
-      sf: { id: 'lb-sf', fase: 'Semifinal da Chave Inferior', label: 'Semifinal Inferior', timeA: null, timeB: null, golsA: null, golsB: null, vencedor: null, perdedor: null },
-      // Final Inferior: vencedor da LB Semi vs perdedor da UB Final
-      final: { id: 'lb-final', fase: 'Final da Chave Inferior', label: 'Final Inferior', timeA: null, timeB: null, golsA: null, golsB: null, vencedor: null, perdedor: null }
-    },
-    grandFinal: {
-      id: 'grand-final',
-      fase: 'Grande Final',
-      label: 'Grande Final',
-      timeUpper: null, // vem da chave superior (tem vantagem de potes)
-      timeLower: null, // vem da chave inferior
-      golsUpper: null,
-      golsLower: null,
-      vencedor: null,
-      vantagem: 'upper' // o time da chave superior escolhe do pote superior
-    }
+    matches: {}
   }
 };
 
@@ -143,7 +121,7 @@ function convertStateToFirestore(state) {
     times: state.times,
     faseGrupos: state.faseGrupos,
     playoffs: state.playoffs,
-    campeao: state.playoffs.grandFinal.vencedor || null
+    campeao: _getCampeao(state)
   };
 }
 
@@ -472,20 +450,13 @@ function calcularClassificacao(state) {
 function calcularEstatisticas(state) {
   const grupoPartidas = state.faseGrupos.partidas.filter(p => p.status === 'concluida');
 
-  // Collect playoff matches
-  const playoffPartidas = [];
-  if (state.playoffs && state.playoffs.status !== 'aguardando') {
-    const ub = state.playoffs.upperBracket;
-    const lb = state.playoffs.lowerBracket;
-    const gf = state.playoffs.grandFinal;
-    [ub.sf1, ub.sf2, ub.final, lb.sf, lb.final].forEach(m => {
-      if (m.vencedor) {
-        playoffPartidas.push({ timeA: m.timeA, timeB: m.timeB, golsA: m.golsA, golsB: m.golsB, rodada: 'playoff' });
-      }
-    });
-    if (gf.vencedor) {
-      playoffPartidas.push({ timeA: gf.timeUpper, timeB: gf.timeLower, golsA: gf.golsUpper, golsB: gf.golsLower, rodada: 'final' });
-    }
+  // Collect playoff matches via format strategy
+  let playoffPartidas = [];
+  if (state.playoffs && state.playoffs.status !== 'aguardando' && state.playoffs.matches) {
+    const format = PlayoffFormats.getSelected(state);
+    playoffPartidas = format.getAllMatches(state.playoffs.matches)
+      .filter(m => m.vencedor)
+      .map(m => ({ timeA: m.timeA, timeB: m.timeB, golsA: m.golsA, golsB: m.golsB, id: m.id, fase: m.fase }));
   }
 
   const allPartidas = [...grupoPartidas, ...playoffPartidas];
@@ -527,43 +498,32 @@ function calcularEstatisticas(state) {
 }
 
 // ------------------------------------------------------------------
-// Playoffs Population
+// Playoffs — format-agnostic operations (delegates to strategy)
 // ------------------------------------------------------------------
 
-function popularPlayoffs(state) {
+function popularPlayoffs(state, formatId) {
+  const format = PlayoffFormats.get(formatId || state.playoffs.formato);
   const tabela = calcularClassificacao(state);
-  if (tabela.length < 4) return false;
+  if (tabela.length < format.classified) return false;
 
-  const [p1, p2, p3, p4] = tabela;
-
-  // Upper bracket: 1 vs 4, 2 vs 3
-  state.playoffs.upperBracket.sf1.timeA = p1.id;
-  state.playoffs.upperBracket.sf1.timeB = p4.id;
-  state.playoffs.upperBracket.sf2.timeA = p2.id;
-  state.playoffs.upperBracket.sf2.timeB = p3.id;
-
+  const classified = tabela.slice(0, format.classified);
+  state.playoffs.formato = format.id;
+  state.playoffs.matches = format.defaultMatches();
+  format.generateBracket(classified, state.playoffs.matches);
   state.playoffs.status = 'andamento';
   state.campeonato.status = 'playoffs';
   return true;
 }
 
-// ------------------------------------------------------------------
-// Playoffs Result Registration
-// ------------------------------------------------------------------
-
 function registrarResultadoPlayoff(state, matchId, golsA, golsB) {
-  const ub = state.playoffs.upperBracket;
-  const lb = state.playoffs.lowerBracket;
-
-  const allMatches = [ub.sf1, ub.sf2, ub.final, lb.sf, lb.final];
-  const match = allMatches.find(m => m.id === matchId);
-
+  const format = PlayoffFormats.getSelected(state);
+  const match = state.playoffs.matches[matchId];
   if (!match) return false;
-  if (golsA === golsB) return false; // no draws in playoffs
+  if (golsA === golsB) return false;
 
   const newWinner = golsA > golsB ? match.timeA : match.timeB;
   if (match.vencedor && match.vencedor !== newWinner) {
-    _resetDownstreamPlayoff(state, matchId);
+    format.resetDownstream(state.playoffs.matches, matchId);
   }
 
   match.golsA = golsA;
@@ -571,120 +531,56 @@ function registrarResultadoPlayoff(state, matchId, golsA, golsB) {
   match.vencedor = newWinner;
   match.perdedor = golsA > golsB ? match.timeB : match.timeA;
 
-  // Cascade results through bracket
-  _propagarResultadoPlayoff(state);
-  return true;
-}
+  format.propagateResult(state.playoffs.matches);
 
-function _resetDownstreamPlayoff(state, matchId) {
-  const ub = state.playoffs.upperBracket;
-  const lb = state.playoffs.lowerBracket;
-  const gf = state.playoffs.grandFinal;
-
-  function clearMatch(m) {
-    m.golsA = null; m.golsB = null;
-    m.vencedor = null; m.perdedor = null;
-  }
-  function clearGF() {
-    gf.golsUpper = null; gf.golsLower = null;
-    gf.vencedor = null; gf.timeUpper = null; gf.timeLower = null;
-  }
-
-  if (matchId === 'ub-sf1' || matchId === 'ub-sf2') {
-    clearMatch(ub.final); ub.final.timeA = null; ub.final.timeB = null;
-    clearMatch(lb.sf); lb.sf.timeA = null; lb.sf.timeB = null;
-    clearMatch(lb.final); lb.final.timeA = null; lb.final.timeB = null;
-    clearGF();
-  }
-  if (matchId === 'ub-final') {
-    // Keep lb.sf intact (it doesn't depend on UB final)
-    // But lb.final loser side changes, and GF upper side changes
-    clearMatch(lb.final); lb.final.timeB = null; // timeB was the UB final loser
-    clearGF();
-  }
-  if (matchId === 'lb-sf') {
-    clearMatch(lb.final); lb.final.timeA = null;
-    gf.timeLower = null; gf.golsLower = null; gf.golsUpper = null; gf.vencedor = null;
-  }
-  if (matchId === 'lb-final') {
-    gf.timeLower = null; gf.golsLower = null; gf.golsUpper = null; gf.vencedor = null;
-  }
-
-  // If we cleared the grand final winner, revert tournament status
-  if (gf.vencedor === null && state.campeonato.status === 'encerrado') {
-    state.campeonato.status = 'playoffs';
-    state.playoffs.status = 'andamento';
-  }
-}
-
-function _propagarResultadoPlayoff(state) {
-  const ub = state.playoffs.upperBracket;
-  const lb = state.playoffs.lowerBracket;
-  const gf = state.playoffs.grandFinal;
-
-  // After UB SF1 and SF2: populate UB Final and LB SF
-  if (ub.sf1.vencedor && ub.sf2.vencedor) {
-    ub.final.timeA = ub.sf1.vencedor;
-    ub.final.timeB = ub.sf2.vencedor;
-  }
-  if (ub.sf1.perdedor && ub.sf2.perdedor) {
-    // Intelligent matchup: avoid repeat — since both came from different UB SFs this is always a new matchup
-    lb.sf.timeA = ub.sf1.perdedor;
-    lb.sf.timeB = ub.sf2.perdedor;
-  }
-
-  // After LB SF: populate LB Final (winner of LB SF vs loser of UB Final)
-  if (lb.sf.vencedor && ub.final.perdedor) {
-    lb.final.timeA = lb.sf.vencedor;
-    lb.final.timeB = ub.final.perdedor;
-  }
-
-  // After UB Final: populate Grand Final (upper side)
-  if (ub.final.vencedor) {
-    gf.timeUpper = ub.final.vencedor;
-  }
-
-  // After LB Final: populate Grand Final (lower side)
-  if (lb.final.vencedor) {
-    gf.timeLower = lb.final.vencedor;
-  }
-
-  // Check if grand final is complete
-  if (gf.golsUpper !== null && gf.golsLower !== null) {
-    if (gf.golsUpper === gf.golsLower) return; // draw — don't set a winner
-    gf.vencedor = gf.golsUpper > gf.golsLower ? gf.timeUpper : gf.timeLower;
+  // Check if grand final completed
+  const gf = format.getGrandFinal(state.playoffs.matches);
+  if (gf && gf.vencedor) {
     state.playoffs.status = 'concluido';
     state.campeonato.status = 'encerrado';
   }
+
+  // Revert status if GF winner was cleared
+  if (gf && !gf.vencedor && state.campeonato.status === 'encerrado') {
+    state.campeonato.status = 'playoffs';
+    state.playoffs.status = 'andamento';
+  }
+
+  return true;
 }
 
-function registrarResultadoGrandFinal(state, golsUpper, golsLower) {
-  const gf = state.playoffs.grandFinal;
-  if (!gf.timeUpper || !gf.timeLower) return false;
+function registrarResultadoGrandFinal(state, golsA, golsB) {
+  const format = PlayoffFormats.getSelected(state);
+  const gf = format.getGrandFinal(state.playoffs.matches);
+  if (!gf || !gf.timeA || !gf.timeB) return false;
+  if (golsA === golsB) return false;
 
-  const newWinner = golsUpper > golsLower ? gf.timeUpper : gf.timeLower;
+  const newWinner = golsA > golsB ? gf.timeA : gf.timeB;
   if (gf.vencedor && gf.vencedor !== newWinner) {
     if (state.campeonato.status === 'encerrado') {
       state.campeonato.status = 'playoffs';
       state.playoffs.status = 'andamento';
     }
   }
-  if (golsUpper === golsLower) return false; // no draw
 
-  gf.golsUpper = golsUpper;
-  gf.golsLower = golsLower;
+  gf.golsA = golsA;
+  gf.golsB = golsB;
   gf.vencedor = newWinner;
+  gf.perdedor = golsA > golsB ? gf.timeB : gf.timeA;
   state.playoffs.status = 'concluido';
   state.campeonato.status = 'encerrado';
   return true;
 }
 
-// ------------------------------------------------------------------
-// Helpers
-// ------------------------------------------------------------------
-
 function getDefaultPlayoffs() {
   return JSON.parse(JSON.stringify(DEFAULT_STATE.playoffs));
+}
+
+function _getCampeao(state) {
+  if (!state.playoffs || !state.playoffs.matches) return null;
+  const format = PlayoffFormats.getSelected(state);
+  const gf = format.getGrandFinal(state.playoffs.matches);
+  return gf ? gf.vencedor : null;
 }
 
 // ------------------------------------------------------------------
@@ -710,6 +606,7 @@ window.AppState = {
   registrarResultadoPlayoff,
   registrarResultadoGrandFinal,
   getDefaultPlayoffs,
+  getCampeao: _getCampeao,
   convertStateToFirestore,
   convertFirestoreToState,
   invalidateCache,
