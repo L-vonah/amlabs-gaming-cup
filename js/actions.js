@@ -115,9 +115,11 @@ function submitAddTime() {
   const novoTime = AppState.addTime(state, { nome, abreviacao: abrev, cor, participante });
 
   // If tournament is in group stage, generate matches for the new team
+  const partidasAntes = state.faseGrupos.partidas.length;
   if (state.campeonato.status === 'grupos') {
     AppState.adicionarPartidasNovoTime(state, novoTime.id);
   }
+  const novasPartidas = state.faseGrupos.partidas.length - partidasAntes;
 
   AppState.save(state);
   AppState.addAuditLog(getAuditUser(), `Adicionou o time "${nome}" (${participante})`, { abreviacao: abrev, cor, participante });
@@ -127,8 +129,12 @@ function submitAddTime() {
   const colorInput = document.getElementById('inputCorTimo');
   if (colorInput) colorInput.value = '#6c5ce7';
 
-  UI.showToast(`Time "${nome}" adicionado!`, 'success');
+  const msg = novasPartidas > 0
+    ? `Time "${nome}" adicionado! ${novasPartidas} partidas geradas.`
+    : `Time "${nome}" adicionado!`;
+  UI.showToast(msg, 'success');
   Renderers.times();
+  if (novasPartidas > 0) Renderers.partidas();
 }
 
 function deleteTime(id) {
