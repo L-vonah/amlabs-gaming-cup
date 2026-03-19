@@ -27,6 +27,77 @@ function _collectConcludedMatches(matches) {
 }
 
 // ------------------------------------------------------------------
+// Shared rendering helpers
+// ------------------------------------------------------------------
+
+function _slotHTML(state, matches, matchId, slot, previewLabel) {
+  // slot = 'A' or 'B'
+  const m = matches ? matches[matchId] : null;
+  const teamId = m ? m['time' + slot] : null;
+  const gols = m ? m['gols' + slot] : null;
+  const isWinner = m && m.vencedor && m.vencedor === teamId;
+
+  if (!matches || !m || !teamId) {
+    // Preview mode or no team yet
+    return `<div class="bracket-slot tbd"><span>${previewLabel || 'A definir'}</span></div>`;
+  }
+
+  const time = state ? AppState.getTimeById(state, teamId) : null;
+  if (!time) return `<div class="bracket-slot tbd"><span>A definir</span></div>`;
+
+  return `<div class="bracket-slot ${isWinner ? 'winner' : ''}">
+    ${UI.renderAvatar(time, 22, 'bracket-slot-avatar')}
+    <span class="bracket-slot-name">${UI.escapeHtml(time.nome)}</span>
+    <span class="bracket-slot-score">${gols !== null ? gols : ''}</span>
+  </div>`;
+}
+
+function _matchHTML(state, matches, matchId, tipo, previewA, previewB) {
+  return `<div class="bracket-match ${tipo}-match" style="margin-bottom:8px">
+    ${_slotHTML(state, matches, matchId, 'A', previewA)}
+    ${_slotHTML(state, matches, matchId, 'B', previewB)}
+  </div>`;
+}
+
+function _phaseHeader(text) {
+  return `<div class="phase-label">${text}</div>`;
+}
+
+function _connector(height) {
+  return `<div class="bracket-connector" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:40px">
+    <div style="width:2px;height:${height || 48}px;background:var(--color-border)"></div>
+  </div>`;
+}
+
+function _gfSlotHTML(state, matches, matchId, slot, badge, badgeBg, badgeColor, previewLabel) {
+  const m = matches ? matches[matchId] : null;
+  const teamId = m ? m['time' + slot] : null;
+  const gols = m ? m['gols' + slot] : null;
+  const isWinner = m && m.vencedor && m.vencedor === teamId;
+
+  if (!matches || !m || !teamId) {
+    return `<div class="bracket-slot tbd"><span>${previewLabel || 'A definir'}</span></div>`;
+  }
+
+  const time = state ? AppState.getTimeById(state, teamId) : null;
+  if (!time) return `<div class="bracket-slot tbd"><span>A definir</span></div>`;
+
+  return `<div class="bracket-slot ${isWinner ? 'winner' : ''}">
+    ${UI.renderAvatar(time, 22, 'bracket-slot-avatar')}
+    <span class="bracket-slot-name">${UI.escapeHtml(time.nome)}</span>
+    <span style="font-size:.6rem;background:${badgeBg};color:${badgeColor};padding:1px 5px;border-radius:8px;font-weight:700;margin-right:4px">${badge}</span>
+    <span class="bracket-slot-score">${gols !== null ? gols : ''}</span>
+  </div>`;
+}
+
+function _grandFinalHTML(state, matches) {
+  return `<div class="bracket-match grand-match">
+    ${_gfSlotHTML(state, matches, 'grand-final', 'A', 'CS', 'var(--color-upper-bg)', 'var(--color-upper)', 'Vencedor UB Final (CS)')}
+    ${_gfSlotHTML(state, matches, 'grand-final', 'B', 'CI', 'var(--color-lower-bg)', 'var(--color-lower)', 'Vencedor LB Final (CI)')}
+  </div>`;
+}
+
+// ------------------------------------------------------------------
 // Format: Dupla Eliminação — 4 Times (current)
 // ------------------------------------------------------------------
 
@@ -227,7 +298,46 @@ const FORMAT_DOUBLE_ELIM_4 = {
         'Qualquer derrota na Chave Inferior elimina o time definitivamente.'
       ]
     }
-  ]
+  ],
+
+  renderBracketHTML(state) {
+    const m = state ? state.playoffs.matches : null;
+    return `
+    <div class="bracket-container">
+      <div style="margin-bottom:8px"><span class="bracket-label upper">&#9733; Chave Superior</span></div>
+      <div style="display:grid;grid-template-columns:1fr 48px 1fr 48px 1fr;gap:0;align-items:center;min-width:800px;margin-bottom:32px">
+        <div style="display:flex;flex-direction:column;gap:16px">
+          ${_phaseHeader('Semifinal')}
+          ${_matchHTML(state, m, 'ub-sf1', 'upper', '1º Colocado', '4º Colocado')}
+          ${_matchHTML(state, m, 'ub-sf2', 'upper', '2º Colocado', '3º Colocado')}
+        </div>
+        ${_connector(64)}
+        <div style="display:flex;flex-direction:column;justify-content:center">
+          <div style="margin-bottom:48px">${_phaseHeader('Final Superior')}</div>
+          ${_matchHTML(state, m, 'ub-final', 'upper', 'Vencedor SF1', 'Vencedor SF2')}
+        </div>
+        ${_connector(48)}
+        <div style="display:flex;flex-direction:column;justify-content:center">
+          <div style="margin-bottom:48px"><div class="phase-label" style="color:var(--color-champion);border-bottom-color:rgba(249,168,37,.3)">Grande Final</div></div>
+          ${_grandFinalHTML(state, m)}
+        </div>
+      </div>
+      <hr class="bracket-divider">
+      <div style="margin-bottom:8px"><span class="bracket-label lower">&#8595; Chave Inferior</span></div>
+      <div style="display:grid;grid-template-columns:1fr 48px 1fr;gap:0;align-items:center;min-width:500px;max-width:700px;margin-bottom:16px">
+        <div>
+          <div style="margin-bottom:12px">${_phaseHeader('Semifinal Inferior')}</div>
+          ${_matchHTML(state, m, 'lb-sf', 'lower', 'Perdedor SF1', 'Perdedor SF2')}
+        </div>
+        ${_connector(44)}
+        <div>
+          <div style="margin-bottom:12px">${_phaseHeader('Final Inferior')}</div>
+          ${_matchHTML(state, m, 'lb-final', 'lower', 'Vencedor LB SF', 'Perdedor UB Final')}
+        </div>
+      </div>
+      <div class="bracket-advantage-note"><span>&#9733;</span><span><strong>Vantagem na Grande Final:</strong> O time da Chave Superior tem vantagem de ban.</span></div>
+    </div>`;
+  }
 };
 
 // ------------------------------------------------------------------
@@ -475,7 +585,59 @@ const FORMAT_PLAY_IN_6 = {
         'Qualquer derrota na Chave Inferior elimina o time.'
       ]
     }
-  ]
+  ],
+
+  renderBracketHTML(state) {
+    const m = state ? state.playoffs.matches : null;
+    return `
+    <div class="bracket-container">
+      <div style="margin-bottom:8px"><span class="bracket-label upper">&#9733; Chave Superior (com bye)</span></div>
+      <div style="display:grid;grid-template-columns:1fr 36px 1fr 36px 1fr 36px 1fr;gap:0;align-items:center;min-width:900px;margin-bottom:32px">
+        <div style="display:flex;flex-direction:column;gap:16px">
+          ${_phaseHeader('Quartas de Final')}
+          ${_matchHTML(state, m, 'ub-qf1', 'upper', '3º Colocado', '6º Colocado')}
+          ${_matchHTML(state, m, 'ub-qf2', 'upper', '4º Colocado', '5º Colocado')}
+          <div style="font-size:.7rem;color:var(--color-text-dim);text-align:center;font-style:italic">1º e 2º não jogam</div>
+        </div>
+        ${_connector(64)}
+        <div style="display:flex;flex-direction:column;gap:16px">
+          ${_phaseHeader('Semifinal')}
+          ${_matchHTML(state, m, 'ub-sf1', 'upper', '1º Colocado (BYE)', 'Venc. (4ºvs5º)')}
+          ${_matchHTML(state, m, 'ub-sf2', 'upper', '2º Colocado (BYE)', 'Venc. (3ºvs6º)')}
+        </div>
+        ${_connector(48)}
+        <div style="display:flex;flex-direction:column;justify-content:center">
+          <div style="margin-bottom:48px">${_phaseHeader('Final Superior')}</div>
+          ${_matchHTML(state, m, 'ub-final', 'upper', 'Vencedor Semi 1', 'Vencedor Semi 2')}
+        </div>
+        ${_connector(48)}
+        <div style="display:flex;flex-direction:column;justify-content:center">
+          <div style="margin-bottom:48px"><div class="phase-label" style="color:var(--color-champion);border-bottom-color:rgba(249,168,37,.3)">Grande Final</div></div>
+          ${_grandFinalHTML(state, m)}
+        </div>
+      </div>
+      <hr class="bracket-divider">
+      <div style="margin-bottom:8px"><span class="bracket-label lower">&#8595; Chave Inferior &mdash; Cruzada</span></div>
+      <div style="display:grid;grid-template-columns:1fr 36px 1fr 36px 1fr;gap:0;align-items:center;min-width:700px;max-width:900px;margin-bottom:16px">
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div style="margin-bottom:8px">${_phaseHeader('LB Quartas (cruzadas)')}</div>
+          ${_matchHTML(state, m, 'lb-qf1', 'lower', 'Perd. UB SF1', 'Perd. UB QF(3v6)')}
+          ${_matchHTML(state, m, 'lb-qf2', 'lower', 'Perd. UB SF2', 'Perd. UB QF(4v5)')}
+        </div>
+        ${_connector(44)}
+        <div>
+          <div style="margin-bottom:12px">${_phaseHeader('LB Semifinal')}</div>
+          ${_matchHTML(state, m, 'lb-sf', 'lower', 'Vencedor LB QF1', 'Vencedor LB QF2')}
+        </div>
+        ${_connector(44)}
+        <div>
+          <div style="margin-bottom:12px">${_phaseHeader('LB Final')}</div>
+          ${_matchHTML(state, m, 'lb-final', 'lower', 'Vencedor LB SF', 'Perdedor UB Final')}
+        </div>
+      </div>
+      <div class="bracket-advantage-note"><span>&#9733;</span><span><strong>Vantagem na Grande Final:</strong> O time da Chave Superior tem vantagem de ban.</span></div>
+    </div>`;
+  }
 };
 
 // ------------------------------------------------------------------
@@ -695,7 +857,62 @@ const FORMAT_GAUNTLET_6 = {
         'Qualquer derrota na Lower elimina o time.'
       ]
     }
-  ]
+  ],
+
+  renderBracketHTML(state) {
+    const m = state ? state.playoffs.matches : null;
+    return `
+    <div class="bracket-container">
+      <div style="margin-bottom:8px"><span class="bracket-label upper">&#9733; Chave Superior (Escada)</span></div>
+      <div style="display:grid;grid-template-columns:1fr 36px 1fr 36px 1fr 36px 1fr;gap:0;align-items:center;min-width:900px;margin-bottom:32px">
+        <div>
+          ${_phaseHeader('UB Round 1')}
+          ${_matchHTML(state, m, 'ub-r1', 'upper', '3º Colocado', '4º Colocado')}
+          <div style="font-size:.7rem;color:var(--color-text-dim);text-align:center;font-style:italic;margin-top:4px">1º e 2º não jogam</div>
+        </div>
+        ${_connector(48)}
+        <div>
+          ${_phaseHeader('UB Round 2')}
+          ${_matchHTML(state, m, 'ub-r2', 'upper', '2º Colocado (BYE)', 'Vencedor UB R1')}
+        </div>
+        ${_connector(48)}
+        <div>
+          ${_phaseHeader('UB Final')}
+          ${_matchHTML(state, m, 'ub-final', 'upper', '1º Colocado (BYE)', 'Vencedor UB R2')}
+        </div>
+        ${_connector(48)}
+        <div>
+          <div class="phase-label" style="color:var(--color-champion);border-bottom-color:rgba(249,168,37,.3)">Grande Final</div>
+          <div style="margin-top:16px">${_grandFinalHTML(state, m)}</div>
+        </div>
+      </div>
+      <hr class="bracket-divider">
+      <div style="margin-bottom:8px"><span class="bracket-label lower">&#8595; Chave Inferior</span></div>
+      <div style="display:grid;grid-template-columns:1fr 36px 1fr 36px 1fr 36px 1fr;gap:0;align-items:center;min-width:900px;max-width:1000px;margin-bottom:16px">
+        <div>
+          <div style="margin-bottom:8px">${_phaseHeader('LB Round 1')}</div>
+          ${_matchHTML(state, m, 'lb-r1', 'lower', '5º Colocado', '6º Colocado')}
+          <div style="font-size:.65rem;color:var(--color-loss);text-align:center;margin-top:4px">Perdedor eliminado</div>
+        </div>
+        ${_connector(44)}
+        <div>
+          <div style="margin-bottom:8px">${_phaseHeader('LB Round 2')}</div>
+          ${_matchHTML(state, m, 'lb-r2', 'lower', 'Vencedor LB R1', 'Perdedor UB R1')}
+        </div>
+        ${_connector(44)}
+        <div>
+          <div style="margin-bottom:8px">${_phaseHeader('LB Round 3')}</div>
+          ${_matchHTML(state, m, 'lb-r3', 'lower', 'Vencedor LB R2', 'Perdedor UB R2')}
+        </div>
+        ${_connector(44)}
+        <div>
+          <div style="margin-bottom:8px">${_phaseHeader('LB Final')}</div>
+          ${_matchHTML(state, m, 'lb-final', 'lower', 'Vencedor LB R3', 'Perdedor UB Final')}
+        </div>
+      </div>
+      <div class="bracket-advantage-note"><span>&#9733;</span><span><strong>Vantagem na Grande Final:</strong> O time da Chave Superior tem vantagem de ban.</span></div>
+    </div>`;
+  }
 };
 
 // ------------------------------------------------------------------

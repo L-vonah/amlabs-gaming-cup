@@ -301,14 +301,14 @@ function renderBracket() {
   }
 
   if (isPrePlayoffs) {
-    // Show preview bracket
+    // Show preview bracket with generic names (no state passed)
     const selectedId = _getSelectedFormatId();
     const previewFormat = PlayoffFormats.get(selectedId);
-    container.innerHTML = _renderPreviewBracket(previewFormat);
+    container.innerHTML = previewFormat.renderBracketHTML(null);
     if (infoContainer) infoContainer.innerHTML = _renderInfoCards(previewFormat);
   } else {
-    // Show live bracket with real data
-    container.innerHTML = _renderLiveBracketMobile(state, format);
+    // Show live bracket with real team data
+    container.innerHTML = format.renderBracketHTML(state);
     if (infoContainer) infoContainer.innerHTML = _renderInfoCards(format);
   }
 }
@@ -377,7 +377,7 @@ function onFormatChange() {
   const infoContainer = document.getElementById('bracketInfoCards');
   const selectedId = _getSelectedFormatId();
   const previewFormat = PlayoffFormats.get(selectedId);
-  if (container) container.innerHTML = _renderPreviewBracket(previewFormat);
+  if (container) container.innerHTML = previewFormat.renderBracketHTML(null);
   if (infoContainer) infoContainer.innerHTML = _renderInfoCards(previewFormat);
   // Update classification colors
   if (window.Renderers && window.Renderers.classificacao) Renderers.classificacao();
