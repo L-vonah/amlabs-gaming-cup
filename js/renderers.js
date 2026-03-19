@@ -457,7 +457,6 @@ function renderMatchCardWithAction(p, state, admin) {
         </div>
         <div class="match-action-slot">
           ${desktopBtn}
-          ${concluded ? '<span class="match-status-badge concluida">Conclu&iacute;da</span>' : ''}
         </div>
       </div>
       <div class="match-mobile">
