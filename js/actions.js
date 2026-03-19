@@ -102,8 +102,8 @@ function submitAddTime() {
 
   const state = AppState.load();
 
-  if (state.campeonato.status !== 'configuracao') {
-    UI.showToast('Nao e possivel adicionar times apos o inicio do campeonato.', 'error');
+  if (state.campeonato.status !== 'configuracao' && state.campeonato.status !== 'grupos') {
+    UI.showToast('Nao e possivel adicionar times durante os playoffs.', 'error');
     return;
   }
 
@@ -112,7 +112,13 @@ function submitAddTime() {
     return;
   }
 
-  AppState.addTime(state, { nome, abreviacao: abrev, cor, participante });
+  const novoTime = AppState.addTime(state, { nome, abreviacao: abrev, cor, participante });
+
+  // If tournament is in group stage, generate matches for the new team
+  if (state.campeonato.status === 'grupos') {
+    AppState.adicionarPartidasNovoTime(state, novoTime.id);
+  }
+
   AppState.save(state);
   AppState.addAuditLog(getAuditUser(), `Adicionou o time "${nome}" (${participante})`, { abreviacao: abrev, cor, participante });
 
@@ -530,7 +536,12 @@ async function approveRegistration(id) {
     if (!reg) return;
 
     const state = AppState.load();
-    AppState.addTime(state, { nome: reg.nome, abreviacao: reg.abreviacao, cor: reg.cor, participante: reg.participante || '' });
+    const novoTime = AppState.addTime(state, { nome: reg.nome, abreviacao: reg.abreviacao, cor: reg.cor, participante: reg.participante || '' });
+
+    if (state.campeonato.status === 'grupos') {
+      AppState.adicionarPartidasNovoTime(state, novoTime.id);
+    }
+
     AppState.save(state);
 
     await FirestoreService.updateRegistration(id, {

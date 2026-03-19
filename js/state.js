@@ -293,6 +293,70 @@ function gerarFaseGrupos(state) {
   return true;
 }
 
+/**
+ * Adds matches for a new team against all existing teams,
+ * distributing them into rounds so no team plays twice in the same round.
+ */
+function adicionarPartidasNovoTime(state, novoTimeId) {
+  const partidas = state.faseGrupos.partidas;
+  const outrosIds = state.times.filter(t => t.id !== novoTimeId).map(t => t.id);
+
+  // Build map: round -> set of teams already playing
+  const roundTeams = {};
+  partidas.forEach(p => {
+    if (!roundTeams[p.rodada]) roundTeams[p.rodada] = new Set();
+    roundTeams[p.rodada].add(p.timeA);
+    roundTeams[p.rodada].add(p.timeB);
+  });
+
+  const rounds = Object.keys(roundTeams).map(Number).sort((a, b) => a - b);
+  let maxRound = rounds.length > 0 ? Math.max(...rounds) : 0;
+  let matchIdx = 0;
+
+  for (const outroId of outrosIds) {
+    let placed = false;
+
+    // Try to fit in an existing round where neither team is playing
+    for (const r of rounds) {
+      if (!roundTeams[r].has(novoTimeId) && !roundTeams[r].has(outroId)) {
+        const [home, away] = Math.random() < 0.5 ? [novoTimeId, outroId] : [outroId, novoTimeId];
+        partidas.push({
+          id: `rr_add_${Date.now()}_${matchIdx++}`,
+          rodada: r,
+          timeA: home,
+          timeB: away,
+          golsA: null,
+          golsB: null,
+          status: 'pendente'
+        });
+        roundTeams[r].add(novoTimeId);
+        roundTeams[r].add(outroId);
+        placed = true;
+        break;
+      }
+    }
+
+    // No room in existing rounds — create a new one
+    if (!placed) {
+      maxRound++;
+      rounds.push(maxRound);
+      roundTeams[maxRound] = new Set();
+      const [home, away] = Math.random() < 0.5 ? [novoTimeId, outroId] : [outroId, novoTimeId];
+      partidas.push({
+        id: `rr_add_${Date.now()}_${matchIdx++}`,
+        rodada: maxRound,
+        timeA: home,
+        timeB: away,
+        golsA: null,
+        golsB: null,
+        status: 'pendente'
+      });
+      roundTeams[maxRound].add(novoTimeId);
+      roundTeams[maxRound].add(outroId);
+    }
+  }
+}
+
 // ------------------------------------------------------------------
 // Standings Calculation
 // ------------------------------------------------------------------
@@ -605,6 +669,7 @@ window.AppState = {
   removeTime,
   getTimeById,
   gerarFaseGrupos,
+  adicionarPartidasNovoTime,
   calcularClassificacao,
   calcularEstatisticas,
   popularPlayoffs,
