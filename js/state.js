@@ -480,10 +480,12 @@ function calcularEstatisticas(state) {
     const idxA = tabela.findIndex(t => t.id === p.timeA);
     const idxB = tabela.findIndex(t => t.id === p.timeB);
     if (idxA !== -1) {
+      tabela[idxA].jogos++;
       tabela[idxA].golsMarcados += p.golsA;
       tabela[idxA].golsSofridos += p.golsB;
     }
     if (idxB !== -1) {
+      tabela[idxB].jogos++;
       tabela[idxB].golsMarcados += p.golsB;
       tabela[idxB].golsSofridos += p.golsA;
     }
