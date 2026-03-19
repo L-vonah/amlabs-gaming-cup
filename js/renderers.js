@@ -439,23 +439,27 @@ function renderMatchCardWithAction(p, state, admin) {
 
   return `
     <div class="match-card">
-      <div class="match-teams">
-        <div class="match-team home">
-          <div style="text-align:right"><span class="team-name-text">${nameA}</span><br>${partA}</div>
-          ${UI.renderAvatar(tA, 24)}
+      <div class="match-layout">
+        <div class="match-teams">
+          <div class="match-team home">
+            <div class="match-team-info" style="text-align:right"><span class="team-name-text">${nameA}</span>${partA}</div>
+            ${UI.renderAvatar(tA, 24)}
+          </div>
+          <div class="match-score ${sc}">
+            <span class="score-val">${concluded ? p.golsA : '-'}</span>
+            <span class="dash">:</span>
+            <span class="score-val">${concluded ? p.golsB : '-'}</span>
+          </div>
+          <div class="match-team away">
+            ${UI.renderAvatar(tB, 24)}
+            <div class="match-team-info"><span class="team-name-text">${nameB}</span>${partB}</div>
+          </div>
         </div>
-        <div class="match-score ${sc}">
-          <span class="score-val">${concluded ? p.golsA : '-'}</span>
-          <span class="dash">:</span>
-          <span class="score-val">${concluded ? p.golsB : '-'}</span>
-        </div>
-        <div class="match-team away">
-          ${UI.renderAvatar(tB, 24)}
-          <div><span class="team-name-text">${nameB}</span><br>${partB}</div>
+        <div class="match-action-slot">
+          ${actionBtn}
+          ${concluded ? '<span class="match-status-badge concluida match-action-desktop">Conclu&iacute;da</span>' : ''}
         </div>
       </div>
-      ${actionBtn}
-      ${concluded ? '<span class="match-status-badge concluida match-action-desktop">Conclu&iacute;da</span>' : ''}
     </div>`;
 }
 
