@@ -59,7 +59,15 @@ function renderClassificacao() {
   const container = document.getElementById('tabelaClassificacao');
   if (!container) return;
 
-  const qualify = state.config.classificadosPorGrupo;
+  // Get classification tiers from selected format
+  const formatId = typeof getSelectedPlayoffFormatId === 'function' ? getSelectedPlayoffFormatId() : (state.playoffs.formato || PlayoffFormats.DEFAULT);
+  const format = PlayoffFormats.get(formatId);
+  const tiers = format.classificationTiers;
+  const qualify = format.classified;
+
+  function getTierForPosition(pos) {
+    return tiers.find(t => pos >= t.from && pos <= t.to) || null;
+  }
 
   if (tabela.length === 0) {
     container.innerHTML = `
@@ -91,13 +99,15 @@ function renderClassificacao() {
         </thead>
         <tbody>
           ${tabela.map((t, i) => {
-            const isQualified = i < qualify;
+            const pos = i + 1;
+            const tier = getTierForPosition(pos);
+            const tierClass = tier ? tier.cssClass : '';
             const sgClass = t.saldoGols > 0 ? 'stat-positive' : t.saldoGols < 0 ? 'stat-negative' : 'stat-neutral';
             return `
-              <tr class="${isQualified ? 'qualified' : ''}">
+              <tr class="${tierClass}">
                 <td>
                   <div class="pos-cell">
-                    <span class="pos-number ${isQualified ? 'top' : ''}">${i + 1}</span>
+                    <span class="pos-number ${tier ? 'top' : ''}">${pos}</span>
                   </div>
                 </td>
                 <td>
@@ -122,15 +132,15 @@ function renderClassificacao() {
                     ${t.forma.map(f => `<span class="form-badge ${f}">${f}</span>`).join('')}
                   </div>
                 </td>
-                <td>${isQualified ? '<span class="qualified-label">Classif.</span>' : ''}</td>
+                <td>${tier ? '<span class="qualified-label">' + UI.escapeHtml(tier.label) + '</span>' : ''}</td>
               </tr>`;
           }).join('')}
         </tbody>
       </table>
     </div>
-    <div class="classification-legend" style="padding:12px 24px;border-top:1px solid var(--color-border);display:flex;align-items:center;gap:16px;font-size:0.8rem;color:var(--color-text-dim)">
-      <span class="classification-legend-item" style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:var(--color-win);opacity:.6"></span>Classificado para os Playoffs (Top ${qualify})</span>
-      <span class="classification-legend-item">&bull; Desempate: Pontos &rarr; Vit&oacute;rias &rarr; Saldo de Gols &rarr; Gols Marcados</span>
+    <div class="classification-tier-legend">
+      ${tiers.map(tier => `<div class="tier-legend-item"><span class="tier-legend-dot" style="background:${tier.color}"></span>${UI.escapeHtml(tier.label)} (${tier.from === tier.to ? tier.from + '&ordm;' : tier.from + '&ordm;-' + tier.to + '&ordm;'})</div>`).join('')}
+      <span>&bull; Desempate: Pontos &rarr; Vit&oacute;rias &rarr; Saldo de Gols &rarr; Gols Marcados</span>
     </div>`;
 }
 

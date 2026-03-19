@@ -250,13 +250,14 @@ function gerarFaseGrupos() {
 function iniciarPlayoffs() {
   if (!UI.checkAdmin()) { UI.showToast('Voc\u00ea precisa estar logado como admin para editar.', 'error'); return; }
   const state = AppState.load();
+  const formatId = typeof getSelectedPlayoffFormatId === 'function' ? getSelectedPlayoffFormatId() : PlayoffFormats.DEFAULT;
 
   if (!canStartPlayoffs(state)) {
     UI.showToast('Conclua todos os jogos da fase de grupos primeiro.', 'error');
     return;
   }
 
-  const ok = AppState.popularPlayoffs(state);
+  const ok = AppState.popularPlayoffs(state, formatId);
   if (!ok) {
     UI.showToast('Erro ao iniciar os playoffs. Verifique se há pelo menos 4 times classificados.', 'error');
     return;
@@ -350,10 +351,7 @@ function savePlayoffResult(matchId, golsA, golsB) {
   const state = AppState.load();
 
   // Find match details for audit log
-  const ub = state.playoffs.upperBracket;
-  const lb = state.playoffs.lowerBracket;
-  const allMatches = [ub.sf1, ub.sf2, ub.final, lb.sf, lb.final];
-  const match = allMatches.find(m => m.id === matchId);
+  const match = state.playoffs.matches ? state.playoffs.matches[matchId] : null;
   const tA = match ? AppState.getTimeById(state, match.timeA) : null;
   const tB = match ? AppState.getTimeById(state, match.timeB) : null;
 

@@ -21,9 +21,11 @@ function renderHome() {
   // Champion banner — shown prominently when tournament is finished
   const championBanner = document.getElementById('championBanner');
   if (championBanner) {
-    if (state.campeonato.status === 'encerrado' && state.playoffs.grandFinal.vencedor) {
-      const winner = AppState.getTimeById(state, state.playoffs.grandFinal.vencedor);
-      const gf = state.playoffs.grandFinal;
+    const campeaoId = AppState.getCampeao(state);
+    if (state.campeonato.status === 'encerrado' && campeaoId) {
+      const winner = AppState.getTimeById(state, campeaoId);
+      const format = PlayoffFormats.getSelected(state);
+      const gf = format.getGrandFinal(state.playoffs.matches);
       championBanner.style.display = 'block';
       championBanner.innerHTML = `
         <div class="champion-banner">
@@ -36,7 +38,7 @@ function renderHome() {
             <div class="champion-name">${winner ? UI.escapeHtml(winner.nome) : '?'}</div>
             ${winner && winner.participante ? `<div class="champion-label" style="margin-top:4px;letter-spacing:.12em;font-size:.85rem">${UI.escapeHtml(winner.participante)}</div>` : ''}
             ${winner ? `<div class="champion-avatar-wrapper">${UI.renderAvatar(winner, 80)}</div>` : ''}
-            <div class="champion-score">${gf.golsUpper} &times; ${gf.golsLower} &mdash; Grande Final</div>
+            <div class="champion-score">${gf ? gf.golsA + ' &times; ' + gf.golsB : ''} &mdash; Grande Final</div>
             <div class="champion-badge">1&ordm; Campeonato EA Sports FC AMLabs 2026</div>
           </div>
         </div>`;
@@ -59,11 +61,9 @@ function renderHome() {
   }));
 
   const playoffConcluded = [];
-  if (state.playoffs && state.playoffs.status !== 'aguardando') {
-    const ub = state.playoffs.upperBracket;
-    const lb = state.playoffs.lowerBracket;
-    const gf = state.playoffs.grandFinal;
-    [ub.sf1, ub.sf2, ub.final, lb.sf, lb.final].forEach(m => {
+  if (state.playoffs && state.playoffs.status !== 'aguardando' && state.playoffs.matches) {
+    const format = PlayoffFormats.getSelected(state);
+    format.getAllMatches(state.playoffs.matches).forEach(m => {
       if (m.vencedor) {
         playoffConcluded.push({
           type: 'playoff',
@@ -76,17 +76,6 @@ function renderHome() {
         });
       }
     });
-    if (gf.vencedor) {
-      playoffConcluded.push({
-        type: 'playoff',
-        timeA: gf.timeUpper,
-        timeB: gf.timeLower,
-        golsA: gf.golsUpper,
-        golsB: gf.golsLower,
-        fase: 'Grande Final',
-        id: gf.id
-      });
-    }
   }
 
   // Combine: groups first, then playoffs, and take last 3
@@ -156,48 +145,25 @@ function renderHome() {
         leaderTitleEl.innerHTML = '<span class="section-title-icon icon-bg-yellow">&#127942;</span> Chaveamento';
       }
 
-      const ub = state.playoffs.upperBracket;
-      const lb = state.playoffs.lowerBracket;
-      const gf = state.playoffs.grandFinal;
-
-      const bracketMatches = [
-        { match: ub.sf1, phase: 'SF CS1', color: 'var(--color-upper)', isGrand: false },
-        { match: ub.sf2, phase: 'SF CS2', color: 'var(--color-upper)', isGrand: false },
-        { match: ub.final, phase: 'Final CS', color: 'var(--color-upper)', isGrand: false },
-        { match: lb.sf, phase: 'SF CI', color: 'var(--color-lower)', isGrand: false },
-        { match: lb.final, phase: 'Final CI', color: 'var(--color-lower)', isGrand: false },
-        { match: gf, phase: 'GF', color: 'var(--color-champion)', isGrand: true }
-      ];
+      // Format-agnostic mini bracket using miniBracketEntries
+      const format = PlayoffFormats.getSelected(state);
+      const matches = state.playoffs.matches || {};
 
       let matchLines = '';
-      bracketMatches.forEach(item => {
-        const m = item.match;
-        let tA, tB, scoreA, scoreB, winnerA, winnerB;
-        if (item.isGrand) {
-          if (!m.timeUpper && !m.timeLower) return;
-          tA = m.timeUpper ? AppState.getTimeById(state, m.timeUpper) : null;
-          tB = m.timeLower ? AppState.getTimeById(state, m.timeLower) : null;
-          scoreA = m.golsUpper;
-          scoreB = m.golsLower;
-          winnerA = m.vencedor === m.timeUpper;
-          winnerB = m.vencedor === m.timeLower;
-        } else {
-          if (!m.timeA && !m.timeB) return;
-          tA = m.timeA ? AppState.getTimeById(state, m.timeA) : null;
-          tB = m.timeB ? AppState.getTimeById(state, m.timeB) : null;
-          scoreA = m.golsA;
-          scoreB = m.golsB;
-          winnerA = m.vencedor === m.timeA;
-          winnerB = m.vencedor === m.timeB;
-        }
-
+      format.miniBracketEntries.forEach(entry => {
+        const m = matches[entry.matchId];
+        if (!m || (!m.timeA && !m.timeB)) return;
+        const tA = m.timeA ? AppState.getTimeById(state, m.timeA) : null;
+        const tB = m.timeB ? AppState.getTimeById(state, m.timeB) : null;
         const nameA = tA ? UI.escapeHtml(tA.nome) : 'A definir';
         const nameB = tB ? UI.escapeHtml(tB.nome) : 'A definir';
-        const sA = scoreA !== null ? scoreA : '-';
-        const sB = scoreB !== null ? scoreB : '-';
+        const sA = m.golsA !== null ? m.golsA : '-';
+        const sB = m.golsB !== null ? m.golsB : '-';
+        const winnerA = m.vencedor === m.timeA;
+        const winnerB = m.vencedor === m.timeB;
 
-        matchLines += `<div class="bracket-mini-row" style="border-left:3px solid ${item.color}">
-          <span class="bracket-mini-phase">${item.phase}</span>
+        matchLines += `<div class="bracket-mini-row" style="border-left:3px solid ${entry.color}">
+          <span class="bracket-mini-phase">${entry.phase}</span>
           <span class="bracket-mini-team" style="font-weight:${winnerA ? '700' : '400'}">${nameA}</span>
           <span class="bracket-mini-score">${sA}</span>
           <span class="bracket-mini-separator">:</span>

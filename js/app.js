@@ -34,21 +34,13 @@ function openScoreModal(matchId, teamA, teamB, isGrandFinal) {
   // Pre-fill if match has an existing concluded score; leave empty for new matches
   const state = AppState.loadReadOnly();
   let golsA = null, golsB = null;
-  if (isGrandFinal) {
-    const gf = state.playoffs.grandFinal;
-    if (gf.vencedor) { golsA = gf.golsUpper; golsB = gf.golsLower; }
-  } else {
-    const grp = state.faseGrupos.partidas.find(p => p.id === matchId);
-    if (grp && grp.status === 'concluida') {
-      golsA = grp.golsA;
-      golsB = grp.golsB;
-    } else {
-      const ub = state.playoffs.upperBracket;
-      const lb = state.playoffs.lowerBracket;
-      const allP = [ub.sf1, ub.sf2, ub.final, lb.sf, lb.final];
-      const pm = allP.find(m => m.id === matchId);
-      if (pm && pm.vencedor) { golsA = pm.golsA; golsB = pm.golsB; }
-    }
+  const grp = state.faseGrupos.partidas.find(p => p.id === matchId);
+  if (grp && grp.status === 'concluida') {
+    golsA = grp.golsA;
+    golsB = grp.golsB;
+  } else if (state.playoffs.matches && state.playoffs.matches[matchId]) {
+    const pm = state.playoffs.matches[matchId];
+    if (pm.vencedor) { golsA = pm.golsA; golsB = pm.golsB; }
   }
   document.getElementById('modalScoreGolsA').value = golsA !== null ? golsA : '';
   document.getElementById('modalScoreGolsB').value = golsB !== null ? golsB : '';
@@ -106,13 +98,9 @@ function submitScoreModal() {
   // Check if editing an existing playoff result — show modal confirmation
   let needsConfirm = false;
   const state = AppState.loadReadOnly();
-  if (isGF && state.playoffs.grandFinal.vencedor) {
-    needsConfirm = true;
-  } else if (!isGF && !matchId.startsWith('rr_')) {
-    const ub = state.playoffs.upperBracket;
-    const lb = state.playoffs.lowerBracket;
-    const pm = [ub.sf1, ub.sf2, ub.final, lb.sf, lb.final].find(m => m.id === matchId);
-    if (pm && pm.vencedor) needsConfirm = true;
+  if (state.playoffs.matches && state.playoffs.matches[matchId]) {
+    const pm = state.playoffs.matches[matchId];
+    if (pm.vencedor) needsConfirm = true;
   }
 
   if (needsConfirm) {
@@ -235,30 +223,19 @@ document.addEventListener('click', (e) => {
   const state = AppState.loadReadOnly();
 
   let teamA = '?', teamB = '?';
-  if (isGF) {
-    const gf = state.playoffs.grandFinal;
-    const tU = AppState.getTimeById(state, gf.timeUpper);
-    const tL = AppState.getTimeById(state, gf.timeLower);
-    teamA = tU ? tU.nome : '?';
-    teamB = tL ? tL.nome : '?';
-  } else {
-    const grp = state.faseGrupos.partidas.find(p => p.id === matchId);
-    if (grp) {
-      const tA = AppState.getTimeById(state, grp.timeA);
-      const tB = AppState.getTimeById(state, grp.timeB);
-      teamA = tA ? tA.nome : '?';
-      teamB = tB ? tB.nome : '?';
-    } else {
-      const ub = state.playoffs.upperBracket;
-      const lb = state.playoffs.lowerBracket;
-      const pm = [ub.sf1, ub.sf2, ub.final, lb.sf, lb.final].find(m => m.id === matchId);
-      if (pm) {
-        const tA = AppState.getTimeById(state, pm.timeA);
-        const tB = AppState.getTimeById(state, pm.timeB);
-        teamA = tA ? tA.nome : '?';
-        teamB = tB ? tB.nome : '?';
-      }
-    }
+  // Check group stage first, then playoff matches
+  const grp = state.faseGrupos.partidas.find(p => p.id === matchId);
+  if (grp) {
+    const tA = AppState.getTimeById(state, grp.timeA);
+    const tB = AppState.getTimeById(state, grp.timeB);
+    teamA = tA ? tA.nome : '?';
+    teamB = tB ? tB.nome : '?';
+  } else if (state.playoffs.matches && state.playoffs.matches[matchId]) {
+    const pm = state.playoffs.matches[matchId];
+    const tA = AppState.getTimeById(state, pm.timeA);
+    const tB = AppState.getTimeById(state, pm.timeB);
+    teamA = tA ? tA.nome : '?';
+    teamB = tB ? tB.nome : '?';
   }
   openScoreModal(matchId, teamA, teamB, isGF);
 });
