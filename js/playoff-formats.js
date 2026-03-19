@@ -352,8 +352,7 @@ const FORMAT_PLAY_IN_6 = {
 
   classificationTiers: [
     { from: 1, to: 2, cssClass: 'classified-green-dark', label: 'BYE — Semifinal', color: '#1a7a3a' },
-    { from: 3, to: 4, cssClass: 'classified-blue-light', label: 'Quartas de Final', color: '#74b9ff' },
-    { from: 5, to: 6, cssClass: 'classified-yellow-light', label: 'Quartas de Final', color: '#dcbe50' }
+    { from: 3, to: 6, cssClass: 'classified-yellow-light', label: 'Quartas de Final', color: '#dcbe50' }
   ],
 
   defaultMatches() {

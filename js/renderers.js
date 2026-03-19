@@ -132,7 +132,7 @@ function renderClassificacao() {
                     ${t.forma.map(f => `<span class="form-badge ${f}">${f}</span>`).join('')}
                   </div>
                 </td>
-                <td>${tier ? '<span class="qualified-label">' + UI.escapeHtml(tier.label) + '</span>' : ''}</td>
+                <td>${tier ? '<span class="qualified-label" style="color:' + tier.color + ';border-color:' + tier.color + '">' + UI.escapeHtml(tier.label) + '</span>' : ''}</td>
               </tr>`;
           }).join('')}
         </tbody>
