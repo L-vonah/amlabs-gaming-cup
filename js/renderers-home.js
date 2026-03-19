@@ -91,7 +91,7 @@ function renderHome() {
 
   // Combine: groups first, then playoffs, and take last 3
   const allConcluded = [...groupConcluded, ...playoffConcluded];
-  const lastResults = allConcluded.slice(-3).reverse();
+  const lastResults = allConcluded.slice(-4).reverse();
 
   const container = document.getElementById('homeLastResults');
   if (container) {

@@ -715,7 +715,16 @@ body {
 #homeLastResults {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
+}
+#homeLastResults .match-card {
+  padding: 8px 12px;
+}
+#homeLastResults .match-score .score-val {
+  font-size: .95rem;
+}
+#homeLastResults .match-mobile-row {
+  padding: 4px 0;
 }
 
 /* =============================================
@@ -2416,9 +2425,9 @@ body {
   gap: 12px;
   padding: 8px 0;
 }
-.stat-match-name { flex: 1; font-size: .88rem; }
+.stat-match-name { flex: 1; font-size: .82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .stat-match-name.winner { font-weight: 700; }
-.stat-match-score { font-weight: 800; font-size: 1.1rem; min-width: 20px; text-align: center; }
+.stat-match-score { font-weight: 800; font-size: 1rem; min-width: 18px; text-align: center; }
 .stat-match-note { font-size: .7rem; color: var(--color-text-dim); text-align: center; }
 
 /* Registration card */
