@@ -216,7 +216,7 @@ function renderHome() {
         matchLines += `<div class="bracket-mini-row" style="border-left:3px solid ${entry.color}">
           <span class="bracket-mini-phase">${entry.phase}</span>
           <span class="bracket-mini-team" style="font-weight:${winnerA ? '700' : '400'}">${nameA}</span>
-          <span class="bracket-mini-score">${pA ? '<span class="penalty-tag">P</span>' : ''}${sA}</span>
+          <span class="bracket-mini-score">${sA}${pA ? '<span class="penalty-tag">P</span>' : ''}</span>
           <span class="bracket-mini-separator">:</span>
           <span class="bracket-mini-score">${sB}${pB ? '<span class="penalty-tag">P</span>' : ''}</span>
           <span class="bracket-mini-team" style="font-weight:${winnerB ? '700' : '400'};text-align:right">${nameB}</span>

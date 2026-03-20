@@ -2463,14 +2463,25 @@ body {
   border-color: var(--color-primary) !important;
 }
 .penalty-tag {
-  font-size: .6rem;
+  font-size: .55rem;
   font-weight: 800;
   color: var(--color-primary);
   background: var(--color-primary-glow);
-  padding: 1px 4px;
+  padding: 1px 3px;
   border-radius: 3px;
-  margin: 0 2px;
+  position: absolute;
 }
+/* Position P tag based on context */
+.bracket-mini-score { position: relative; }
+.bracket-mini-score .penalty-tag { top: -8px; right: -6px; }
+.bracket-slot { position: relative; }
+.bracket-slot .penalty-tag { top: 2px; left: -2px; }
+.match-score { position: relative; }
+.match-score .penalty-tag { position: static; }
+.match-mobile-score { position: relative; }
+.match-mobile-score .penalty-tag { top: -6px; right: -4px; }
+.stat-match-score { position: relative; }
+.stat-match-score .penalty-tag { top: -8px; right: -6px; }
 
 /* Playoff section header in partidas */
 .playoff-phase-header {
