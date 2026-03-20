@@ -83,25 +83,6 @@
       <h1 class="hero-title">1&ordm; Campeonato EA Sports FC<br><span class="highlight">AMLabs 2026</span></h1>
       <p class="hero-subtitle">Fase de grupos todos contra todos + Playoffs com Dupla Elimina&ccedil;&atilde;o (Chave Superior &amp; Inferior)</p>
 
-      <div class="hero-stats">
-        <div class="hero-stat">
-          <div class="hero-stat-value" id="homeStatTimes">0</div>
-          <div class="hero-stat-label">Times</div>
-        </div>
-        <div class="hero-stat">
-          <div class="hero-stat-value" id="homeStatPartidas">0</div>
-          <div class="hero-stat-label">Partidas</div>
-        </div>
-        <div class="hero-stat">
-          <div class="hero-stat-value" id="homeStatConcluidas">0</div>
-          <div class="hero-stat-label">Conclu&iacute;das</div>
-        </div>
-        <div class="hero-stat">
-          <div class="hero-stat-value" id="homeStatGols">0</div>
-          <div class="hero-stat-label">Gols</div>
-        </div>
-      </div>
-
     </div>
 
     <div class="grid-2">
@@ -116,16 +97,28 @@
         <div id="homeLeader"></div>
       </div>
 
-      <!-- Last results -->
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">
-            <span class="section-title-icon icon-bg-green">&#10003;</span>
-            &Uacute;ltimos Resultados
-          </span>
-          <button class="btn btn-sm btn-secondary" onclick="UI.navigateTo('partidas')">Ver todos</button>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <!-- Next matches -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">
+              <span class="section-title-icon icon-bg-blue">&#9654;</span>
+              Pr&oacute;ximas Partidas
+            </span>
+          </div>
+          <div class="card-body" id="homeNextMatches"></div>
         </div>
-        <div class="card-body" id="homeLastResults"></div>
+
+        <!-- Last results -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">
+              <span class="section-title-icon icon-bg-green">&#10003;</span>
+              &Uacute;ltimos Resultados
+            </span>
+          </div>
+          <div class="card-body" id="homeLastResults"></div>
+        </div>
       </div>
     </div>
 
@@ -145,7 +138,7 @@
           <input type="file" accept=".json" onchange="importData(event)" style="display:none">
         </label>
         <div class="quick-actions-separator"></div>
-        <button class="btn btn-danger btn-sm" onclick="confirmReset()">Reset Campeonato</button>
+        <button class="btn btn-danger btn-sm" onclick="confirmReset()">Reiniciar Campeonato</button>
       </div>
     </div>
   </section>
@@ -318,15 +311,33 @@
     <div class="section-header">
       <h2 class="section-title">
         <span class="section-title-icon icon-bg-purple">&#127942;</span>
-        Chaveamento &mdash; Dupla Elimina&ccedil;&atilde;o
+        <span id="bracketTitle">Chaveamento</span>
       </h2>
-      <div style="display:flex;gap:8px">
+      <div style="display:flex;gap:8px;align-items:center">
         <button class="btn btn-sm btn-secondary" onclick="renderBracket()">Atualizar</button>
         <button class="btn btn-sm btn-secondary admin-only" onclick="resetPlayoffs()" style="color:var(--color-loss)" id="btnRefazerPlayoffs">Refazer Playoffs</button>
       </div>
     </div>
 
+    <!-- Format selector (admin only, pre-playoffs) -->
+    <div id="formatSelectorContainer" style="display:none">
+      <div class="format-selector-card">
+        <div class="format-selector-header">
+          <label class="form-label" for="playoffFormatSelect">Formato dos Playoffs</label>
+          <select id="playoffFormatSelect" class="form-input format-select" onchange="onFormatChange()"></select>
+        </div>
+        <div id="formatWarning" class="format-warning" style="display:none"></div>
+        <div style="margin-top:12px">
+          <button class="btn btn-primary admin-only" id="btnGerarPlayoffs" onclick="iniciarPlayoffs()">Gerar Playoffs</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preview bracket (pre-playoffs) or live bracket (during playoffs) -->
     <div id="bracketContainer"></div>
+
+    <!-- Info cards (rendered by format) -->
+    <div id="bracketInfoCards"></div>
   </section>
 
   <!-- ---------------------------------------------------------------
@@ -433,7 +444,7 @@
           <li>Todos os times participam em um &uacute;nico grupo, jogando em sistema todos contra todos (round-robin).</li>
           <li>Turno &uacute;nico: cada par de times se enfrenta uma vez.</li>
           <li>Vit&oacute;ria vale <strong>3 pontos</strong>, empate vale <strong>1 ponto</strong> para cada time, derrota vale <strong>0 pontos</strong>.</li>
-          <li>Os <strong>4 melhores colocados</strong> se classificam para os Playoffs.</li>
+          <li>Os melhores colocados se classificam para os Playoffs (quantidade depende do formato escolhido).</li>
         </ul>
       </div>
 
@@ -452,41 +463,7 @@
         </ul>
       </div>
 
-      <!-- Chave Superior -->
-      <div class="rule-card">
-        <div class="rule-card-header">
-          <div class="rule-icon icon-bg-purple" style="width:40px;height:40px;border-radius:var(--radius)">&#9733;</div>
-          <h3 class="rule-card-title">Chave Superior (sem derrota)</h3>
-        </div>
-        <ul class="rule-list">
-          <li>Os 4 classificados entram diretamente na Chave Superior.</li>
-          <li><strong>Semifinal 1:</strong> 1&ordm; colocado vs 4&ordm; colocado</li>
-          <li><strong>Semifinal 2:</strong> 2&ordm; colocado vs 3&ordm; colocado</li>
-          <li>Os vencedores das semifinais disputam a <strong>Final Superior</strong>.</li>
-          <li>O vencedor da Final Superior avan&ccedil;a diretamente para a <strong>Grande Final</strong> sem ter sofrido nenhuma derrota.</li>
-          <li>Os perdedores caem para a <strong>Chave Inferior</strong>.</li>
-        </ul>
-      </div>
-
-      <!-- Chave Inferior -->
-      <div class="rule-card">
-        <div class="rule-card-header">
-          <div class="rule-icon icon-bg-orange" style="width:40px;height:40px;border-radius:var(--radius)">&#8595;</div>
-          <h3 class="rule-card-title">Chave Inferior (Segunda Chance)</h3>
-        </div>
-        <ul class="rule-list">
-          <li>Os <strong>perdedores das semifinais da Chave Superior</strong> disputam a Semifinal Inferior.</li>
-          <li>O vencedor da Semifinal Inferior enfrenta o <strong>perdedor da Final Superior</strong> na Final Inferior.</li>
-          <li>O vencedor da Final Inferior conquista sua vaga na <strong>Grande Final</strong>.</li>
-          <li>Qualquer derrota na Chave Inferior elimina o time definitivamente.</li>
-        </ul>
-        <div class="highlight-box">
-          <span>!</span>
-          <span>Os confrontos na Chave Inferior s&atilde;o definidos para evitar que dois times se enfrentem novamente antes da Grande Final.</span>
-        </div>
-      </div>
-
-      <!-- Grande Final + Vantagem -->
+      <!-- Grande Final & Vantagem -->
       <div class="rule-card">
         <div class="rule-card-header">
           <div class="rule-icon icon-bg-yellow" style="width:40px;height:40px;border-radius:var(--radius)">&#127942;</div>
@@ -495,7 +472,7 @@
         <ul class="rule-list">
           <li>Disputa entre o vencedor da <strong>Chave Superior</strong> e o vencedor da <strong>Chave Inferior</strong>.</li>
           <li>Jogo &uacute;nico, sem empate (prorroga&ccedil;&atilde;o/p&ecirc;naltis se necess&aacute;rio).</li>
-          <li>O jogador da <strong>Chave Superior</strong> (sem derrota) escolhe qual vantagem aplicar entre as op&ccedil;&otilde;es definidas pelo admin.</li>
+          <li>O jogador da <strong>Chave Superior</strong> (sem derrota) escolhe qual vantagem de ban aplicar.</li>
         </ul>
         <div class="highlight-box" style="margin-top:12px">
           <span>&#9733;</span>
@@ -507,22 +484,17 @@
         </div>
       </div>
 
-      <!-- Formato dos Playoffs -->
+      <!-- Formato Geral dos Playoffs -->
       <div class="rule-card">
         <div class="rule-card-header">
           <div class="rule-icon icon-bg-green" style="width:40px;height:40px;border-radius:var(--radius)">&#128204;</div>
-          <h3 class="rule-card-title">Formato Geral dos Playoffs</h3>
+          <h3 class="rule-card-title">Formato dos Playoffs</h3>
         </div>
         <ul class="rule-list">
           <li>Todos os jogos dos playoffs s&atilde;o decididos em jogo &uacute;nico.</li>
-          <li><strong>Empates n&atilde;o s&atilde;o permitidos</strong> nos playoffs. Em caso de empate ap&oacute;s 90 minutos, utiliza-se prorroga&ccedil;&atilde;o e/ou p&ecirc;naltis para definir o vencedor.</li>
-          <li>A ordem dos jogos &eacute;: Semifinais Superiores &rarr; Semifinal Inferior &rarr; Final Superior &rarr; Final Inferior &rarr; Grande Final.</li>
-          <li>Um time s&oacute; &eacute; eliminado ap&oacute;s acumular <strong>2 derrotas</strong> (exceto na Grande Final onde uma derrota elimina).</li>
+          <li><strong>Empates n&atilde;o s&atilde;o permitidos</strong>. Em caso de empate, utiliza-se prorroga&ccedil;&atilde;o e/ou p&ecirc;naltis.</li>
+          <li>O formato e as regras das chaves est&atilde;o detalhados na <strong>tela de Chaveamento</strong>.</li>
         </ul>
-        <div class="highlight-box" style="margin-top:12px">
-          <span>!</span>
-          <span>O formato e n&uacute;mero de classificados pode ser ajustado de acordo com o <strong>n&uacute;mero de participantes</strong> inscritos no campeonato.</span>
-        </div>
       </div>
 
       <!-- Configuração de Jogo -->
@@ -736,7 +708,15 @@
           <input type="number" id="modalScoreGolsB" min="0" max="99" value="" placeholder="0" class="score-input" style="width:64px;font-size:1.6rem;padding:10px">
         </div>
       </div>
-      <p id="modalScoreHint" style="font-size:.75rem;color:var(--color-text-dim);text-align:center;margin-top:8px;display:none">Empates n&atilde;o permitidos nos playoffs.</p>
+      <p id="modalScoreHint" style="font-size:.75rem;color:var(--color-text-dim);text-align:center;margin-top:8px;display:none">Em caso de empate, selecione o vencedor dos p&ecirc;naltis.</p>
+      <div id="penaltySelector" style="display:none;margin-top:12px;text-align:center">
+        <div style="font-size:.75rem;font-weight:700;color:var(--color-loss);margin-bottom:8px">Empate &mdash; Quem venceu nos p&ecirc;naltis?</div>
+        <div style="display:flex;gap:8px;justify-content:center">
+          <button type="button" class="btn btn-sm btn-secondary penalty-btn" id="penaltyBtnA" onclick="selectPenaltyWinner('A')" style="flex:1;max-width:160px"></button>
+          <button type="button" class="btn btn-sm btn-secondary penalty-btn" id="penaltyBtnB" onclick="selectPenaltyWinner('B')" style="flex:1;max-width:160px"></button>
+        </div>
+        <input type="hidden" id="modalScorePenaltyWinner" value="">
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="UI.closeModal('modalScore')">Cancelar</button>
@@ -783,15 +763,15 @@
 <div class="modal-overlay" id="modalReset">
   <div class="modal">
     <div class="modal-header">
-      <span class="modal-title">Confirmar Reset</span>
+      <span class="modal-title">Reiniciar Campeonato</span>
       <button class="btn-icon" onclick="UI.closeModal('modalReset')">&#x2715;</button>
     </div>
     <div class="modal-body">
-      <p style="color:var(--color-text-muted);font-size:.9rem">Tem certeza que deseja <strong style="color:var(--color-loss)">resetar completamente</strong> o campeonato? Todos os times, resultados, histórico e configurações serão perdidos. Esta ação não pode ser desfeita.</p>
+      <p style="color:var(--color-text-muted);font-size:.9rem">Tem certeza que deseja <strong style="color:var(--color-loss)">reiniciar completamente</strong> o campeonato? Todos os times, resultados, hist&oacute;rico e configura&ccedil;&otilde;es ser&atilde;o perdidos. Esta a&ccedil;&atilde;o n&atilde;o pode ser desfeita.</p>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="UI.closeModal('modalReset')">Cancelar</button>
-      <button class="btn btn-danger" onclick="executeReset()">Sim, resetar</button>
+      <button class="btn btn-danger" onclick="executeReset()">Sim, reiniciar</button>
     </div>
   </div>
 </div>
@@ -829,6 +809,7 @@
 <script src="js/firebase-config.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/firestore-service.js"></script>
+<script src="js/playoff-formats.js"></script>
 <script src="js/state.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/renderers-matches.js"></script>

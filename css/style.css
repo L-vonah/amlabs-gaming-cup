@@ -581,13 +581,14 @@ body {
 .form-badge.D { background: var(--color-loss-bg); color: var(--color-loss); border: 1px solid rgba(232,67,147,0.3); }
 
 .qualified-label {
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--color-win);
-  background: var(--color-win-bg);
-  border: 1px solid rgba(0,184,148,0.3);
+  white-space: nowrap;
+  color: inherit;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
   padding: 2px 7px;
   border-radius: 10px;
 }
@@ -817,9 +818,13 @@ body {
   font-size: 0.9rem;
   font-weight: 800;
   color: var(--color-text-muted);
-  min-width: 18px;
+  min-width: 28px;
   text-align: right;
   font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
 }
 
 .bracket-slot.winner .bracket-slot-score {
@@ -2451,7 +2456,193 @@ body {
   border-radius: 10px;
 }
 
+/* Penalty selector */
+.penalty-btn.selected {
+  background: var(--color-primary) !important;
+  color: #fff !important;
+  border-color: var(--color-primary) !important;
+}
+.penalty-tag {
+  font-size: .55rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  background: var(--color-primary-glow);
+  padding: 1px 3px;
+  border-radius: 3px;
+  position: absolute;
+}
+/* Position P tag based on context */
+.bracket-mini-score { position: relative; }
+.bracket-mini-score .penalty-tag { top: -8px; right: -6px; }
+.bracket-slot { position: relative; }
+.bracket-slot .penalty-tag { top: 2px; left: -2px; }
+.match-score { position: relative; }
+.match-score .penalty-tag { position: static; }
+.match-mobile-score { position: relative; }
+.match-mobile-score .penalty-tag { top: -6px; right: -4px; }
+.stat-match-score { position: relative; }
+.stat-match-score .penalty-tag { top: -8px; right: -6px; }
+
 /* Playoff section header in partidas */
 .playoff-phase-header {
   font-size: .6rem;
+}
+
+/* =============================================
+   Format Selector & Preview
+   ============================================= */
+
+.format-selector-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.format-selector-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.format-select {
+  min-width: 280px;
+  padding: 8px 12px;
+  font-size: .85rem;
+}
+.format-warning {
+  margin-top: 10px;
+  padding: 8px 14px;
+  border-radius: var(--radius);
+  background: rgba(253,203,110,.1);
+  border: 1px solid rgba(253,203,110,.3);
+  color: #b8860b;
+  font-size: .8rem;
+  font-weight: 600;
+}
+
+/* Preview bracket (generic names) */
+.preview-bracket {
+  margin-top: 16px;
+}
+.preview-section {
+  margin-bottom: 20px;
+}
+.preview-section-label {
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  padding: 5px 12px;
+  border-radius: 5px;
+  display: inline-block;
+  margin-bottom: 10px;
+}
+.preview-section-label.upper { background: rgba(108,92,231,.12); color: var(--color-upper); }
+.preview-section-label.lower { background: rgba(225,112,85,.12); color: var(--color-lower); }
+.preview-section-label.grand { background: rgba(249,168,37,.12); color: var(--color-champion); }
+.preview-phase-title {
+  font-size: .65rem;
+  font-weight: 600;
+  color: var(--color-text-dim);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin: 10px 0 6px;
+}
+.preview-phase-note {
+  font-size: .7rem;
+  color: var(--color-text-dim);
+  font-style: italic;
+  margin-top: 4px;
+}
+.preview-match {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  margin-bottom: 6px;
+  overflow: hidden;
+}
+.preview-slot {
+  padding: 7px 12px;
+  font-size: .8rem;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+}
+.preview-slot:last-child { border-bottom: none; }
+
+/* Info cards below bracket */
+.bracket-info-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 24px;
+}
+/* Rules section in bracket page */
+.bracket-rules-section {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 24px;
+  margin-bottom: 8px;
+}
+
+@media (max-width: 768px) {
+  .bracket-info-cards { grid-template-columns: 1fr; }
+  .bracket-rules-section { grid-template-columns: 1fr; }
+  .format-selector-header { flex-direction: column; align-items: flex-start; }
+  .format-select { min-width: 100%; }
+  #btnGerarPlayoffs { width: 100%; }
+}
+.info-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+.info-card-title {
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  margin-bottom: 10px;
+}
+.info-card-line {
+  font-size: .8rem;
+  color: var(--color-text);
+  line-height: 1.7;
+}
+.info-card-line .seed {
+  font-weight: 700;
+  min-width: 40px;
+  display: inline-block;
+}
+.info-card-line .games {
+  color: var(--color-text-dim);
+  font-size: .75rem;
+}
+
+/* Classification tiers */
+.classified-green-dark { background: rgba(0,100,50,.08); border-left: 3px solid #1a7a3a; }
+.classified-green-light { background: rgba(46,204,113,.07); border-left: 3px solid #2ecc71; }
+.classified-blue-light { background: rgba(116,185,255,.08); border-left: 3px solid #74b9ff; }
+.classified-yellow-light { background: rgba(220,190,80,.06); border-left: 3px solid #dcbe50; }
+.classified-green { background: rgba(0,184,148,.07); border-left: 3px solid var(--color-win); }
+
+.classification-tier-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 12px 24px;
+  border-top: 1px solid var(--color-border);
+  font-size: .75rem;
+  color: var(--color-text-dim);
+}
+.tier-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tier-legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
 }

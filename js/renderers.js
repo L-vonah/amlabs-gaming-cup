@@ -59,7 +59,15 @@ function renderClassificacao() {
   const container = document.getElementById('tabelaClassificacao');
   if (!container) return;
 
-  const qualify = state.config.classificadosPorGrupo;
+  // Get classification tiers from selected format
+  const formatId = typeof getSelectedPlayoffFormatId === 'function' ? getSelectedPlayoffFormatId() : (state.playoffs.formato || PlayoffFormats.DEFAULT);
+  const format = PlayoffFormats.get(formatId);
+  const tiers = format.classificationTiers;
+  const qualify = format.classified;
+
+  function getTierForPosition(pos) {
+    return tiers.find(t => pos >= t.from && pos <= t.to) || null;
+  }
 
   if (tabela.length === 0) {
     container.innerHTML = `
@@ -91,13 +99,15 @@ function renderClassificacao() {
         </thead>
         <tbody>
           ${tabela.map((t, i) => {
-            const isQualified = i < qualify;
+            const pos = i + 1;
+            const tier = getTierForPosition(pos);
+            const tierClass = tier ? tier.cssClass : '';
             const sgClass = t.saldoGols > 0 ? 'stat-positive' : t.saldoGols < 0 ? 'stat-negative' : 'stat-neutral';
             return `
-              <tr class="${isQualified ? 'qualified' : ''}">
+              <tr class="${tierClass}">
                 <td>
                   <div class="pos-cell">
-                    <span class="pos-number ${isQualified ? 'top' : ''}">${i + 1}</span>
+                    <span class="pos-number ${tier ? 'top' : ''}" ${tier ? 'style="color:' + tier.color + '"' : ''}>${pos}</span>
                   </div>
                 </td>
                 <td>
@@ -122,15 +132,15 @@ function renderClassificacao() {
                     ${t.forma.map(f => `<span class="form-badge ${f}">${f}</span>`).join('')}
                   </div>
                 </td>
-                <td>${isQualified ? '<span class="qualified-label">Classif.</span>' : ''}</td>
+                <td>${tier ? '<span class="qualified-label" style="color:' + tier.color + ';border-color:' + tier.color + '">' + UI.escapeHtml(tier.label) + '</span>' : ''}</td>
               </tr>`;
           }).join('')}
         </tbody>
       </table>
     </div>
-    <div class="classification-legend" style="padding:12px 24px;border-top:1px solid var(--color-border);display:flex;align-items:center;gap:16px;font-size:0.8rem;color:var(--color-text-dim)">
-      <span class="classification-legend-item" style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:var(--color-win);opacity:.6"></span>Classificado para os Playoffs (Top ${qualify})</span>
-      <span class="classification-legend-item">&bull; Desempate: Pontos &rarr; Vit&oacute;rias &rarr; Saldo de Gols &rarr; Gols Marcados</span>
+    <div class="classification-tier-legend">
+      ${tiers.map(tier => `<div class="tier-legend-item"><span class="tier-legend-dot" style="background:${tier.color}"></span>${UI.escapeHtml(tier.label)} (${tier.from === tier.to ? tier.from + '&ordm;' : tier.from + '&ordm;-' + tier.to + '&ordm;'})</div>`).join('')}
+      <span>&bull; Desempate: Pontos &rarr; Vit&oacute;rias &rarr; Saldo de Gols &rarr; Gols Marcados</span>
     </div>`;
 }
 
@@ -207,14 +217,16 @@ function renderEstatisticas() {
       const p = stats.maiorGoleada.partida;
       const tA = AppState.getTimeById(state, p.timeA);
       const tB = AppState.getTimeById(state, p.timeB);
+      const pWinA = p.penaltyWinner === p.timeA;
+      const pWinB = p.penaltyWinner === p.timeB;
       goleadaEl.innerHTML = `
         <div class="stat-match-row">
           ${UI.renderAvatar(tA, 28)}
-          <span class="stat-match-name ${p.golsA > p.golsB ? 'winner' : ''}">${tA ? UI.escapeHtml(tA.nome) : '?'}</span>
-          <span class="stat-match-score">${p.golsA}</span>
+          <span class="stat-match-name ${p.golsA > p.golsB || pWinA ? 'winner' : ''}">${tA ? UI.escapeHtml(tA.nome) : '?'}</span>
+          <span class="stat-match-score">${pWinA ? '<span class="penalty-tag">P</span>' : ''}${p.golsA}</span>
           <span class="bracket-mini-separator">:</span>
-          <span class="stat-match-score">${p.golsB}</span>
-          <span class="stat-match-name ${p.golsB > p.golsA ? 'winner' : ''}" style="text-align:right">${tB ? UI.escapeHtml(tB.nome) : '?'}</span>
+          <span class="stat-match-score">${p.golsB}${pWinB ? '<span class="penalty-tag">P</span>' : ''}</span>
+          <span class="stat-match-name ${p.golsB > p.golsA || pWinB ? 'winner' : ''}" style="text-align:right">${tB ? UI.escapeHtml(tB.nome) : '?'}</span>
           ${UI.renderAvatar(tB, 28)}
         </div>
         <div class="stat-match-note">Diferen&ccedil;a de ${Math.abs(p.golsA - p.golsB)} gol${Math.abs(p.golsA - p.golsB) !== 1 ? 's' : ''}</div>`;
@@ -230,14 +242,16 @@ function renderEstatisticas() {
       const p = stats.partidaMaisGols.partida;
       const tA = AppState.getTimeById(state, p.timeA);
       const tB = AppState.getTimeById(state, p.timeB);
+      const mgPA = p.penaltyWinner === p.timeA;
+      const mgPB = p.penaltyWinner === p.timeB;
       maisGolsEl.innerHTML = `
         <div class="stat-match-row">
           ${UI.renderAvatar(tA, 28)}
-          <span class="stat-match-name ${p.golsA > p.golsB ? 'winner' : ''}">${tA ? UI.escapeHtml(tA.nome) : '?'}</span>
-          <span class="stat-match-score">${p.golsA}</span>
+          <span class="stat-match-name ${p.golsA > p.golsB || mgPA ? 'winner' : ''}">${tA ? UI.escapeHtml(tA.nome) : '?'}</span>
+          <span class="stat-match-score">${mgPA ? '<span class="penalty-tag">P</span>' : ''}${p.golsA}</span>
           <span class="bracket-mini-separator">:</span>
-          <span class="stat-match-score">${p.golsB}</span>
-          <span class="stat-match-name ${p.golsB > p.golsA ? 'winner' : ''}" style="text-align:right">${tB ? UI.escapeHtml(tB.nome) : '?'}</span>
+          <span class="stat-match-score">${p.golsB}${mgPB ? '<span class="penalty-tag">P</span>' : ''}</span>
+          <span class="stat-match-name ${p.golsB > p.golsA || mgPB ? 'winner' : ''}" style="text-align:right">${tB ? UI.escapeHtml(tB.nome) : '?'}</span>
           ${UI.renderAvatar(tB, 28)}
         </div>
         <div class="stat-match-note">${stats.partidaMaisGols.total} gols na partida</div>`;
@@ -250,7 +264,7 @@ function renderEstatisticas() {
 // ------------------------------------------------------------------
 
 function renderRegras() {
-  // Rules page is static HTML; nothing dynamic to render.
+  // Rules page is mostly static HTML. Playoff rules are now on the bracket page.
 }
 
 // ------------------------------------------------------------------
@@ -324,9 +338,9 @@ async function renderInscricoes() {
 
   // Status banner
   if (isOpen) {
-    html += '<div class="status-banner open"><span>&#9989;</span> Inscricoes abertas! Cadastre seu time abaixo.</div>';
+    html += '<div class="status-banner open"><span>&#9989;</span> Inscri&ccedil;&otilde;es abertas! Cadastre seu time abaixo.</div>';
   } else {
-    html += '<div class="status-banner closed"><span>&#128683;</span> Inscricoes encerradas. O campeonato ja comecou.</div>';
+    html += '<div class="status-banner closed"><span>&#128683;</span> Inscri&ccedil;&otilde;es encerradas. O campeonato j&aacute; come&ccedil;ou. Contate o administrador.</div>';
   }
 
   // Pending requests
