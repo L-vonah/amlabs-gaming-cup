@@ -2452,6 +2452,22 @@ body {
   border-radius: 10px;
 }
 
+/* Penalty selector */
+.penalty-btn.selected {
+  background: var(--color-primary) !important;
+  color: #fff !important;
+  border-color: var(--color-primary) !important;
+}
+.penalty-tag {
+  font-size: .6rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  background: var(--color-primary-glow);
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin: 0 2px;
+}
+
 /* Playoff section header in partidas */
 .playoff-phase-header {
   font-size: .6rem;

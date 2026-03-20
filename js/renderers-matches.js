@@ -175,9 +175,9 @@ function renderPartidasPlayoffs(state, admin) {
             ${UI.renderAvatar(tA, 24)}
           </div>
           <div class="match-score ${sc}">
-            <span class="score-val">${concluded ? m.golsA : '-'}</span>
+            ${concluded ? UI.penaltyTag(m, 'A') : ''}<span class="score-val">${concluded ? m.golsA : '-'}</span>
             <span class="dash">:</span>
-            <span class="score-val">${concluded ? m.golsB : '-'}</span>
+            <span class="score-val">${concluded ? m.golsB : '-'}</span>${concluded ? UI.penaltyTag(m, 'B') : ''}
           </div>
           <div class="match-team away">
             ${UI.renderAvatar(tB, 24)}
@@ -190,12 +190,12 @@ function renderPartidasPlayoffs(state, admin) {
         <div class="match-mobile-row">
           ${UI.renderAvatar(tA, 28)}
           <span class="match-mobile-name">${nameA}</span>
-          <span class="match-mobile-score ${concluded && m.golsA > m.golsB ? 'win' : concluded && m.golsA < m.golsB ? 'loss' : ''}">${concluded ? m.golsA : '-'}</span>
+          <span class="match-mobile-score ${concluded && (m.golsA > m.golsB || m.penaltyWinner === m.timeA) ? 'win' : concluded && (m.golsA < m.golsB || m.penaltyWinner === m.timeB) ? 'loss' : ''}">${concluded ? m.golsA : '-'}${concluded ? UI.penaltyTag(m, 'A') : ''}</span>
         </div>
         <div class="match-mobile-row">
           ${UI.renderAvatar(tB, 28)}
           <span class="match-mobile-name">${nameB}</span>
-          <span class="match-mobile-score ${concluded && m.golsB > m.golsA ? 'win' : concluded && m.golsB < m.golsA ? 'loss' : ''}">${concluded ? m.golsB : '-'}</span>
+          <span class="match-mobile-score ${concluded && (m.golsB > m.golsA || m.penaltyWinner === m.timeB) ? 'win' : concluded && (m.golsB < m.golsA || m.penaltyWinner === m.timeA) ? 'loss' : ''}">${concluded ? m.golsB : '-'}${concluded ? UI.penaltyTag(m, 'B') : ''}</span>
         </div>
         ${mobileBtn ? '<div class="match-mobile-action">' + mobileBtn + '</div>' : ''}
       </div>

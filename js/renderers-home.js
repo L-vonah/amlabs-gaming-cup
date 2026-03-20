@@ -133,16 +133,14 @@ function renderHome() {
       container.innerHTML = '<div class="empty-state"><div class="empty-icon">&#9917;</div><div class="empty-title">Nenhum resultado ainda</div><div class="empty-desc">Registre resultados na aba Resultados</div></div>';
     } else {
       container.innerHTML = lastResults.map(r => {
-        if (r.type === 'group') {
-          return renderMatchCardWithAction(r.original, state, false);
-        }
-        // Playoff match card for home — simple display, no actions
         const tA = AppState.getTimeById(state, r.timeA);
         const tB = AppState.getTimeById(state, r.timeB);
         const nameA = tA ? UI.escapeHtml(tA.nome) : '?';
         const nameB = tB ? UI.escapeHtml(tB.nome) : '?';
         const sc = UI.scoreClass(r.golsA, r.golsB);
+        const badge = r.type === 'group' ? 'Rodada ' + r.rodada : (r.fase || '');
         return `<div class="match-card">
+          <div class="match-round-badge" style="font-size:.6rem">${UI.escapeHtml(badge)}</div>
           <div class="match-desktop">
             <div class="match-teams">
               <div class="match-team home">
@@ -190,26 +188,14 @@ function renderHome() {
         leaderTitleEl.innerHTML = '<span class="section-title-icon icon-bg-yellow">&#127942;</span> Chaveamento';
       }
 
-      // Format-agnostic mini bracket — pending with both teams + last 2 concluded
+      // Format-agnostic mini bracket — all matches
       const format = PlayoffFormats.getSelected(state);
       const matches = state.playoffs.matches || {};
 
-      // Separate pending (both teams) and concluded
-      const pending = [];
-      const concluded = [];
+      let matchLines = '';
       format.miniBracketEntries.forEach(entry => {
         const m = matches[entry.matchId];
-        if (!m || (!m.timeA && !m.timeB)) return;
-        if (m.vencedor) concluded.push(entry);
-        else if (m.timeA && m.timeB) pending.push(entry);
-      });
-      // Show all pending + last 2 concluded
-      const visibleEntries = [...pending, ...concluded.slice(-2)];
-
-      let matchLines = '';
-      visibleEntries.forEach(entry => {
-        const m = matches[entry.matchId];
-        if (!m) return;
+        if (!m || !m.timeA || !m.timeB) return;
         const tA = m.timeA ? AppState.getTimeById(state, m.timeA) : null;
         const tB = m.timeB ? AppState.getTimeById(state, m.timeB) : null;
         const nameA = tA ? UI.escapeHtml(tA.nome) : 'A definir';
@@ -230,7 +216,6 @@ function renderHome() {
       });
 
       leaderEl.innerHTML = `<div style="padding:12px">
-        <div class="phase-label" style="text-align:left;border-bottom:none;margin-bottom:12px">Chaveamento</div>
         <div style="display:flex;flex-direction:column;gap:8px">${matchLines}</div>
         <div style="text-align:center;margin-top:12px">
           <button class="btn btn-sm btn-secondary" onclick="UI.navigateTo('bracket')">Ver chaveamento completo</button>

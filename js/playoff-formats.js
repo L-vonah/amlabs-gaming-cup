@@ -48,7 +48,7 @@ function _slotHTML(state, matches, matchId, slot, previewLabel) {
   return `<div class="bracket-slot ${isWinner ? 'winner' : ''}">
     ${UI.renderAvatar(time, 22, 'bracket-slot-avatar')}
     <span class="bracket-slot-name">${UI.escapeHtml(time.nome)}</span>
-    <span class="bracket-slot-score">${gols !== null ? gols : ''}</span>
+    <span class="bracket-slot-score">${gols !== null ? gols : ''}${m && m.penaltyWinner === teamId ? '<span class="penalty-tag">P</span>' : ''}</span>
   </div>`;
 }
 
@@ -86,7 +86,7 @@ function _gfSlotHTML(state, matches, matchId, slot, badge, badgeBg, badgeColor, 
     ${UI.renderAvatar(time, 22, 'bracket-slot-avatar')}
     <span class="bracket-slot-name">${UI.escapeHtml(time.nome)}</span>
     <span style="font-size:.6rem;background:${badgeBg};color:${badgeColor};padding:1px 5px;border-radius:8px;font-weight:700;margin-right:4px">${badge}</span>
-    <span class="bracket-slot-score">${gols !== null ? gols : ''}</span>
+    <span class="bracket-slot-score">${gols !== null ? gols : ''}${m && m.penaltyWinner === teamId ? '<span class="penalty-tag">P</span>' : ''}</span>
   </div>`;
 }
 

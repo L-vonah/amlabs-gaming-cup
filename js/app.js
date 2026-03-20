@@ -29,7 +29,8 @@ function openScoreModal(matchId, teamA, teamB, isGrandFinal) {
   document.getElementById('modalScoreTeamA').textContent = teamA;
   document.getElementById('modalScoreTeamB').textContent = teamB;
   document.getElementById('modalScoreTitle').textContent = isGrandFinal ? 'Grande Final' : 'Registrar Resultado';
-  document.getElementById('modalScoreHint').style.display = (matchId.startsWith('rr_') || matchId.startsWith('insc')) ? 'none' : 'block';
+  const isPlayoff = !matchId.startsWith('rr_') && !matchId.startsWith('insc');
+  document.getElementById('modalScoreHint').style.display = isPlayoff ? 'block' : 'none';
 
   // Pre-fill if match has an existing concluded score; leave empty for new matches
   const state = AppState.loadReadOnly();
@@ -45,18 +46,43 @@ function openScoreModal(matchId, teamA, teamB, isGrandFinal) {
   document.getElementById('modalScoreGolsA').value = golsA !== null ? golsA : 0;
   document.getElementById('modalScoreGolsB').value = golsB !== null ? golsB : 0;
 
+  // Penalty setup
+  const penaltyEl = document.getElementById('penaltySelector');
+  const penaltyInput = document.getElementById('modalScorePenaltyWinner');
+  const penaltyBtnA = document.getElementById('penaltyBtnA');
+  const penaltyBtnB = document.getElementById('penaltyBtnB');
+  if (penaltyEl) penaltyEl.style.display = 'none';
+  if (penaltyInput) penaltyInput.value = '';
+  if (penaltyBtnA) { penaltyBtnA.textContent = teamA; penaltyBtnA.classList.remove('selected'); }
+  if (penaltyBtnB) { penaltyBtnB.textContent = teamB; penaltyBtnB.classList.remove('selected'); }
+
+  // Pre-fill penalty winner if exists
+  if (isPlayoff) {
+    let existingPenalty = null;
+    if (state.playoffs.matches && state.playoffs.matches[matchId]) {
+      existingPenalty = state.playoffs.matches[matchId].penaltyWinner;
+    }
+    if (existingPenalty && penaltyInput) {
+      penaltyInput.value = existingPenalty;
+      if (penaltyBtnA && existingPenalty === state.playoffs.matches[matchId].timeA) penaltyBtnA.classList.add('selected');
+      if (penaltyBtnB && existingPenalty === state.playoffs.matches[matchId].timeB) penaltyBtnB.classList.add('selected');
+    }
+    // Show/hide penalty selector based on current scores
+    _updatePenaltyVisibility();
+  }
+
   UI.openModal('modalScore');
   setTimeout(() => document.getElementById('modalScoreGolsA').focus(), 100);
 }
 window.openScoreModal = openScoreModal;
 
-function _executeScoreSave(matchId, isGF, golsA, golsB) {
+function _executeScoreSave(matchId, isGF, golsA, golsB, penaltyWinner) {
   _scoreSubmitting = true;
   UI.closeModal('modalScore');
 
   if (isGF) {
     const state = AppState.load();
-    AppState.registrarResultadoGrandFinal(state, golsA, golsB);
+    AppState.registrarResultadoGrandFinal(state, golsA, golsB, penaltyWinner);
     AppState.save(state);
     AppState.addAuditLog(getAuditUser(), 'Registrou resultado da Grande Final: ' + golsA + ' x ' + golsB);
     Renderers.bracket();
@@ -67,7 +93,7 @@ function _executeScoreSave(matchId, isGF, golsA, golsB) {
     if (grp) {
       saveInlineResult(matchId, golsA, golsB);
     } else {
-      savePlayoffResult(matchId, golsA, golsB);
+      savePlayoffResult(matchId, golsA, golsB, penaltyWinner);
     }
   }
 
@@ -95,6 +121,17 @@ function submitScoreModal() {
     return;
   }
 
+  // Get penalty winner for playoff draws
+  const isPlayoff = !matchId.startsWith('rr_');
+  let penaltyWinner = null;
+  if (isPlayoff && golsA === golsB) {
+    penaltyWinner = document.getElementById('modalScorePenaltyWinner').value;
+    if (!penaltyWinner) {
+      UI.showToast('Empate! Selecione o vencedor dos p\u00eanaltis.', 'error');
+      return;
+    }
+  }
+
   // Check if editing an existing playoff result — show modal confirmation
   let needsConfirm = false;
   const state = AppState.loadReadOnly();
@@ -111,14 +148,54 @@ function submitScoreModal() {
     confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
     newBtn.addEventListener('click', function() {
       UI.closeModal('modalPlayoffEdit');
-      _executeScoreSave(matchId, isGF, golsA, golsB);
+      _executeScoreSave(matchId, isGF, golsA, golsB, penaltyWinner);
     });
     return;
   }
 
-  _executeScoreSave(matchId, isGF, golsA, golsB);
+  _executeScoreSave(matchId, isGF, golsA, golsB, penaltyWinner);
 }
 window.submitScoreModal = submitScoreModal;
+
+// ------------------------------------------------------------------
+// Penalty helpers
+// ------------------------------------------------------------------
+
+function _updatePenaltyVisibility() {
+  const penaltyEl = document.getElementById('penaltySelector');
+  if (!penaltyEl) return;
+  const matchId = document.getElementById('modalScoreMatchId').value;
+  const isPlayoff = !matchId.startsWith('rr_') && !matchId.startsWith('insc');
+  if (!isPlayoff) { penaltyEl.style.display = 'none'; return; }
+  const golsA = parseInt(document.getElementById('modalScoreGolsA').value);
+  const golsB = parseInt(document.getElementById('modalScoreGolsB').value);
+  penaltyEl.style.display = (!isNaN(golsA) && !isNaN(golsB) && golsA === golsB) ? '' : 'none';
+  // Clear selection if no longer a draw
+  if (golsA !== golsB) {
+    const penaltyInput = document.getElementById('modalScorePenaltyWinner');
+    if (penaltyInput) penaltyInput.value = '';
+    document.querySelectorAll('.penalty-btn').forEach(b => b.classList.remove('selected'));
+  }
+}
+
+function selectPenaltyWinner(side) {
+  const matchId = document.getElementById('modalScoreMatchId').value;
+  const state = AppState.loadReadOnly();
+  const match = state.playoffs.matches ? state.playoffs.matches[matchId] : null;
+  if (!match) return;
+  const winnerId = side === 'A' ? match.timeA : match.timeB;
+  document.getElementById('modalScorePenaltyWinner').value = winnerId;
+  document.getElementById('penaltyBtnA').classList.toggle('selected', side === 'A');
+  document.getElementById('penaltyBtnB').classList.toggle('selected', side === 'B');
+}
+window.selectPenaltyWinner = selectPenaltyWinner;
+
+// Listen for score changes to show/hide penalty selector
+document.addEventListener('input', (e) => {
+  if (e.target.id === 'modalScoreGolsA' || e.target.id === 'modalScoreGolsB') {
+    _updatePenaltyVisibility();
+  }
+});
 
 // ------------------------------------------------------------------
 // Navigation

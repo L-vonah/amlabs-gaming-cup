@@ -207,6 +207,18 @@ function checkAdmin() {
   return typeof isAdmin === 'function' && isAdmin();
 }
 
+/**
+ * Returns penalty tag HTML if the match was decided on penalties.
+ * @param {object} match - match object with penaltyWinner, timeA, timeB
+ * @param {string} side - 'A' or 'B'
+ */
+function penaltyTag(match, side) {
+  if (!match || !match.penaltyWinner) return '';
+  const teamId = match['time' + side];
+  if (match.penaltyWinner === teamId) return '<span class="penalty-tag">P</span>';
+  return '';
+}
+
 window.UI = {
   getRandomColor,
   renderAvatar,
@@ -222,6 +234,7 @@ window.UI = {
   scoreClass,
   getStatusLabel,
   escapeHtml,
+  penaltyTag,
   checkAdmin,
   PRESET_COLORS
 };

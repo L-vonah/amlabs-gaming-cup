@@ -519,14 +519,16 @@ function popularPlayoffs(state, formatId) {
   return true;
 }
 
-function registrarResultadoPlayoff(state, matchId, golsA, golsB) {
+function registrarResultadoPlayoff(state, matchId, golsA, golsB, penaltyWinner) {
   const format = PlayoffFormats.getSelected(state);
   const match = state.playoffs.matches[matchId];
   if (!match) return false;
   if (!match.timeA || !match.timeB) return false;
-  if (golsA === golsB) return false;
+  if (golsA === golsB && !penaltyWinner) return false;
 
-  const newWinner = golsA > golsB ? match.timeA : match.timeB;
+  const newWinner = golsA !== golsB
+    ? (golsA > golsB ? match.timeA : match.timeB)
+    : penaltyWinner;
   if (match.vencedor && match.vencedor !== newWinner) {
     format.resetDownstream(state.playoffs.matches, matchId);
   }
@@ -534,7 +536,8 @@ function registrarResultadoPlayoff(state, matchId, golsA, golsB) {
   match.golsA = golsA;
   match.golsB = golsB;
   match.vencedor = newWinner;
-  match.perdedor = golsA > golsB ? match.timeB : match.timeA;
+  match.perdedor = newWinner === match.timeA ? match.timeB : match.timeA;
+  match.penaltyWinner = penaltyWinner || null;
 
   format.propagateResult(state.playoffs.matches);
 
@@ -554,13 +557,15 @@ function registrarResultadoPlayoff(state, matchId, golsA, golsB) {
   return true;
 }
 
-function registrarResultadoGrandFinal(state, golsA, golsB) {
+function registrarResultadoGrandFinal(state, golsA, golsB, penaltyWinner) {
   const format = PlayoffFormats.getSelected(state);
   const gf = format.getGrandFinal(state.playoffs.matches);
   if (!gf || !gf.timeA || !gf.timeB) return false;
-  if (golsA === golsB) return false;
+  if (golsA === golsB && !penaltyWinner) return false;
 
-  const newWinner = golsA > golsB ? gf.timeA : gf.timeB;
+  const newWinner = golsA !== golsB
+    ? (golsA > golsB ? gf.timeA : gf.timeB)
+    : penaltyWinner;
   if (gf.vencedor && gf.vencedor !== newWinner) {
     if (state.campeonato.status === 'encerrado') {
       state.campeonato.status = 'playoffs';
@@ -571,7 +576,8 @@ function registrarResultadoGrandFinal(state, golsA, golsB) {
   gf.golsA = golsA;
   gf.golsB = golsB;
   gf.vencedor = newWinner;
-  gf.perdedor = golsA > golsB ? gf.timeB : gf.timeA;
+  gf.perdedor = newWinner === gf.timeA ? gf.timeB : gf.timeA;
+  gf.penaltyWinner = penaltyWinner || null;
   state.playoffs.status = 'concluido';
   state.campeonato.status = 'encerrado';
   return true;

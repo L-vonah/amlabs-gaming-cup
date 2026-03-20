@@ -708,7 +708,15 @@
           <input type="number" id="modalScoreGolsB" min="0" max="99" value="" placeholder="0" class="score-input" style="width:64px;font-size:1.6rem;padding:10px">
         </div>
       </div>
-      <p id="modalScoreHint" style="font-size:.75rem;color:var(--color-text-dim);text-align:center;margin-top:8px;display:none">Empates n&atilde;o permitidos nos playoffs.</p>
+      <p id="modalScoreHint" style="font-size:.75rem;color:var(--color-text-dim);text-align:center;margin-top:8px;display:none">Em caso de empate, selecione o vencedor dos p&ecirc;naltis.</p>
+      <div id="penaltySelector" style="display:none;margin-top:12px;text-align:center">
+        <div style="font-size:.75rem;font-weight:700;color:var(--color-loss);margin-bottom:8px">Empate &mdash; Quem venceu nos p&ecirc;naltis?</div>
+        <div style="display:flex;gap:8px;justify-content:center">
+          <button type="button" class="btn btn-sm btn-secondary penalty-btn" id="penaltyBtnA" onclick="selectPenaltyWinner('A')" style="flex:1;max-width:160px"></button>
+          <button type="button" class="btn btn-sm btn-secondary penalty-btn" id="penaltyBtnB" onclick="selectPenaltyWinner('B')" style="flex:1;max-width:160px"></button>
+        </div>
+        <input type="hidden" id="modalScorePenaltyWinner" value="">
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="UI.closeModal('modalScore')">Cancelar</button>

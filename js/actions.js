@@ -332,7 +332,7 @@ function saveInlineResult(partidaId, golsA, golsB) {
 // Playoff Results
 // ------------------------------------------------------------------
 
-function savePlayoffResult(matchId, golsA, golsB) {
+function savePlayoffResult(matchId, golsA, golsB, penaltyWinner) {
   if (!UI.checkAdmin()) { UI.showToast('Voc\u00ea precisa estar logado como admin para editar.', 'error'); return; }
 
   if (isNaN(golsA) || isNaN(golsB) || golsA < 0 || golsB < 0) {
@@ -345,11 +345,6 @@ function savePlayoffResult(matchId, golsA, golsB) {
     return;
   }
 
-  if (golsA === golsB) {
-    UI.showToast('Empates não são permitidos nos playoffs. Defina o vencedor por prorrogação ou pênaltis.', 'error');
-    return;
-  }
-
   const state = AppState.load();
 
   // Find match details for audit log
@@ -357,7 +352,7 @@ function savePlayoffResult(matchId, golsA, golsB) {
   const tA = match ? AppState.getTimeById(state, match.timeA) : null;
   const tB = match ? AppState.getTimeById(state, match.timeB) : null;
 
-  const ok = AppState.registrarResultadoPlayoff(state, matchId, golsA, golsB);
+  const ok = AppState.registrarResultadoPlayoff(state, matchId, golsA, golsB, penaltyWinner);
 
   if (!ok) {
     UI.showToast('Erro ao salvar resultado do playoff.', 'error');
