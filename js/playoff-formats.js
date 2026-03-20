@@ -138,21 +138,15 @@ const FORMAT_DOUBLE_ELIM_4 = {
     const lbFinal = matches['lb-final'];
     const gf = matches['grand-final'];
 
-    // UB SF winners → UB Final
-    if (ubSf1.vencedor && ubSf2.vencedor) {
-      ubFinal.timeA = ubSf1.vencedor;
-      ubFinal.timeB = ubSf2.vencedor;
-    }
-    // UB SF losers → LB SF
-    if (ubSf1.perdedor && ubSf2.perdedor) {
-      lbSf.timeA = ubSf1.perdedor;
-      lbSf.timeB = ubSf2.perdedor;
-    }
+    // UB SF winners → UB Final (individually)
+    if (ubSf1.vencedor) ubFinal.timeA = ubSf1.vencedor;
+    if (ubSf2.vencedor) ubFinal.timeB = ubSf2.vencedor;
+    // UB SF losers → LB SF (individually)
+    if (ubSf1.perdedor) lbSf.timeA = ubSf1.perdedor;
+    if (ubSf2.perdedor) lbSf.timeB = ubSf2.perdedor;
     // LB SF winner + UB Final loser → LB Final
-    if (lbSf.vencedor && ubFinal.perdedor) {
-      lbFinal.timeA = lbSf.vencedor;
-      lbFinal.timeB = ubFinal.perdedor;
-    }
+    if (lbSf.vencedor) lbFinal.timeA = lbSf.vencedor;
+    if (ubFinal.perdedor) lbFinal.timeB = ubFinal.perdedor;
     // UB Final winner → GF (timeA = upper side)
     if (ubFinal.vencedor) {
       gf.timeA = ubFinal.vencedor;
@@ -396,33 +390,23 @@ const FORMAT_PLAY_IN_6 = {
     if (ubQf2.vencedor) ubSf1.timeB = ubQf2.vencedor;  // 1st vs W(4v5)
     if (ubQf1.vencedor) ubSf2.timeB = ubQf1.vencedor;  // 2nd vs W(3v6)
 
-    // UB SF winners → UB Final
-    if (ubSf1.vencedor && ubSf2.vencedor) {
-      ubFinal.timeA = ubSf1.vencedor;
-      ubFinal.timeB = ubSf2.vencedor;
-    }
+    // UB SF winners → UB Final (individually)
+    if (ubSf1.vencedor) ubFinal.timeA = ubSf1.vencedor;
+    if (ubSf2.vencedor) ubFinal.timeB = ubSf2.vencedor;
 
-    // LB QF: crossed — SF loser vs QF loser from opposite side
-    if (ubSf1.perdedor && ubQf1.perdedor) {
-      lbQf1.timeA = ubSf1.perdedor;
-      lbQf1.timeB = ubQf1.perdedor;  // SF1 loser vs QF1 loser (3v6 side)
-    }
-    if (ubSf2.perdedor && ubQf2.perdedor) {
-      lbQf2.timeA = ubSf2.perdedor;
-      lbQf2.timeB = ubQf2.perdedor;  // SF2 loser vs QF2 loser (4v5 side)
-    }
+    // LB QF: crossed — SF loser vs QF loser from opposite side (individually)
+    if (ubSf1.perdedor) lbQf1.timeA = ubSf1.perdedor;
+    if (ubQf1.perdedor) lbQf1.timeB = ubQf1.perdedor;
+    if (ubSf2.perdedor) lbQf2.timeA = ubSf2.perdedor;
+    if (ubQf2.perdedor) lbQf2.timeB = ubQf2.perdedor;
 
-    // LB SF: QF winners
-    if (lbQf1.vencedor && lbQf2.vencedor) {
-      lbSf.timeA = lbQf1.vencedor;
-      lbSf.timeB = lbQf2.vencedor;
-    }
+    // LB SF: QF winners (individually)
+    if (lbQf1.vencedor) lbSf.timeA = lbQf1.vencedor;
+    if (lbQf2.vencedor) lbSf.timeB = lbQf2.vencedor;
 
-    // LB Final: LB SF winner vs UB Final loser
-    if (lbSf.vencedor && ubFinal.perdedor) {
-      lbFinal.timeA = lbSf.vencedor;
-      lbFinal.timeB = ubFinal.perdedor;
-    }
+    // LB Final: LB SF winner + UB Final loser (individually)
+    if (lbSf.vencedor) lbFinal.timeA = lbSf.vencedor;
+    if (ubFinal.perdedor) lbFinal.timeB = ubFinal.perdedor;
 
     // Grand Final
     if (ubFinal.vencedor) gf.timeA = ubFinal.vencedor;
@@ -694,21 +678,15 @@ const FORMAT_GAUNTLET_6 = {
     // UB R2 winner → UB Final (timeB)
     if (ubR2.vencedor) ubFinal.timeB = ubR2.vencedor;
 
-    // UB R1 loser → LB R2
-    if (ubR1.perdedor && lbR1.vencedor) {
-      lbR2.timeA = lbR1.vencedor;
-      lbR2.timeB = ubR1.perdedor;
-    }
-    // UB R2 loser → LB R3
-    if (ubR2.perdedor && lbR2.vencedor) {
-      lbR3.timeA = lbR2.vencedor;
-      lbR3.timeB = ubR2.perdedor;
-    }
-    // UB Final loser → LB Final
-    if (ubFinal.perdedor && lbR3.vencedor) {
-      lbFinal.timeA = lbR3.vencedor;
-      lbFinal.timeB = ubFinal.perdedor;
-    }
+    // UB R1 loser → LB R2 (individually)
+    if (lbR1.vencedor) lbR2.timeA = lbR1.vencedor;
+    if (ubR1.perdedor) lbR2.timeB = ubR1.perdedor;
+    // UB R2 loser → LB R3 (individually)
+    if (lbR2.vencedor) lbR3.timeA = lbR2.vencedor;
+    if (ubR2.perdedor) lbR3.timeB = ubR2.perdedor;
+    // UB Final loser → LB Final (individually)
+    if (lbR3.vencedor) lbFinal.timeA = lbR3.vencedor;
+    if (ubFinal.perdedor) lbFinal.timeB = ubFinal.perdedor;
 
     // Grand Final
     if (ubFinal.vencedor) gf.timeA = ubFinal.vencedor;

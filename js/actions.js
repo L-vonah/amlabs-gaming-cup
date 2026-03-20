@@ -259,13 +259,15 @@ function iniciarPlayoffs() {
 
   const ok = AppState.popularPlayoffs(state, formatId);
   if (!ok) {
-    UI.showToast('Erro ao iniciar os playoffs. Verifique se há pelo menos 4 times classificados.', 'error');
+    const reqFormat = PlayoffFormats.get(formatId);
+    UI.showToast('Erro ao iniciar os playoffs. Verifique se h\u00e1 pelo menos ' + reqFormat.classified + ' times classificados.', 'error');
     return;
   }
 
+  const format = PlayoffFormats.get(formatId);
   AppState.save(state);
-  AppState.addAuditLog(getAuditUser(), 'Playoffs iniciados com os 4 classificados');
-  UI.showToast('Playoffs iniciados! Chaveamento gerado com os 4 classificados.', 'success');
+  AppState.addAuditLog(getAuditUser(), 'Playoffs iniciados (' + format.name + ') com os ' + format.classified + ' classificados');
+  UI.showToast('Playoffs iniciados! ' + format.name + ' com os ' + format.classified + ' classificados.', 'success');
   UI.navigateTo('bracket');
 }
 
