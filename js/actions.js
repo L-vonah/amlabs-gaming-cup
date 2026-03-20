@@ -295,6 +295,12 @@ function saveInlineResult(partidaId, golsA, golsB) {
   }
 
   const state = AppState.load();
+
+  if (state.campeonato.status === 'playoffs' || state.campeonato.status === 'encerrado') {
+    UI.showToast('N\u00e3o \u00e9 poss\u00edvel editar partidas da fase de grupos durante os playoffs. Refaça os playoffs primeiro.', 'error');
+    return;
+  }
+
   const partida = state.faseGrupos.partidas.find(p => p.id === partidaId);
 
   if (!partida) {
