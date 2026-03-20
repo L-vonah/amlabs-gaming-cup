@@ -83,25 +83,6 @@
       <h1 class="hero-title">1&ordm; Campeonato EA Sports FC<br><span class="highlight">AMLabs 2026</span></h1>
       <p class="hero-subtitle">Fase de grupos todos contra todos + Playoffs com Dupla Elimina&ccedil;&atilde;o (Chave Superior &amp; Inferior)</p>
 
-      <div class="hero-stats">
-        <div class="hero-stat">
-          <div class="hero-stat-value" id="homeStatTimes">0</div>
-          <div class="hero-stat-label">Times</div>
-        </div>
-        <div class="hero-stat">
-          <div class="hero-stat-value" id="homeStatPartidas">0</div>
-          <div class="hero-stat-label">Partidas</div>
-        </div>
-        <div class="hero-stat">
-          <div class="hero-stat-value" id="homeStatConcluidas">0</div>
-          <div class="hero-stat-label">Conclu&iacute;das</div>
-        </div>
-        <div class="hero-stat">
-          <div class="hero-stat-value" id="homeStatGols">0</div>
-          <div class="hero-stat-label">Gols</div>
-        </div>
-      </div>
-
     </div>
 
     <div class="grid-2">
@@ -116,16 +97,28 @@
         <div id="homeLeader"></div>
       </div>
 
-      <!-- Last results -->
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">
-            <span class="section-title-icon icon-bg-green">&#10003;</span>
-            &Uacute;ltimos Resultados
-          </span>
-          <button class="btn btn-sm btn-secondary" onclick="UI.navigateTo('partidas')">Ver todos</button>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <!-- Next matches -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">
+              <span class="section-title-icon icon-bg-blue">&#9654;</span>
+              Pr&oacute;ximas Partidas
+            </span>
+          </div>
+          <div class="card-body" id="homeNextMatches"></div>
         </div>
-        <div class="card-body" id="homeLastResults"></div>
+
+        <!-- Last results -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">
+              <span class="section-title-icon icon-bg-green">&#10003;</span>
+              &Uacute;ltimos Resultados
+            </span>
+          </div>
+          <div class="card-body" id="homeLastResults"></div>
+        </div>
       </div>
     </div>
 

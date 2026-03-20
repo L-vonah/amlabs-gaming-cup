@@ -465,8 +465,12 @@ function calcularEstatisticas(state) {
   const mediaGols = totalPartidas > 0 ? (totalGols / totalPartidas).toFixed(2) : 0;
   const maiorGoleada = allPartidas.reduce((best, p) => {
     const diff = Math.abs(p.golsA - p.golsB);
-    return diff > best.diff ? { diff, partida: p } : best;
-  }, { diff: 0, partida: null });
+    const total = p.golsA + p.golsB;
+    if (diff > best.diff || (diff === best.diff && total > best.total)) {
+      return { diff, total, partida: p };
+    }
+    return best;
+  }, { diff: 0, total: 0, partida: null });
 
   const tabela = calcularClassificacao(state);
 

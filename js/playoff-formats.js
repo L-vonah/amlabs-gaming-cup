@@ -746,12 +746,12 @@ const FORMAT_GAUNTLET_6 = {
   },
 
   miniBracketEntries: [
-    { matchId: 'ub-r1', phase: 'UB R1', color: 'var(--color-upper)' },
-    { matchId: 'ub-r2', phase: 'UB R2', color: 'var(--color-upper)' },
-    { matchId: 'ub-final', phase: 'UB Final', color: 'var(--color-upper)' },
-    { matchId: 'lb-r1', phase: 'LB Oit.', color: 'var(--color-lower)' },
-    { matchId: 'lb-r2', phase: 'LB QF', color: 'var(--color-lower)' },
-    { matchId: 'lb-r3', phase: 'LB SF', color: 'var(--color-lower)' },
+    { matchId: 'ub-r1', phase: 'QF CS', color: 'var(--color-upper)' },
+    { matchId: 'ub-r2', phase: 'SF CS', color: 'var(--color-upper)' },
+    { matchId: 'ub-final', phase: 'Final CS', color: 'var(--color-upper)' },
+    { matchId: 'lb-r1', phase: 'Oit. CI', color: 'var(--color-lower)' },
+    { matchId: 'lb-r2', phase: 'QF CI', color: 'var(--color-lower)' },
+    { matchId: 'lb-r3', phase: 'SF CI', color: 'var(--color-lower)' },
     { matchId: 'lb-final', phase: 'LB Final', color: 'var(--color-lower)' },
     { matchId: 'grand-final', phase: 'GF', color: 'var(--color-champion)' }
   ],
