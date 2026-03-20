@@ -65,7 +65,8 @@ function renderHome() {
           golsA: m.golsA,
           golsB: m.golsB,
           fase: m.fase,
-          id: m.id
+          id: m.id,
+          penaltyWinner: m.penaltyWinner || null
         });
       }
     });
@@ -139,6 +140,10 @@ function renderHome() {
         const nameB = tB ? UI.escapeHtml(tB.nome) : '?';
         const sc = UI.scoreClass(r.golsA, r.golsB);
         const badge = r.type === 'group' ? 'Rodada ' + r.rodada : (r.fase || '');
+        const pA = r.penaltyWinner === r.timeA;
+        const pB = r.penaltyWinner === r.timeB;
+        const winA = r.golsA > r.golsB || pA;
+        const winB = r.golsB > r.golsA || pB;
         return `<div class="match-card">
           <div class="match-round-badge" style="font-size:.6rem">${UI.escapeHtml(badge)}</div>
           <div class="match-desktop">
@@ -148,9 +153,9 @@ function renderHome() {
                 ${UI.renderAvatar(tA, 24)}
               </div>
               <div class="match-score ${sc}">
-                <span class="score-val">${r.golsA}</span>
+                ${pA ? '<span class="penalty-tag">P</span>' : ''}<span class="score-val">${r.golsA}</span>
                 <span class="dash">:</span>
-                <span class="score-val">${r.golsB}</span>
+                <span class="score-val">${r.golsB}</span>${pB ? '<span class="penalty-tag">P</span>' : ''}
               </div>
               <div class="match-team away">
                 ${UI.renderAvatar(tB, 24)}
@@ -163,12 +168,12 @@ function renderHome() {
             <div class="match-mobile-row">
               ${UI.renderAvatar(tA, 28)}
               <span class="match-mobile-name">${nameA}</span>
-              <span class="match-mobile-score ${r.golsA > r.golsB ? 'win' : r.golsA < r.golsB ? 'loss' : ''}">${r.golsA}</span>
+              <span class="match-mobile-score ${winA ? 'win' : winB ? 'loss' : ''}">${r.golsA}${pA ? '<span class="penalty-tag">P</span>' : ''}</span>
             </div>
             <div class="match-mobile-row">
               ${UI.renderAvatar(tB, 28)}
               <span class="match-mobile-name">${nameB}</span>
-              <span class="match-mobile-score ${r.golsB > r.golsA ? 'win' : r.golsB < r.golsA ? 'loss' : ''}">${r.golsB}</span>
+              <span class="match-mobile-score ${winB ? 'win' : winA ? 'loss' : ''}">${r.golsB}${pB ? '<span class="penalty-tag">P</span>' : ''}</span>
             </div>
           </div>
         </div>`;
@@ -205,12 +210,15 @@ function renderHome() {
         const winnerA = m.vencedor === m.timeA;
         const winnerB = m.vencedor === m.timeB;
 
+        const pA = m.penaltyWinner === m.timeA;
+        const pB = m.penaltyWinner === m.timeB;
+
         matchLines += `<div class="bracket-mini-row" style="border-left:3px solid ${entry.color}">
           <span class="bracket-mini-phase">${entry.phase}</span>
           <span class="bracket-mini-team" style="font-weight:${winnerA ? '700' : '400'}">${nameA}</span>
-          <span class="bracket-mini-score">${sA}</span>
+          <span class="bracket-mini-score">${pA ? '<span class="penalty-tag">P</span>' : ''}${sA}</span>
           <span class="bracket-mini-separator">:</span>
-          <span class="bracket-mini-score">${sB}</span>
+          <span class="bracket-mini-score">${sB}${pB ? '<span class="penalty-tag">P</span>' : ''}</span>
           <span class="bracket-mini-team" style="font-weight:${winnerB ? '700' : '400'};text-align:right">${nameB}</span>
         </div>`;
       });

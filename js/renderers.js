@@ -217,14 +217,16 @@ function renderEstatisticas() {
       const p = stats.maiorGoleada.partida;
       const tA = AppState.getTimeById(state, p.timeA);
       const tB = AppState.getTimeById(state, p.timeB);
+      const pWinA = p.penaltyWinner === p.timeA;
+      const pWinB = p.penaltyWinner === p.timeB;
       goleadaEl.innerHTML = `
         <div class="stat-match-row">
           ${UI.renderAvatar(tA, 28)}
-          <span class="stat-match-name ${p.golsA > p.golsB ? 'winner' : ''}">${tA ? UI.escapeHtml(tA.nome) : '?'}</span>
-          <span class="stat-match-score">${p.golsA}</span>
+          <span class="stat-match-name ${p.golsA > p.golsB || pWinA ? 'winner' : ''}">${tA ? UI.escapeHtml(tA.nome) : '?'}</span>
+          <span class="stat-match-score">${pWinA ? '<span class="penalty-tag">P</span>' : ''}${p.golsA}</span>
           <span class="bracket-mini-separator">:</span>
-          <span class="stat-match-score">${p.golsB}</span>
-          <span class="stat-match-name ${p.golsB > p.golsA ? 'winner' : ''}" style="text-align:right">${tB ? UI.escapeHtml(tB.nome) : '?'}</span>
+          <span class="stat-match-score">${p.golsB}${pWinB ? '<span class="penalty-tag">P</span>' : ''}</span>
+          <span class="stat-match-name ${p.golsB > p.golsA || pWinB ? 'winner' : ''}" style="text-align:right">${tB ? UI.escapeHtml(tB.nome) : '?'}</span>
           ${UI.renderAvatar(tB, 28)}
         </div>
         <div class="stat-match-note">Diferen&ccedil;a de ${Math.abs(p.golsA - p.golsB)} gol${Math.abs(p.golsA - p.golsB) !== 1 ? 's' : ''}</div>`;
@@ -240,14 +242,16 @@ function renderEstatisticas() {
       const p = stats.partidaMaisGols.partida;
       const tA = AppState.getTimeById(state, p.timeA);
       const tB = AppState.getTimeById(state, p.timeB);
+      const mgPA = p.penaltyWinner === p.timeA;
+      const mgPB = p.penaltyWinner === p.timeB;
       maisGolsEl.innerHTML = `
         <div class="stat-match-row">
           ${UI.renderAvatar(tA, 28)}
-          <span class="stat-match-name ${p.golsA > p.golsB ? 'winner' : ''}">${tA ? UI.escapeHtml(tA.nome) : '?'}</span>
-          <span class="stat-match-score">${p.golsA}</span>
+          <span class="stat-match-name ${p.golsA > p.golsB || mgPA ? 'winner' : ''}">${tA ? UI.escapeHtml(tA.nome) : '?'}</span>
+          <span class="stat-match-score">${mgPA ? '<span class="penalty-tag">P</span>' : ''}${p.golsA}</span>
           <span class="bracket-mini-separator">:</span>
-          <span class="stat-match-score">${p.golsB}</span>
-          <span class="stat-match-name ${p.golsB > p.golsA ? 'winner' : ''}" style="text-align:right">${tB ? UI.escapeHtml(tB.nome) : '?'}</span>
+          <span class="stat-match-score">${p.golsB}${mgPB ? '<span class="penalty-tag">P</span>' : ''}</span>
+          <span class="stat-match-name ${p.golsB > p.golsA || mgPB ? 'winner' : ''}" style="text-align:right">${tB ? UI.escapeHtml(tB.nome) : '?'}</span>
           ${UI.renderAvatar(tB, 28)}
         </div>
         <div class="stat-match-note">${stats.partidaMaisGols.total} gols na partida</div>`;

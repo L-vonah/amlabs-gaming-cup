@@ -456,7 +456,7 @@ function calcularEstatisticas(state) {
     const format = PlayoffFormats.getSelected(state);
     playoffPartidas = format.getAllMatches(state.playoffs.matches)
       .filter(m => m.vencedor)
-      .map(m => ({ timeA: m.timeA, timeB: m.timeB, golsA: m.golsA, golsB: m.golsB, id: m.id, fase: m.fase }));
+      .map(m => ({ timeA: m.timeA, timeB: m.timeB, golsA: m.golsA, golsB: m.golsB, id: m.id, fase: m.fase, penaltyWinner: m.penaltyWinner || null }));
   }
 
   const allPartidas = [...grupoPartidas, ...playoffPartidas];
