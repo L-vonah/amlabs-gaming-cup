@@ -122,7 +122,7 @@ const INSCRICOES_KEY  = `${KEY_PREFIX}campeonato_amlabs_inscricoes_v1`;
 When `!IS_PROD`, a fixed banner is injected at the top of the page during bootstrap:
 
 ```
-⚠ AMBIENTE DE DESENVOLVIMENTO — dados aqui não são produção
+⚠ AMBIENTE DE DESENVOLVIMENTO — Dados aqui são apenas para testes!
 ```
 
 - Fixed position, full width, high z-index
@@ -148,8 +148,8 @@ campeonatos/
   {uuid-2}/          ← 2º Campeonato EA Sports FC AMLabs 2027
   ...
 
-auditLog/            ← unchanged, already has torneiId field
-inscricoes/          ← unchanged, already has torneiId field
+auditLog/            ← unchanged, already has torneiId field, ensure that it uses the new UUID as a discriminator.
+inscricoes/          ← unchanged, already has torneiId field, ensure that it uses the new UUID as a discriminator.
 ```
 
 The existing `firestore.rules` uses `match /{document=**} { allow read: if true; }` — a recursive wildcard that covers both document reads (`get`) and collection listing (`list`). UUID documents and collection queries are both covered without rule changes.
@@ -296,6 +296,7 @@ function migrateState(state) {
 | `index.html` | **Modified** | `env.js` script tag added first, selector section HTML |
 | `firestore.rules` | **No change** | Wildcard read rule already covers collection listing |
 
+Ensure that all documentation and readme files are properly updated.
 ---
 
 ## Workflow After This Change
