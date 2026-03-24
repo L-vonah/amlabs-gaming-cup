@@ -152,7 +152,7 @@ auditLog/            ← unchanged, already has torneiId field
 inscricoes/          ← unchanged, already has torneiId field
 ```
 
-The existing `firestore.rules` already uses `campeonatos/{id}` (wildcard), so UUID documents are covered without rule changes.
+The existing `firestore.rules` uses `match /{document=**} { allow read: if true; }` — a recursive wildcard that covers both document reads (`get`) and collection listing (`list`). UUID documents and collection queries are both covered without rule changes.
 
 #### 5.3 Tournament Selector (Home Screen)
 
@@ -163,6 +163,22 @@ The site opens on a **tournament selector** when no active tournament is loaded 
 - A "Trocar campeonato" link in the header returns to the selector
 
 Once a tournament is selected, its UUID is stored in `sessionStorage` under key `active_tournament_id`. On new tab, the selector shows again.
+
+**Bootstrap integration in `app.js`:**
+
+The existing `DOMContentLoaded` handler gains a pre-tournament phase:
+
+```
+DOMContentLoaded:
+  1. initAuth()                         ← unchanged (Google auth works before tournament)
+  2. getActiveTournamentId() === null?
+     YES → renderTournamentSelector()   ← new selector screen, stop here
+     NO  → initTournament()             ← existing bootstrap continues
+```
+
+`initTournament()` wraps the existing flow: start Firestore listener, `initNavFromHash()`, render active section. The rest of `app.js` is unchanged.
+
+While in the selector screen, `AppState.load()` must not be called (there is no active tournament to load). The selector only reads from Firestore's `campeonatos/` collection list, which is handled by a new `FirestoreService.listTournaments()` method.
 
 #### 5.4 Tournament Creation
 
@@ -181,18 +197,49 @@ On submit:
 
 #### 5.5 localStorage Keys with Tournament UUID
 
-Final localStorage key format:
+Because `TOURNAMENT_ID` is a runtime value (read from `sessionStorage` after tournament selection), localStorage keys **cannot be module-level constants**. They become getter functions in `state.js` and `firestore-service.js`:
 
 ```javascript
 const KEY_PREFIX = IS_PROD ? '' : 'dev_';
-const STATE_KEY = `${KEY_PREFIX}campeonato_${TOURNAMENT_ID}_v1`;
+
+function getStateKey()      { return `${KEY_PREFIX}campeonato_${getActiveTournamentId()}_v1`; }
+function getAuditKey()      { return `${KEY_PREFIX}campeonato_${getActiveTournamentId()}_audit_v1`; }
+function getInscricoesKey() { return `${KEY_PREFIX}campeonato_${getActiveTournamentId()}_inscricoes_v1`; }
 ```
+
+These functions replace the current constants `STATE_KEY`, `AUDIT_LOG_KEY`, `INSCRICOES_LOCAL_KEY` everywhere they are used.
+
+#### 5.6 TOURNAMENT_ID Ownership
+
+`TOURNAMENT_ID` is no longer a module-level constant in `firestore-service.js`. A single shared getter in `env.js` owns the canonical value:
+
+```javascript
+// env.js
+function getActiveTournamentId() {
+  return sessionStorage.getItem('active_tournament_id');
+}
+
+function setActiveTournamentId(uuid) {
+  sessionStorage.setItem('active_tournament_id', uuid);
+}
+```
+
+Both `state.js` and `firestore-service.js` call `getActiveTournamentId()` directly. No module re-exports or passes it as a parameter — it is a shared ambient value read on demand, consistent with how the codebase already treats globals like `currentUser`.
 
 This isolates each tournament's local cache even within the same environment.
 
 ---
 
-### 6. Schema Versioning (`js/state.js`)
+### 6. Conversion Functions and Schema Version Round-Trip
+
+The existing `convertStateToFirestore()` and `convertFirestoreToState()` functions translate between the localStorage "legacy" format and the Firestore format. `_schemaVersion` must survive this round-trip.
+
+- `convertStateToFirestore()` — must include `_schemaVersion` as a top-level field in the Firestore document
+- `convertFirestoreToState()` — must copy `_schemaVersion` from the Firestore document back to the state object
+
+Tournament `metadata` (name, game) is already a top-level field in the Firestore format. It is **not** stored in localStorage state — it only lives in Firestore. The selector screen reads it directly from the Firestore document, not through `AppState`.
+
+### 7. Schema Versioning (`js/state.js`)
 
 `DEFAULT_STATE` gains a `_schemaVersion` field. On every `_ensureCache()` call, the loaded state passes through `migrateState()` before being returned.
 
@@ -225,19 +272,29 @@ function migrateState(state) {
 
 ---
 
+### 8. GitHub Pages Backup
+
+`l-vonah.github.io` is hardcoded as `production` in `env.js`. GitHub Pages deploys only from `master` branch (configured in the repository settings) — feature branches do not trigger GitHub Pages deploys. There is no risk of a dev branch accidentally writing to production Firestore via GitHub Pages.
+
+---
+
 ## Affected Files
 
-| File | Change type |
-|------|-------------|
-| `js/env.js` | **New** — environment detection |
-| `js/firebase-config.js` | **Modified** — dual config, uses `IS_PROD` |
-| `js/state.js` | **Modified** — dynamic localStorage keys, schema versioning |
-| `js/firestore-service.js` | **Modified** — dynamic keys + tournament ID, tournament CRUD |
-| `js/app.js` | **Modified** — dev banner injection, tournament selector bootstrap |
-| `js/renderers.js` | **Modified** — tournament selector renderer |
-| `js/actions.js` | **Modified** — tournament creation action |
-| `index.html` | **Modified** — add `env.js` script tag (first), selector section |
-| `firestore.rules` | **No change** — already uses wildcard `{id}` |
+| File | Change type | Notes |
+|------|-------------|-------|
+| `js/env.js` | **New** | Environment detection, `getActiveTournamentId()`, `setActiveTournamentId()` |
+| `js/firebase-config.js` | **Modified** | Dual config object, selects by `IS_PROD` |
+| `js/state.js` | **Modified** | Key getters (replace constants), `migrateState()`, `_schemaVersion` in DEFAULT_STATE |
+| `js/firestore-service.js` | **Modified** | `getActiveTournamentId()` instead of constant, `listTournaments()`, `createTournament()` |
+| `js/app.js` | **Modified** | Dev banner injection, pre-tournament bootstrap phase |
+| `js/renderers.js` | **Modified** | Tournament selector renderer |
+| `js/actions.js` | **Modified** | Tournament creation action |
+| `js/renderers-home.js` | **No change** | — |
+| `js/renderers-matches.js` | **No change** | — |
+| `js/ui.js` | **No change** | — |
+| `js/auth.js` | **No change** | — |
+| `index.html` | **Modified** | `env.js` script tag added first, selector section HTML |
+| `firestore.rules` | **No change** | Wildcard read rule already covers collection listing |
 
 ---
 
