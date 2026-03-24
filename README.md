@@ -5,6 +5,8 @@ Plataforma web para gerenciar campeonatos de futebol virtual da AMLabs. Atualmen
 **Site:** https://amlabs-cup.netlify.app
 **Backup:** https://l-vonah.github.io/amlabs-gaming-cup/
 
+> Para detalhes sobre arquitetura, modelo de dados, regras de negocio e guia de mudancas, veja [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
 ## Sobre
 
 Site estatico hospedado no Netlify com autenticacao via Firebase (Google Login) e dados no Firestore. Qualquer pessoa pode visualizar o campeonato; apenas o administrador pode editar.
@@ -12,11 +14,11 @@ Site estatico hospedado no Netlify com autenticacao via Firebase (Google Login) 
 ### Formato do Campeonato
 
 1. **Fase de Grupos** — Todos contra todos (turno unico, sem ida e volta)
-2. **Playoffs** — Os 4 melhores classificados entram em chaveamento de dupla eliminacao:
-   - Chave Superior: 1o vs 4o e 2o vs 3o
-   - Chave Inferior: perdedores tem segunda chance
-   - Grande Final: vencedor da Chave Superior vs vencedor da Chave Inferior
-3. **Vantagem na Final** — O time que chega pela Chave Superior (sem derrota) escolhe a configuracao de jogo
+2. **Playoffs** — 3 formatos configuraveis:
+   - **Dupla Eliminacao (4 times)** — 1o vs 4o, 2o vs 3o, chaves superior e inferior, grande final
+   - **Play-In (6 times)** — 1o e 2o tem bye nas quartas, cruzamento na chave inferior
+   - **Escada/Gauntlet (6 times)** — 1o entra direto na final superior, cascata linear, 5o-6o sem 2a chance
+3. **Vantagem na Grande Final** — O time que chega pela Chave Superior tem vantagem de ban
 
 ### Criterios de Classificacao
 
@@ -27,67 +29,14 @@ Site estatico hospedado no Netlify com autenticacao via Firebase (Google Login) 
 | Derrota | 0 pontos |
 | Desempate | Pontos > Vitorias > Saldo de Gols > Gols Marcados > Confronto Direto |
 
-## Arquitetura
+## Stack
 
 ```
-Netlify (hospedagem + deploy automatico)
-  |
-  +-- Firebase Auth (Google Login)
-  |     - Apenas vonah.dev@gmail.com pode editar
-  |     - Visitantes veem tudo sem login
-  |
-  +-- Firebase Firestore (banco de dados)
-        - campeonatos/{tournamentId} (dados do torneio)
-        - inscricoes/{auto-id} (solicitacoes de inscricao)
-        - auditLog/{auto-id} (historico de alteracoes)
-        - Cache offline via enablePersistence()
-```
-
-### Estrutura de Arquivos
-
-```
-amlabs-gaming-cup/
-  index.html                 Pagina principal (SPA)
-  css/style.css              Estilos (tema claro AMLabs)
-  js/
-    firebase-config.js       Configuracao do Firebase
-    auth.js                  Login/logout Google
-    firestore-service.js     CRUD Firestore + cache
-    state.js                 Gerenciamento de estado + classificacao + estatisticas
-    ui.js                    Helpers de UI (toast, modal, avatar, navegacao)
-    renderers-home.js        Home: dashboard, banner campeao, mini tabela/bracket
-    renderers-matches.js     Partidas: fase de grupos, playoffs, bracket desktop/mobile
-    renderers.js             Times, classificacao, estatisticas, regras, historico, inscricoes
-    actions.js               Handlers de eventos do usuario
-    app.js                   Bootstrap: navegacao, score modal, mobile bar, inicializacao
-  assets/
-    logo-amlabs.png          Logo AMLabs
-  firestore.rules            Regras de seguranca do Firestore
-```
-
-### Ordem de Carregamento (importante)
-
-```
-firebase-config.js → auth.js → firestore-service.js → state.js → ui.js
-→ renderers-matches.js → renderers-home.js → renderers.js → actions.js → app.js
-```
-
-Todos os scripts usam o escopo global. A ordem importa porque cada arquivo depende dos anteriores.
-
-### Modelo de Dados
-
-O campeonato e um **aggregate root** auto-contido:
-
-```json
-{
-  "id": "amlabs-2026",
-  "metadata": { "nome", "jogo", "ano", "status" },
-  "config": { "formato", "regrasClassificacao" },
-  "times": [...],
-  "faseGrupos": { "partidas": [...] },
-  "playoffs": { "upperBracket", "lowerBracket", "grandFinal" },
-  "campeao": null
-}
+Frontend:   HTML5 + CSS3 + Vanilla JavaScript (sem frameworks)
+Auth:       Firebase Authentication (Google Login)
+Banco:      Firebase Firestore (Spark Plan - gratuito)
+Hosting:    Netlify (deploy automatico) + GitHub Pages (backup)
+Build:      Nenhum — arquivos estaticos
 ```
 
 ## Deploy
@@ -137,7 +86,7 @@ npx netlify deploy --dir=. --prod
 
 ### Backup (GitHub Pages)
 
-O GitHub Pages esta ativo como fallback caso os creditos do Netlify acabem. Ele faz deploy automatico de todo push no master, sem limite de creditos.
+O GitHub Pages esta ativo como fallback caso os creditos do Netlify acabem. Deploy automatico de todo push no master, sem limite de creditos.
 
 - **URL:** https://l-vonah.github.io/amlabs-gaming-cup/
 - Nao tem preview por PR
@@ -197,7 +146,7 @@ git push origin master
    - Cadastrar/editar/remover times
    - Gerar fase de grupos
    - Registrar/editar resultados
-   - Iniciar playoffs
+   - Escolher formato de playoff e iniciar
    - Refazer playoffs
 4. Todas as alteracoes sao registradas no historico de auditoria
 
@@ -223,3 +172,9 @@ Se `firebase-config.js` tiver PLACEHOLDERs, o site roda em modo local usando loc
 ### Modo Producao (com Firebase)
 
 Com as credenciais do Firebase configuradas, o site usa Firestore como fonte de verdade com cache offline. Apenas o admin autenticado pode editar.
+
+### Documentacao Tecnica
+
+Para detalhes sobre arquitetura, modelo de dados, regras de negocio, e orientacoes para modificar o codigo:
+
+**[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**
