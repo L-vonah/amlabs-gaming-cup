@@ -37,5 +37,5 @@ if (FIREBASE_CONFIGURED) {
   db.settings({ cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED, merge: true });
   db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
 } else {
-  console.info('[AMLabs Gaming Cup] Firebase not configured. Running in localStorage mode.');
+  console.info('[Campeonatos AMLabs] Firebase not configured.');
 }

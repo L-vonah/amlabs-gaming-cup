@@ -122,14 +122,6 @@ function getStatusLabel(status) {
   return map[status] || status;
 }
 
-function updateHeaderBadge(status) {
-  const badge = document.getElementById('headerStatusBadge');
-  if (badge) {
-    badge.className = `badge-status ${status}`;
-    badge.textContent = getStatusLabel(status);
-  }
-}
-
 // ------------------------------------------------------------------
 // Lifecycle bar
 // ------------------------------------------------------------------
@@ -226,7 +218,6 @@ window.UI = {
   openModal,
   closeModal,
   navigateTo,
-  updateHeaderBadge,
   updateLifecycleBar,
   getFormValue,
   clearForm,

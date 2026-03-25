@@ -12,7 +12,7 @@ function isAdmin() {
 
 function initAuth() {
   if (!FIREBASE_CONFIGURED) {
-    // In localStorage mode, show admin controls by default (local use)
+    // Without Firebase, show admin controls by default (local dev)
     currentUser = { email: ADMIN_EMAIL, displayName: 'Admin Local' };
     updateAdminUI();
     return;

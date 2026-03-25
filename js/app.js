@@ -257,7 +257,6 @@ UI.navigateTo = function(section) {
   _origNavigateTo(section);
   updateMobileTabBar(section);
   const st = AppState.loadReadOnly();
-  UI.updateHeaderBadge(st.campeonato.status);
   UI.updateLifecycleBar(st.campeonato.status);
 };
 
@@ -321,26 +320,69 @@ document.addEventListener('click', (e) => {
 // Boot
 // ------------------------------------------------------------------
 
+function showLoadingState() {
+  document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+  const main = document.querySelector('.main-content');
+  if (!main) return;
+  let loader = document.getElementById('appLoadingState');
+  if (!loader) {
+    loader = document.createElement('div');
+    loader.id = 'appLoadingState';
+    loader.className = 'app-loading-state';
+    loader.innerHTML = '<div class="loading-spinner"></div><p>Carregando campeonato...</p>';
+    main.appendChild(loader);
+  }
+  loader.style.display = 'flex';
+}
+
+function showErrorState(message) {
+  document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+  const loader = document.getElementById('appLoadingState');
+  if (loader) loader.style.display = 'none';
+  const main = document.querySelector('.main-content');
+  if (!main) return;
+  let error = document.getElementById('appErrorState');
+  if (!error) {
+    error = document.createElement('div');
+    error.id = 'appErrorState';
+    error.className = 'app-error-state';
+    main.appendChild(error);
+  }
+  error.innerHTML = `
+    <div class="error-icon">⚠</div>
+    <p class="error-title">Falha ao carregar</p>
+    <p class="error-message">${UI.escapeHtml(message)}</p>
+    <button class="btn btn-primary" onclick="clearActiveTournamentId(); location.reload();">Voltar aos campeonatos</button>
+  `;
+  error.style.display = 'flex';
+}
+
+function hideLoadingState() {
+  const loader = document.getElementById('appLoadingState');
+  if (loader) loader.style.display = 'none';
+  const error = document.getElementById('appErrorState');
+  if (error) error.style.display = 'none';
+}
+
 /**
  * Show the tournament selector screen — portal mode.
- * Hides all tournament-specific UI (nav, lifecycle bar, badge, trocar button).
  */
 function openTournamentSelector() {
   document.body.classList.add('portal-mode');
 
   // Hide tournament-specific elements
-  const mainNav = document.getElementById('mainNav');
-  const badge = document.getElementById('headerStatusBadge');
-  const mobileBar = document.querySelector('.mobile-nav-bar');
-  const btnTrocar = document.getElementById('btnTrocar');
+  const navBar = document.getElementById('navBar');
+  const mobileBottomBar = document.getElementById('mobileBottomBar');
+  const mobileMoreOverlay = document.getElementById('mobileMoreOverlay');
   const lifecycleBar = document.getElementById('lifecycleBar');
-  const tournamentName = document.getElementById('headerTournamentName');
-  if (mainNav) mainNav.style.display = 'none';
-  if (badge) badge.style.display = 'none';
-  if (mobileBar) mobileBar.style.display = 'none';
-  if (btnTrocar) btnTrocar.style.display = 'none';
+  const tournamentTrigger = document.getElementById('tournamentTrigger');
+  if (navBar) navBar.style.display = 'none';
+  if (mobileBottomBar) mobileBottomBar.style.display = 'none';
+  if (mobileMoreOverlay) mobileMoreOverlay.style.display = 'none';
   if (lifecycleBar) lifecycleBar.style.display = 'none';
-  if (tournamentName) tournamentName.style.display = 'none';
+  if (tournamentTrigger) tournamentTrigger.style.display = 'none';
+
+  hideLoadingState();
 
   // Hide all content sections, show selector
   document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
@@ -356,26 +398,60 @@ function openTournamentSelector() {
 window.openTournamentSelector = openTournamentSelector;
 
 /**
- * Enter tournament mode — show all tournament-specific UI.
+ * Enter tournament mode — async, waits for Firestore data.
  */
-function initTournament() {
+async function initTournament() {
   document.body.classList.remove('portal-mode');
 
-  // Show tournament-specific elements
-  const btnTrocar = document.getElementById('btnTrocar');
-  const lifecycleBar = document.getElementById('lifecycleBar');
-  if (btnTrocar) btnTrocar.style.display = '';
-  if (lifecycleBar) lifecycleBar.style.display = '';
+  // Show loading while Firestore loads
+  showLoadingState();
 
-  // Set tournament name in header
-  const tournamentName = document.getElementById('headerTournamentName');
-  if (tournamentName) {
-    const state = AppState.loadReadOnly();
-    const nome = state.campeonato ? state.campeonato.nome : '';
-    tournamentName.textContent = nome;
-    tournamentName.style.display = nome ? '' : 'none';
-    document.title = nome ? nome + ' — Campeonatos AMLabs' : 'Campeonatos AMLabs';
+  // Show nav bar, tournament trigger
+  const navBar = document.getElementById('navBar');
+  const lifecycleBar = document.getElementById('lifecycleBar');
+  const tournamentTrigger = document.getElementById('tournamentTrigger');
+  if (navBar) navBar.style.display = '';
+  if (lifecycleBar) lifecycleBar.style.display = '';
+  if (tournamentTrigger) tournamentTrigger.style.display = '';
+
+  // Start listener — returns Promise that resolves on first snapshot
+  try {
+    if (typeof FirestoreService !== 'undefined' && FirestoreService.isActive()) {
+      await FirestoreService.startListener((data, error) => {
+        if (error) return;
+        if (data && data.metadata) {
+          const tn = document.getElementById('tournamentTriggerName');
+          if (tn) tn.textContent = data.metadata.nome;
+          document.title = data.metadata.nome + ' — Campeonatos AMLabs';
+        }
+        const active = document.querySelector('.nav-link.active');
+        if (active) {
+          const section = active.getAttribute('data-nav');
+          if (window.Renderers && window.Renderers[section]) {
+            window.Renderers[section]();
+          }
+        }
+      });
+    } else {
+      throw new Error('Firebase não configurado');
+    }
+  } catch (error) {
+    console.error('Failed to load tournament:', error);
+    showErrorState(error.message === 'Tournament not found'
+      ? 'Campeonato não encontrado. Ele pode ter sido removido.'
+      : 'Não foi possível conectar ao servidor. Verifique sua conexão.');
+    return;
   }
+
+  hideLoadingState();
+
+  // Update header with tournament name
+  const state = AppState.loadReadOnly();
+  const tournamentName = document.getElementById('tournamentTriggerName');
+  if (tournamentName) {
+    tournamentName.textContent = state.campeonato.nome || 'Campeonato';
+  }
+  document.title = (state.campeonato.nome || 'Campeonato') + ' — Campeonatos AMLabs';
 
   updateInscricoesVisibility();
 
@@ -384,30 +460,79 @@ function initTournament() {
   if (inputCorTimo) inputCorTimo.value = UI.getRandomColor();
   if (inputInscCor) inputInscCor.value = UI.getRandomColor();
 
-  if (typeof FirestoreService !== 'undefined' && FirestoreService.isActive()) {
-    FirestoreService.startListener((data) => {
-      // Update tournament name from Firestore data
-      if (data && data.metadata && data.metadata.nome) {
-        const tn = document.getElementById('headerTournamentName');
-        if (tn) {
-          tn.textContent = data.metadata.nome;
-          tn.style.display = '';
-          document.title = data.metadata.nome + ' — Campeonatos AMLabs';
-        }
-      }
-
-      const active = document.querySelector('.nav-link.active');
-      if (active) {
-        const section = active.getAttribute('data-nav');
-        if (window.Renderers && window.Renderers[section]) {
-          window.Renderers[section]();
-        }
-      }
-    });
-  }
-
   initNavFromHash();
 }
+
+// ------------------------------------------------------------------
+// Tournament Dropdown
+// ------------------------------------------------------------------
+
+async function openTournamentDropdown() {
+  const dropdown = document.getElementById('tournamentDropdown');
+  if (!dropdown) return;
+  dropdown.style.display = 'block';
+
+  const listContainer = document.getElementById('dropdownTorneioList');
+  if (!listContainer) return;
+  listContainer.innerHTML = '<p style="padding:8px 12px;font-size:0.8rem;color:var(--color-text-muted);">Carregando...</p>';
+
+  const activeId = getActiveTournamentId();
+  let torneiros = [];
+  if (typeof FirestoreService !== 'undefined' && FirestoreService.isActive()) {
+    torneiros = await FirestoreService.listTournaments();
+  }
+
+  const statusLabel = { configuracao: 'Inscrições', grupos: 'Grupos', playoffs: 'Playoffs', encerrado: 'Encerrado' };
+  const statusClass = { configuracao: 'badge-configuracao', grupos: 'badge-grupos', playoffs: 'badge-playoffs', encerrado: 'badge-encerrado' };
+
+  if (torneiros.length === 0) {
+    listContainer.innerHTML = '<p style="padding:8px 12px;font-size:0.8rem;color:var(--color-text-muted);">Nenhum campeonato.</p>';
+    return;
+  }
+
+  listContainer.innerHTML = torneiros.map(t => `
+    <div class="dropdown-item${t.id === activeId ? ' dropdown-item-active' : ''}"
+         onclick="enterTournament('${UI.escapeHtml(t.id)}')">
+      <div class="dropdown-item-info">
+        <span class="dropdown-item-name">${UI.escapeHtml(t.nome)}</span>
+        <span class="dropdown-item-meta">${UI.escapeHtml(t.jogo)}${t.criadoEm ? ' · ' + new Date(t.criadoEm).toLocaleDateString('pt-BR') : ''}</span>
+      </div>
+      <span class="dropdown-item-badge ${statusClass[t.status] || ''}">${statusLabel[t.status] || t.status}</span>
+    </div>
+  `).join('');
+}
+
+function closeTournamentDropdown() {
+  const dropdown = document.getElementById('tournamentDropdown');
+  if (dropdown) dropdown.style.display = 'none';
+}
+
+function toggleTournamentDropdown() {
+  const dropdown = document.getElementById('tournamentDropdown');
+  if (!dropdown) return;
+  if (dropdown.style.display === 'block') {
+    closeTournamentDropdown();
+  } else {
+    openTournamentDropdown();
+  }
+}
+
+window.toggleTournamentDropdown = toggleTournamentDropdown;
+window.closeTournamentDropdown = closeTournamentDropdown;
+
+document.addEventListener('click', (e) => {
+  const dropdown = document.getElementById('tournamentDropdown');
+  const trigger = document.getElementById('tournamentTrigger');
+  if (dropdown && dropdown.style.display === 'block') {
+    if (!dropdown.contains(e.target) && (!trigger || !trigger.contains(e.target))) {
+      closeTournamentDropdown();
+    }
+  }
+});
+
+// ------------------------------------------------------------------
+// DOMContentLoaded
+// ------------------------------------------------------------------
 
 document.addEventListener('DOMContentLoaded', () => {
   // Dev banner — only shown outside production

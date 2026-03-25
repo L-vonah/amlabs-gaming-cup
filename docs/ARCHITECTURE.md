@@ -111,9 +111,8 @@ O `uuid` é o ID do campeonato ativo (lido de `sessionStorage` via `getActiveTou
 {
   _schemaVersion: 1,        // versão do schema — usado por migrateState()
   campeonato: {
-    nome: '1º Campeonato EA Sports FC AMLabs 2026',
-    edicao: 1,
-    temporada: '2026',
+    nome: '',               // preenchido pelo Firestore
+    jogo: '',               // preenchido pelo Firestore
     status: 'configuracao'  // configuracao | grupos | playoffs | encerrado
   },
   config: {
@@ -396,14 +395,14 @@ O `app.js` sobrescreve `Renderers.home` e `Renderers.classificacao` com wrappers
 
 `calcularClassificacao()` armazena o resultado em `_classificacaoCache`. O cache é invalidado quando `saveState()` é chamado. Funciona comparando referência de objeto (`state === _ensureCache()`), então só funciona com `loadReadOnly()`.
 
-### 8.4 Persistência Dual-Layer
+### 8.4 Persistência — Firestore como Fonte Única
 
 ```
                 ADMIN                              VISITANTE
                   │                                    │
      AppState.save()                        Firestore onSnapshot
           │                                        │
-     localStorage ──→ Firestore (async)       Firestore ──→ localStorage
+     cache memória ──→ Firestore            Firestore ──→ cache memória
           │              ▲                         │
      renderiza           │                    renderiza
           │         saveTournament()                │
@@ -411,16 +410,19 @@ O `app.js` sobrescreve `Renderers.home` e `Renderers.classificacao` com wrappers
         [DOM]       (apenas admin)              [DOM]
 ```
 
-- **Admin:** escreve no localStorage, sincroniza pro Firestore async via `saveTournament()`
-- **Visitante:** recebe updates do Firestore via `onSnapshot()`, que sobrescreve o localStorage local
-- **Offline:** Firestore persistence (IndexedDB) mantém dados locais. Se Firebase cair, tudo continua funcionando via localStorage
+- **Firestore** é a única fonte de verdade. **Não usa localStorage.**
+- **sessionStorage** armazena apenas `active_tournament_id` (UUID do campeonato ativo)
+- **Cache em memória** (`_stateCache`) é alimentado pelo listener em tempo real via `feedFromFirestore()`
+- **Admin:** `AppState.save()` atualiza cache + escreve no Firestore
+- **Visitante:** recebe updates do Firestore via `onSnapshot()` → `feedFromFirestore()` → re-renderiza
+- **Falha do Firebase:** mostra tela de erro ("Não foi possível conectar ao servidor")
 
 ### 8.5 Conversão de Formato
 
-O localStorage usa formato "legado" (flat). O Firestore usa formato "DDD" (com `metadata`, `config.regrasClassificacao`, etc.). Duas funções fazem a conversão:
+O cache em memória usa formato "state" (flat). O Firestore usa formato "DDD" (com `metadata`, `config.regrasClassificacao`, etc.). Duas funções fazem a conversão:
 
-- `convertStateToFirestore(state)` — legado → DDD (ao salvar)
-- `convertFirestoreToState(data)` — DDD → legado (ao receber do listener)
+- `convertStateToFirestore(state)` — state → DDD (ao salvar)
+- `convertFirestoreToState(data)` — DDD → state (ao receber do listener via `feedFromFirestore`)
 
 ---
 
@@ -600,17 +602,15 @@ Dois projetos Firebase (ambos Spark/gratuito), selecionados em runtime por `env.
 - **Publish:** `/` (root)
 - **Deploy automático:** git push master → Netlify
 
-### 11.3 Chaves de localStorage
+### 11.3 Armazenamento do Browser
 
-As chaves são geradas dinamicamente por funções getter em `state.js` e `firestore-service.js`, incluindo o UUID do campeonato ativo e o prefixo de ambiente:
+**localStorage não é utilizado.** Toda persistência está no Firestore.
 
-| Padrão da chave | Conteúdo |
-|-----------------|----------|
-| `{prefix}campeonato_{uuid}_v1` | Estado completo do campeonato |
-| `{prefix}campeonato_{uuid}_audit_v1` | Log de auditoria local |
-| `{prefix}campeonato_{uuid}_inscricoes_v1` | Inscrições (fallback quando Firebase offline) |
+**sessionStorage** armazena apenas:
 
-Onde `prefix` é `''` em produção e `'dev_'` em desenvolvimento. O `uuid` é o ID do campeonato ativo (via `getActiveTournamentId()`).
+| Chave | Conteúdo |
+|-------|----------|
+| `active_tournament_id` | UUID do campeonato ativo na aba atual |
 
 ### 11.4 sessionStorage
 
@@ -736,3 +736,26 @@ O `sessionStorage` mantém o torneio ativo por aba. Abrir uma nova aba volta ao 
 1. Incremente `CURRENT_SCHEMA_VERSION` em `state.js`
 2. Adicione um bloco `if (version < N)` em `migrateState()`
 3. Documente a mudança neste arquivo
+
+### 16.4 Header e Navegação
+
+Header de duas linhas:
+- **Linha 1 (top bar):** Logo AMLabs + dropdown trigger do campeonato ativo
+- **Linha 2 (nav bar):** Navegação horizontal — todas as seções visíveis
+
+O dropdown trigger mostra o nome do campeonato ativo. Clicar abre um dropdown com a lista de todos os campeonatos + botão "Novo Campeonato" (admin only). Clicar num campeonato faz reload na página com o novo UUID.
+
+### 16.5 Responsividade e Mobile
+
+**Breakpoint:** 768px
+
+| Elemento | Desktop (>768px) | Mobile (≤768px) |
+|----------|-------------------|------------------|
+| Header top bar | 56px, logo + trigger | 48px, compacto |
+| Header nav bar | 44px, nav horizontal | Oculta (`display: none`) |
+| Bottom tab bar | Oculta | 60px fixo no bottom, 5 tabs |
+| "Mais" sheet | N/A | Bottom sheet com grid 4 colunas |
+| Lifecycle bar | Barra com steps | Oculta (mobile usa lifecycle no dashboard) |
+| Footer | Visível | Oculta (admin vai no "Mais") |
+| Tournament dropdown | 380px absolute | Full-width |
+| Portal mode | Landing page, sem nav/bottom bar | Landing page, sem bottom bar |

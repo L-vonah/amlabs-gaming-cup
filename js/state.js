@@ -1,22 +1,14 @@
 /**
- * State Manager — 1o Campeonato EA Sports FC AMLabs
- * Centralized data layer using localStorage for persistence
+ * State Manager — Campeonatos AMLabs
+ * Centralized data layer. Firestore is the single source of truth.
+ * In-memory cache (_stateCache) is fed by the Firestore real-time listener.
  */
-
-function getStateKey() {
-  return STORAGE_PREFIX + 'campeonato_' + getActiveTournamentId() + '_v1';
-}
-
-function getAuditKey() {
-  return STORAGE_PREFIX + 'campeonato_' + getActiveTournamentId() + '_audit_v1';
-}
 
 const DEFAULT_STATE = {
   _schemaVersion: 1,
   campeonato: {
-    nome: '1º Campeonato EA Sports FC AMLabs 2026',
-    edicao: 1,
-    temporada: '2026',
+    nome: '',
+    jogo: '',
     status: 'configuracao' // configuracao | grupos | playoffs | encerrado
   },
   config: {
@@ -69,16 +61,22 @@ function migrateState(state) {
 
 function _ensureCache() {
   if (!_stateCache) {
-    try {
-      const raw = localStorage.getItem(getStateKey());
-      const parsed = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(DEFAULT_STATE));
-      _stateCache = migrateState(parsed);
-    } catch (e) {
-      console.error('Erro ao carregar estado:', e);
-      _stateCache = JSON.parse(JSON.stringify(DEFAULT_STATE));
-    }
+    _stateCache = JSON.parse(JSON.stringify(DEFAULT_STATE));
   }
   return _stateCache;
+}
+
+/**
+ * Feed state cache from Firestore snapshot data.
+ * Called by FirestoreService.startListener on every update.
+ */
+function feedFromFirestore(firestoreData) {
+  if (!firestoreData) return;
+  const legacyState = convertFirestoreToState(firestoreData);
+  if (legacyState) {
+    _stateCache = migrateState(legacyState);
+    _classificacaoCache = null;
+  }
 }
 
 /**
@@ -100,14 +98,13 @@ function saveState(state) {
   try {
     _classificacaoCache = null;
     _stateCache = JSON.parse(JSON.stringify(state));
-    localStorage.setItem(getStateKey(), JSON.stringify(state));
 
-    // Sync to Firestore if configured and admin
+    // Save to Firestore (single source of truth)
     if (typeof FirestoreService !== 'undefined' && FirestoreService.isActive() && UI.checkAdmin()) {
       const firestoreData = convertStateToFirestore(state);
       FirestoreService.saveTournament(firestoreData).then(ok => {
         if (!ok && typeof UI !== 'undefined') {
-          UI.showToast('Erro ao sincronizar com o servidor. Dados salvos localmente.', 'error');
+          UI.showToast('Erro ao salvar no servidor. Tente novamente.', 'error');
         }
       });
     }
@@ -120,7 +117,7 @@ function saveState(state) {
 }
 
 /**
- * Convert legacy localStorage state to DDD Firestore format.
+ * Convert state to Firestore DDD format.
  */
 function convertStateToFirestore(state) {
   return {
@@ -128,14 +125,14 @@ function convertStateToFirestore(state) {
     _schemaVersion: state._schemaVersion || 1,
     metadata: {
       nome: state.campeonato.nome,
-      jogo: 'EA Sports FC',
-      ano: parseInt(state.campeonato.temporada) || 2026,
+      jogo: state.campeonato.jogo || '',
       status: state.campeonato.status,
       criadoEm: state._criadoEm || new Date().toISOString(),
       atualizadoEm: new Date().toISOString()
     },
     config: {
       formato: 'grupos+playoffs',
+      classificadosPorGrupo: state.config.classificadosPorGrupo || 4,
       regrasClassificacao: {
         vitoria: state.config.pontosPorVitoria,
         empate: state.config.pontosPorEmpate,
@@ -159,8 +156,7 @@ function convertFirestoreToState(data) {
     _schemaVersion: data._schemaVersion || 0,
     campeonato: {
       nome: data.metadata.nome,
-      edicao: 1,
-      temporada: String(data.metadata.ano),
+      jogo: data.metadata.jogo || '',
       status: data.metadata.status
     },
     config: {
@@ -178,8 +174,8 @@ function convertFirestoreToState(data) {
 }
 
 function resetState() {
-  localStorage.removeItem(getStateKey());
-  localStorage.removeItem(getAuditKey());
+  _stateCache = null;
+  _classificacaoCache = null;
   return JSON.parse(JSON.stringify(DEFAULT_STATE));
 }
 
@@ -194,36 +190,16 @@ function resetState() {
  * @param {object} [detalhes] - Optional extra details
  */
 function addAuditLog(usuario, acao, detalhes) {
-  try {
-    const raw = localStorage.getItem(getAuditKey());
-    const logs = raw ? JSON.parse(raw) : [];
-    logs.push({
-      id: 'log_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-      timestamp: new Date().toISOString(),
-      usuario: usuario || 'Anonimo',
-      acao,
-      detalhes: detalhes || null
-    });
-    // Keep up to 500 entries
-    if (logs.length > 500) logs.splice(0, logs.length - 500);
-    localStorage.setItem(getAuditKey(), JSON.stringify(logs));
-
-    // Also write to Firestore if available
-    if (typeof FirestoreService !== 'undefined' && FirestoreService.isActive()) {
-      FirestoreService.addAuditLog(acao, detalhes);
-    }
-  } catch (e) {
-    console.error('Erro ao gravar log de auditoria:', e);
+  if (typeof FirestoreService !== 'undefined' && FirestoreService.isActive()) {
+    FirestoreService.addAuditLog(acao, detalhes);
   }
 }
 
-function loadAuditLog() {
-  try {
-    const raw = localStorage.getItem(getAuditKey());
-    return raw ? JSON.parse(raw) : [];
-  } catch (e) {
-    return [];
+async function loadAuditLog() {
+  if (typeof FirestoreService !== 'undefined' && FirestoreService.isActive()) {
+    return FirestoreService.loadAuditLog();
   }
+  return [];
 }
 
 // ------------------------------------------------------------------
@@ -630,6 +606,7 @@ window.AppState = {
   loadReadOnly: loadStateReadOnly,
   save: saveState,
   reset: resetState,
+  feedFromFirestore,
   addAuditLog,
   loadAuditLog,
   addTime,
@@ -646,8 +623,5 @@ window.AppState = {
   getCampeao: _getCampeao,
   convertStateToFirestore,
   convertFirestoreToState,
-  invalidateCache,
-  isFirestoreMode() {
-    return typeof FirestoreService !== 'undefined' && FirestoreService.isActive();
-  }
+  invalidateCache
 };

@@ -434,10 +434,11 @@ function executeReset() {
 // Export data
 // ------------------------------------------------------------------
 
-function exportData() {
+async function exportData() {
   const state = AppState.load();
-  const auditLog = AppState.loadAuditLog();
-  const json = JSON.stringify({ state, auditLog }, null, 2);
+  const auditLog = await AppState.loadAuditLog();
+  const exportObj = { state, auditLog, exportDate: new Date().toISOString(), version: '2.0' };
+  const json = JSON.stringify(exportObj, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -618,43 +619,35 @@ window.resetPlayoffs = resetPlayoffs;
 // Import / Export
 // ------------------------------------------------------------------
 
-function importData(event) {
+async function importData(event) {
+  if (!UI.checkAdmin()) return;
   const file = event.target.files[0];
   if (!file) return;
 
-  // Limit import size to 5MB to prevent DoS
   if (file.size > 5 * 1024 * 1024) {
     UI.showToast('Arquivo muito grande. Limite: 5MB.', 'error');
     return;
   }
 
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const data = JSON.parse(e.target.result);
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
 
-      // Validate structure
-      const stateObj = data.state || data;
-      if (!stateObj || typeof stateObj !== 'object' ||
-          !stateObj.campeonato || typeof stateObj.campeonato !== 'object' ||
-          !Array.isArray(stateObj.times) ||
-          !stateObj.faseGrupos || typeof stateObj.faseGrupos !== 'object') {
-        UI.showToast('Arquivo inv\u00e1lido: estrutura de dados n\u00e3o reconhecida (campeonato, times, faseGrupos).', 'error');
-        return;
-      }
-
-      // Support both old format (plain state) and new format (wrapped)
-      if (data.state) {
-        localStorage.setItem('campeonato_amlabs_v1', JSON.stringify(data.state));
-        if (data.auditLog) localStorage.setItem('campeonato_amlabs_audit_v1', JSON.stringify(data.auditLog));
-      } else {
-        localStorage.setItem('campeonato_amlabs_v1', JSON.stringify(data));
-      }
-      UI.showToast('Dados importados com sucesso!', 'success');
-      location.reload();
-    } catch {
-      UI.showToast('Arquivo inválido.', 'error');
+    const stateObj = data.state || data;
+    if (!stateObj || typeof stateObj !== 'object' ||
+        !stateObj.campeonato || typeof stateObj.campeonato !== 'object' ||
+        !Array.isArray(stateObj.times) ||
+        !stateObj.faseGrupos || typeof stateObj.faseGrupos !== 'object') {
+      UI.showToast('Arquivo inválido: estrutura não reconhecida.', 'error');
+      return;
     }
-  };
-  reader.readAsText(file);
+
+    // Save to Firestore via AppState
+    AppState.save(stateObj);
+    UI.showToast('Dados importados com sucesso!', 'success');
+    location.reload();
+  } catch (err) {
+    console.error('Import error:', err);
+    UI.showToast('Erro ao importar: ' + err.message, 'error');
+  }
 }

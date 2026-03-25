@@ -1,6 +1,6 @@
 /**
  * Environment Detection — AMLabs Gaming Cup
- * Must be the first script loaded. Exposes APP_ENV, IS_PROD, STORAGE_PREFIX.
+ * Must be the first script loaded. Exposes APP_ENV, IS_PROD.
  */
 
 const APP_ENV = (() => {
@@ -12,10 +12,6 @@ const APP_ENV = (() => {
 })();
 
 const IS_PROD = APP_ENV === 'production';
-
-// Prefix for localStorage keys. Prevents dev data from colliding with prod
-// when the same browser has both environments open simultaneously.
-const STORAGE_PREFIX = IS_PROD ? '' : 'dev_';
 
 // ------------------------------------------------------------------
 // Active Tournament Session

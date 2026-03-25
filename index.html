@@ -16,15 +16,34 @@
      HEADER
      =============================================================== -->
 <header class="site-header">
-  <div class="header-inner">
+  <!-- Line 1: Top bar — logo + tournament trigger -->
+  <div class="header-top-bar" id="headerTopBar">
     <a class="site-logo" id="siteLogo" onclick="UI.navigateTo('home')" style="cursor:pointer">
       <img src="assets/logo-amlabs.png" alt="AMLabs" class="logo-img">
       <span class="logo-text">Campeonatos <span>AMLabs</span></span>
     </a>
 
-    <!-- Tournament name — shown only inside a tournament -->
-    <span class="header-tournament-name" id="headerTournamentName" style="display:none;"></span>
+    <!-- Tournament selector trigger (hidden in portal mode) -->
+    <div class="tournament-trigger" id="tournamentTrigger" style="display:none;"
+         onclick="toggleTournamentDropdown()">
+      <span class="tournament-trigger-name" id="tournamentTriggerName">Campeonato</span>
+      <span class="tournament-trigger-chevron" id="tournamentTriggerChevron">&#9660;</span>
+    </div>
 
+    <!-- Tournament dropdown -->
+    <div class="tournament-dropdown" id="tournamentDropdown" style="display:none;">
+      <div class="dropdown-title">Campeonatos</div>
+      <div id="dropdownTorneioList"></div>
+      <hr class="dropdown-divider">
+      <div class="dropdown-create admin-only" style="display:none;"
+           onclick="closeTournamentDropdown(); UI.openModal('modalCreateTournament');">
+        <span>+</span> Novo Campeonato
+      </div>
+    </div>
+  </div>
+
+  <!-- Line 2: Nav bar (hidden in portal mode) -->
+  <div class="header-nav-bar" id="navBar" style="display:none;">
     <nav class="main-nav" id="mainNav">
       <button class="nav-link active" data-nav="home" onclick="UI.navigateTo('home')">In&iacute;cio</button>
       <button class="nav-link inscricoes-only" data-nav="inscricoes" onclick="UI.navigateTo('inscricoes')">Inscri&ccedil;&otilde;es</button>
@@ -36,12 +55,6 @@
       <button class="nav-link" data-nav="regras" onclick="UI.navigateTo('regras')">Regras</button>
       <button class="nav-link admin-only" data-nav="historico" onclick="UI.navigateTo('historico')">Hist&oacute;rico</button>
     </nav>
-
-    <div class="header-badge">
-      <span class="badge-status configuracao" id="headerStatusBadge">Inscri&ccedil;&atilde;o</span>
-    </div>
-    <button class="btn-trocar-torneio" id="btnTrocar" onclick="clearActiveTournamentId(); location.reload();"
-      title="Trocar campeonato">&#8592; Trocar</button>
   </div>
 </header>
 

@@ -8,7 +8,6 @@ function renderHome() {
   const tabela = AppState.calcularClassificacao(state);
   const partidas = state.faseGrupos.partidas;
 
-  UI.updateHeaderBadge(state.campeonato.status);
   UI.updateLifecycleBar(state.campeonato.status);
 
   // Champion banner — shown prominently when tournament is finished

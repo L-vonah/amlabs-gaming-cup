@@ -1,16 +1,11 @@
 /**
- * Firestore Service — AMLabs Gaming Cup
- * CRUD operations for Firestore with DDD structure.
- * Falls back gracefully when Firebase is not configured.
+ * Firestore Service — Campeonatos AMLabs
+ * CRUD operations for Firestore. Single source of truth — no localStorage.
  */
 
 const CAMPEONATOS_COLLECTION = 'campeonatos';
 const AUDIT_COLLECTION = 'auditLog';
 const INSCRICOES_COLLECTION = 'inscricoes';
-
-function getInscricoesKey() {
-  return STORAGE_PREFIX + 'campeonato_' + getActiveTournamentId() + '_inscricoes_v1';
-}
 
 // Cached tournament data from Firestore listener
 let _firestoreCache = null;
@@ -22,36 +17,50 @@ const FirestoreService = {
   },
 
   /**
-   * Start listening to tournament changes in real-time.
+   * Start real-time listener. Returns a Promise that resolves on first snapshot.
+   * Subsequent snapshots trigger onUpdate callback and feed AppState cache.
    */
   startListener(onUpdate) {
-    if (!FIREBASE_CONFIGURED) return;
+    if (!FIREBASE_CONFIGURED) return Promise.reject(new Error('Firebase not configured'));
 
-    const docRef = firebase.firestore()
-      .collection(CAMPEONATOS_COLLECTION)
-      .doc(getActiveTournamentId());
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('Timeout loading tournament data')), 10000);
+      let firstSnapshot = true;
 
-    _firestoreListenerUnsubscribe = docRef.onSnapshot((doc) => {
-      if (doc.exists) {
-        _firestoreCache = doc.data();
-        // Sync to localStorage for visitors; skip for admin to avoid overwriting local writes
-        const adminLoggedIn = UI.checkAdmin();
-        if (!adminLoggedIn && window.AppState && window.AppState.convertFirestoreToState) {
-          const legacyState = window.AppState.convertFirestoreToState(_firestoreCache);
-          if (legacyState) {
-            localStorage.setItem(getStateKey(), JSON.stringify(legacyState));
-            if (window.AppState.invalidateCache) window.AppState.invalidateCache();
+      const docRef = firebase.firestore()
+        .collection(CAMPEONATOS_COLLECTION)
+        .doc(getActiveTournamentId());
+
+      _firestoreListenerUnsubscribe = docRef.onSnapshot((doc) => {
+        if (doc.exists) {
+          _firestoreCache = doc.data();
+          if (window.AppState && window.AppState.feedFromFirestore) {
+            window.AppState.feedFromFirestore(_firestoreCache);
+          }
+        } else {
+          _firestoreCache = null;
+        }
+
+        if (firstSnapshot) {
+          firstSnapshot = false;
+          clearTimeout(timeout);
+          if (doc.exists) {
+            resolve(_firestoreCache);
+          } else {
+            reject(new Error('Tournament not found'));
           }
         }
-      } else {
-        _firestoreCache = null;
-      }
-      if (onUpdate) onUpdate(_firestoreCache);
-    }, (error) => {
-      console.error('Firestore listener error:', error);
-      if (typeof UI !== 'undefined') {
-        UI.showToast('Erro de conexão com o servidor. Usando dados locais.', 'error');
-      }
+
+        if (onUpdate) onUpdate(_firestoreCache);
+      }, (error) => {
+        console.error('Firestore listener error:', error);
+        if (firstSnapshot) {
+          firstSnapshot = false;
+          clearTimeout(timeout);
+          reject(error);
+        }
+        if (onUpdate) onUpdate(null, error);
+      });
     });
   },
 
@@ -131,6 +140,8 @@ const FirestoreService = {
   // ----- Registration (Inscricoes) -----
 
   async submitRegistration(data) {
+    if (!FIREBASE_CONFIGURED) return null;
+
     const entry = {
       torneiId: getActiveTournamentId(),
       ...data,
@@ -141,22 +152,12 @@ const FirestoreService = {
       resolvidoPor: null
     };
 
-    if (!FIREBASE_CONFIGURED) {
-      entry.id = 'insc_' + Date.now();
-      const list = JSON.parse(localStorage.getItem(getInscricoesKey()) || '[]');
-      list.push(entry);
-      localStorage.setItem(getInscricoesKey(), JSON.stringify(list));
-      return entry;
-    }
-
     const docRef = await firebase.firestore().collection(INSCRICOES_COLLECTION).add(entry);
     return { id: docRef.id, ...entry };
   },
 
   async loadRegistrations() {
-    if (!FIREBASE_CONFIGURED) {
-      return JSON.parse(localStorage.getItem(getInscricoesKey()) || '[]');
-    }
+    if (!FIREBASE_CONFIGURED) return [];
 
     try {
       const snapshot = await firebase.firestore()
@@ -172,14 +173,7 @@ const FirestoreService = {
   },
 
   async updateRegistration(id, data) {
-    if (!FIREBASE_CONFIGURED) {
-      const list = JSON.parse(localStorage.getItem(getInscricoesKey()) || '[]');
-      const idx = list.findIndex(r => r.id === id);
-      if (idx >= 0) Object.assign(list[idx], data);
-      localStorage.setItem(getInscricoesKey(), JSON.stringify(list));
-      return;
-    }
-
+    if (!FIREBASE_CONFIGURED) return;
     await firebase.firestore().collection(INSCRICOES_COLLECTION).doc(id).update(data);
   },
 
@@ -203,7 +197,6 @@ const FirestoreService = {
 
   /**
    * List all tournaments ordered by creation date (newest first).
-   * Returns lightweight metadata only.
    */
   async listTournaments() {
     if (!FIREBASE_CONFIGURED) return [];
@@ -227,7 +220,6 @@ const FirestoreService = {
 
   /**
    * Create a new tournament document in Firestore.
-   * Returns the generated UUID on success, null on failure.
    */
   async createTournament({ nome, jogo }) {
     if (!FIREBASE_CONFIGURED || !UI.checkAdmin()) return null;
