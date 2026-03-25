@@ -322,29 +322,32 @@ document.addEventListener('click', (e) => {
 // ------------------------------------------------------------------
 
 /**
- * Show the tournament selector screen and hide the main app shell.
+ * Show the tournament selector screen — portal mode.
+ * Hides all tournament-specific UI (nav, lifecycle bar, badge, trocar button).
  */
 function openTournamentSelector() {
-  // Hide app nav and status badge
+  document.body.classList.add('portal-mode');
+
+  // Hide tournament-specific elements
   const mainNav = document.getElementById('mainNav');
   const badge = document.getElementById('headerStatusBadge');
   const mobileBar = document.querySelector('.mobile-nav-bar');
+  const btnTrocar = document.getElementById('btnTrocar');
+  const lifecycleBar = document.getElementById('lifecycleBar');
+  const tournamentName = document.getElementById('headerTournamentName');
   if (mainNav) mainNav.style.display = 'none';
   if (badge) badge.style.display = 'none';
   if (mobileBar) mobileBar.style.display = 'none';
+  if (btnTrocar) btnTrocar.style.display = 'none';
+  if (lifecycleBar) lifecycleBar.style.display = 'none';
+  if (tournamentName) tournamentName.style.display = 'none';
 
   // Hide all content sections, show selector
   document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
   const seletor = document.getElementById('sectionSeletor');
   if (seletor) seletor.style.display = 'block';
 
-  // Show admin create area if admin.
-  // NOTE: auth is async — isAdmin() may return false on first render if the
-  // Google auth callback hasn't fired yet. updateAdminUI() (called by auth.js
-  // after login resolves) will re-run and show/hide .admin-only elements,
-  // including .selector-create-area, once auth settles.
-  const createArea = document.querySelector('.selector-create-area');
-  if (createArea) createArea.style.display = isAdmin() ? 'block' : 'none';
+  document.title = 'Campeonatos AMLabs';
 
   if (window.Renderers && window.Renderers.seletor) {
     window.Renderers.seletor();
@@ -352,7 +355,28 @@ function openTournamentSelector() {
 }
 window.openTournamentSelector = openTournamentSelector;
 
+/**
+ * Enter tournament mode — show all tournament-specific UI.
+ */
 function initTournament() {
+  document.body.classList.remove('portal-mode');
+
+  // Show tournament-specific elements
+  const btnTrocar = document.getElementById('btnTrocar');
+  const lifecycleBar = document.getElementById('lifecycleBar');
+  if (btnTrocar) btnTrocar.style.display = '';
+  if (lifecycleBar) lifecycleBar.style.display = '';
+
+  // Set tournament name in header
+  const tournamentName = document.getElementById('headerTournamentName');
+  if (tournamentName) {
+    const state = AppState.loadReadOnly();
+    const nome = state.campeonato ? state.campeonato.nome : '';
+    tournamentName.textContent = nome;
+    tournamentName.style.display = nome ? '' : 'none';
+    document.title = nome ? nome + ' — Campeonatos AMLabs' : 'Campeonatos AMLabs';
+  }
+
   updateInscricoesVisibility();
 
   const inputCorTimo = document.getElementById('inputCorTimo');
@@ -362,6 +386,16 @@ function initTournament() {
 
   if (typeof FirestoreService !== 'undefined' && FirestoreService.isActive()) {
     FirestoreService.startListener((data) => {
+      // Update tournament name from Firestore data
+      if (data && data.metadata && data.metadata.nome) {
+        const tn = document.getElementById('headerTournamentName');
+        if (tn) {
+          tn.textContent = data.metadata.nome;
+          tn.style.display = '';
+          document.title = data.metadata.nome + ' — Campeonatos AMLabs';
+        }
+      }
+
       const active = document.querySelector('.nav-link.active');
       if (active) {
         const section = active.getAttribute('data-nav');

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>1&ordm; Campeonato EA Sports FC AMLabs 2026</title>
+  <title>Campeonatos AMLabs</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
   <link rel="stylesheet" href="css/style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,10 +17,13 @@
      =============================================================== -->
 <header class="site-header">
   <div class="header-inner">
-    <a class="site-logo" onclick="UI.navigateTo('home')" style="cursor:pointer">
+    <a class="site-logo" id="siteLogo" onclick="UI.navigateTo('home')" style="cursor:pointer">
       <img src="assets/logo-amlabs.png" alt="AMLabs" class="logo-img">
-      <span class="logo-text">EA Sports FC <span>AMLabs</span> <span class="logo-year">2026</span></span>
+      <span class="logo-text">Campeonatos <span>AMLabs</span></span>
     </a>
+
+    <!-- Tournament name — shown only inside a tournament -->
+    <span class="header-tournament-name" id="headerTournamentName" style="display:none;"></span>
 
     <nav class="main-nav" id="mainNav">
       <button class="nav-link active" data-nav="home" onclick="UI.navigateTo('home')">In&iacute;cio</button>
@@ -37,7 +40,7 @@
     <div class="header-badge">
       <span class="badge-status configuracao" id="headerStatusBadge">Inscri&ccedil;&atilde;o</span>
     </div>
-    <button class="btn-trocar-torneio" onclick="clearActiveTournamentId(); location.reload();"
+    <button class="btn-trocar-torneio" id="btnTrocar" onclick="clearActiveTournamentId(); location.reload();"
       title="Trocar campeonato">&#8592; Trocar</button>
   </div>
 </header>
@@ -52,33 +55,20 @@
        =============================================================== -->
   <section id="sectionSeletor" class="section" style="display:none;">
     <div class="container">
-      <div class="selector-header">
-        <h1 class="selector-title">AMLabs Gaming Cup</h1>
-        <p class="selector-subtitle">Selecione um campeonato para continuar</p>
+      <div class="selector-hero">
+        <img src="assets/logo-amlabs.png" alt="AMLabs" class="selector-hero-logo">
+        <h1 class="selector-title">Campeonatos AMLabs</h1>
+        <p class="selector-subtitle">Organize e acompanhe os campeonatos internos da AMLabs</p>
+      </div>
+
+      <div class="selector-section-header">
+        <h2 class="selector-section-title">Campeonatos</h2>
+        <button class="btn btn-primary btn-new-tournament admin-only" style="display:none;"
+          onclick="UI.openModal('modalCreateTournament')">+ Novo Campeonato</button>
       </div>
 
       <div id="selectorTorneioList" class="selector-list">
         <!-- Rendered by Renderers.seletor() -->
-      </div>
-
-      <!-- Admin only: create new tournament -->
-      <div class="admin-only selector-create-area" style="display:none;">
-        <hr class="selector-divider">
-        <h3 class="selector-create-title">Novo Campeonato</h3>
-        <form id="formCreateTournament" onsubmit="submitCreateTournament(event)">
-          <div class="form-group">
-            <label for="inputTournamentNome">Nome do campeonato</label>
-            <input type="text" id="inputTournamentNome" class="form-control"
-              placeholder="Ex: 2º Campeonato EA Sports FC AMLabs 2027"
-              maxlength="100" required>
-          </div>
-          <div class="form-group">
-            <label for="inputTournamentJogo">Jogo</label>
-            <input type="text" id="inputTournamentJogo" class="form-control"
-              placeholder="Ex: EA Sports FC" maxlength="60" required>
-          </div>
-          <button type="submit" class="btn btn-primary">Criar Campeonato</button>
-        </form>
       </div>
     </div>
   </section>
@@ -815,6 +805,39 @@
 </div>
 
 <!-- ===============================================================
+     MODAL: CREATE TOURNAMENT
+     =============================================================== -->
+<div class="modal-overlay" id="modalCreateTournament">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header">
+      <span class="modal-title">Novo Campeonato</span>
+      <button class="btn-icon" onclick="UI.closeModal('modalCreateTournament')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <form id="formCreateTournament" onsubmit="submitCreateTournament(event)">
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div class="form-group">
+            <label class="form-label">Nome do campeonato *</label>
+            <input class="form-input" type="text" id="inputTournamentNome"
+              placeholder="Ex: 2&ordm; Campeonato EA Sports FC AMLabs 2027"
+              maxlength="100" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Jogo *</label>
+            <input class="form-input" type="text" id="inputTournamentJogo"
+              placeholder="Ex: EA Sports FC" maxlength="60" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" type="button" onclick="UI.closeModal('modalCreateTournament')">Cancelar</button>
+          <button class="btn btn-primary" type="submit">Criar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ===============================================================
      TOAST CONTAINER
      =============================================================== -->
 <!-- ===============================================================
@@ -822,7 +845,7 @@
      =============================================================== -->
 <footer class="site-footer">
   <div class="footer-inner">
-    <span class="footer-text">AMLabs Gaming Cup 2026</span>
+    <span class="footer-text">Campeonatos AMLabs</span>
     <div class="footer-admin">
       <button id="adminLoginBtn" class="btn-admin-login" onclick="loginAdmin()">&#128274; Admin</button>
       <div id="adminInfo" style="display:none" class="admin-info-bar">

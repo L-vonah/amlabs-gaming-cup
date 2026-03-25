@@ -19,28 +19,40 @@ async function renderSeletor() {
   }
 
   if (torneiros.length === 0) {
-    container.innerHTML = '<p class="selector-empty">Nenhum campeonato encontrado.</p>';
+    container.innerHTML = `
+      <div class="selector-empty-state">
+        <div class="selector-empty-icon">🏆</div>
+        <p class="selector-empty-title">Nenhum campeonato criado ainda</p>
+        <p class="selector-empty-text">Faça login como administrador para criar o primeiro campeonato.</p>
+      </div>`;
     return;
   }
 
   const statusLabel = {
-    configuracao: 'Configuração',
+    configuracao: 'Inscrições abertas',
     grupos: 'Fase de Grupos',
     playoffs: 'Playoffs',
     encerrado: 'Encerrado'
   };
 
-  container.innerHTML = torneiros.map(t => `
+  container.innerHTML = torneiros.map(t => {
+    const date = t.criadoEm ? new Date(t.criadoEm).toLocaleDateString('pt-BR') : '';
+    return `
     <div class="selector-card" onclick="enterTournament('${UI.escapeHtml(t.id)}')">
       <div class="selector-card-info">
         <span class="selector-card-name">${UI.escapeHtml(t.nome)}</span>
-        <span class="selector-card-game">${UI.escapeHtml(t.jogo)}</span>
+        <span class="selector-card-meta">
+          ${UI.escapeHtml(t.jogo)}${date ? ' · ' + date : ''}
+        </span>
       </div>
-      <span class="selector-card-status badge badge-${UI.escapeHtml(t.status)}">
-        ${statusLabel[t.status] || t.status}
-      </span>
-    </div>
-  `).join('');
+      <div class="selector-card-right">
+        <span class="selector-card-status badge badge-${UI.escapeHtml(t.status)}">
+          ${statusLabel[t.status] || t.status}
+        </span>
+        <span class="selector-card-arrow">→</span>
+      </div>
+    </div>`;
+  }).join('');
 }
 window.renderSeletor = renderSeletor;
 
