@@ -3,10 +3,16 @@
  * Centralized data layer using localStorage for persistence
  */
 
-const STATE_KEY = STORAGE_PREFIX + 'campeonato_amlabs_v1';
-const AUDIT_LOG_KEY = STORAGE_PREFIX + 'campeonato_amlabs_audit_v1';
+function getStateKey() {
+  return STORAGE_PREFIX + 'campeonato_' + getActiveTournamentId() + '_v1';
+}
+
+function getAuditKey() {
+  return STORAGE_PREFIX + 'campeonato_' + getActiveTournamentId() + '_audit_v1';
+}
 
 const DEFAULT_STATE = {
+  _schemaVersion: 1,
   campeonato: {
     nome: '1º Campeonato EA Sports FC AMLabs 2026',
     edicao: 1,
@@ -44,11 +50,29 @@ function invalidateCache() {
   _classificacaoCache = null;
 }
 
+const CURRENT_SCHEMA_VERSION = 1;
+
+function migrateState(state) {
+  const version = state._schemaVersion || 0;
+
+  if (version < 1) {
+    // v0 → v1: initial versioning introduction, no structural changes needed.
+    // Template for future migrations: add fields, rename keys, etc.
+  }
+
+  // Add future migration blocks here:
+  // if (version < 2) { state.someNewField = state.someNewField ?? defaultValue; }
+
+  state._schemaVersion = CURRENT_SCHEMA_VERSION;
+  return state;
+}
+
 function _ensureCache() {
   if (!_stateCache) {
     try {
-      const raw = localStorage.getItem(STATE_KEY);
-      _stateCache = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(DEFAULT_STATE));
+      const raw = localStorage.getItem(getStateKey());
+      const parsed = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(DEFAULT_STATE));
+      _stateCache = migrateState(parsed);
     } catch (e) {
       console.error('Erro ao carregar estado:', e);
       _stateCache = JSON.parse(JSON.stringify(DEFAULT_STATE));
@@ -76,7 +100,7 @@ function saveState(state) {
   try {
     _classificacaoCache = null;
     _stateCache = JSON.parse(JSON.stringify(state));
-    localStorage.setItem(STATE_KEY, JSON.stringify(state));
+    localStorage.setItem(getStateKey(), JSON.stringify(state));
 
     // Sync to Firestore if configured and admin
     if (typeof FirestoreService !== 'undefined' && FirestoreService.isActive() && UI.checkAdmin()) {
@@ -100,7 +124,8 @@ function saveState(state) {
  */
 function convertStateToFirestore(state) {
   return {
-    id: typeof TOURNAMENT_ID !== 'undefined' ? TOURNAMENT_ID : 'amlabs-2026',
+    id: getActiveTournamentId(),
+    _schemaVersion: state._schemaVersion || 1,
     metadata: {
       nome: state.campeonato.nome,
       jogo: 'EA Sports FC',
@@ -131,6 +156,7 @@ function convertStateToFirestore(state) {
 function convertFirestoreToState(data) {
   if (!data) return null;
   return {
+    _schemaVersion: data._schemaVersion || 0,
     campeonato: {
       nome: data.metadata.nome,
       edicao: 1,
@@ -152,8 +178,8 @@ function convertFirestoreToState(data) {
 }
 
 function resetState() {
-  localStorage.removeItem(STATE_KEY);
-  localStorage.removeItem(AUDIT_LOG_KEY);
+  localStorage.removeItem(getStateKey());
+  localStorage.removeItem(getAuditKey());
   return JSON.parse(JSON.stringify(DEFAULT_STATE));
 }
 
@@ -169,7 +195,7 @@ function resetState() {
  */
 function addAuditLog(usuario, acao, detalhes) {
   try {
-    const raw = localStorage.getItem(AUDIT_LOG_KEY);
+    const raw = localStorage.getItem(getAuditKey());
     const logs = raw ? JSON.parse(raw) : [];
     logs.push({
       id: 'log_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
@@ -180,7 +206,7 @@ function addAuditLog(usuario, acao, detalhes) {
     });
     // Keep up to 500 entries
     if (logs.length > 500) logs.splice(0, logs.length - 500);
-    localStorage.setItem(AUDIT_LOG_KEY, JSON.stringify(logs));
+    localStorage.setItem(getAuditKey(), JSON.stringify(logs));
 
     // Also write to Firestore if available
     if (typeof FirestoreService !== 'undefined' && FirestoreService.isActive()) {
@@ -193,7 +219,7 @@ function addAuditLog(usuario, acao, detalhes) {
 
 function loadAuditLog() {
   try {
-    const raw = localStorage.getItem(AUDIT_LOG_KEY);
+    const raw = localStorage.getItem(getAuditKey());
     return raw ? JSON.parse(raw) : [];
   } catch (e) {
     return [];

@@ -2669,3 +2669,101 @@ body {
 body.has-dev-banner {
   padding-top: 32px;
 }
+
+/* ---------------------------------------------------------------
+   Tournament Selector Screen
+   --------------------------------------------------------------- */
+.selector-header {
+  text-align: center;
+  padding: 48px 0 32px;
+}
+
+.selector-title {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.selector-subtitle {
+  color: var(--color-text-muted);
+  font-size: 1rem;
+}
+
+.selector-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 600px;
+  margin: 0 auto 40px;
+}
+
+.selector-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.selector-card:hover {
+  border-color: var(--color-primary);
+}
+
+.selector-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.selector-card-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.selector-card-game {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.selector-loading,
+.selector-empty {
+  text-align: center;
+  color: var(--color-text-muted);
+  padding: 32px 0;
+}
+
+.selector-divider {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 40px 0 32px;
+}
+
+.selector-create-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.selector-create-area {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.btn-trocar-torneio {
+  background: none;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.btn-trocar-torneio:hover {
+  color: var(--color-text);
+  border-color: var(--color-text);
+}

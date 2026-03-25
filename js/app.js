@@ -321,27 +321,45 @@ document.addEventListener('click', (e) => {
 // Boot
 // ------------------------------------------------------------------
 
-document.addEventListener('DOMContentLoaded', () => {
-  // Dev banner — only shown outside production
-  if (!IS_PROD) {
-    const banner = document.createElement('div');
-    banner.className = 'dev-banner';
-    banner.textContent = '⚠ AMBIENTE DE DESENVOLVIMENTO — Dados aqui são apenas para testes!';
-    document.body.prepend(banner);
-    document.body.classList.add('has-dev-banner');
-  }
+/**
+ * Show the tournament selector screen and hide the main app shell.
+ */
+function openTournamentSelector() {
+  // Hide app nav and status badge
+  const mainNav = document.getElementById('mainNav');
+  const badge = document.getElementById('headerStatusBadge');
+  const mobileBar = document.querySelector('.mobile-nav-bar');
+  if (mainNav) mainNav.style.display = 'none';
+  if (badge) badge.style.display = 'none';
+  if (mobileBar) mobileBar.style.display = 'none';
 
-  initAuth();
-  initNavFromHash();
+  // Hide all content sections, show selector
+  document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+  const seletor = document.getElementById('sectionSeletor');
+  if (seletor) seletor.style.display = 'block';
+
+  // Show admin create area if admin.
+  // NOTE: auth is async — isAdmin() may return false on first render if the
+  // Google auth callback hasn't fired yet. updateAdminUI() (called by auth.js
+  // after login resolves) will re-run and show/hide .admin-only elements,
+  // including .selector-create-area, once auth settles.
+  const createArea = document.querySelector('.selector-create-area');
+  if (createArea) createArea.style.display = isAdmin() ? 'block' : 'none';
+
+  if (window.Renderers && window.Renderers.seletor) {
+    window.Renderers.seletor();
+  }
+}
+window.openTournamentSelector = openTournamentSelector;
+
+function initTournament() {
   updateInscricoesVisibility();
 
-  // Set random default colors on color inputs
   const inputCorTimo = document.getElementById('inputCorTimo');
   const inputInscCor = document.getElementById('inputInscCor');
   if (inputCorTimo) inputCorTimo.value = UI.getRandomColor();
   if (inputInscCor) inputInscCor.value = UI.getRandomColor();
 
-  // Start Firestore listener if configured
   if (typeof FirestoreService !== 'undefined' && FirestoreService.isActive()) {
     FirestoreService.startListener((data) => {
       const active = document.querySelector('.nav-link.active');
@@ -353,6 +371,29 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  initNavFromHash();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Dev banner — only shown outside production
+  if (!IS_PROD) {
+    const banner = document.createElement('div');
+    banner.className = 'dev-banner';
+    banner.textContent = '⚠ AMBIENTE DE DESENVOLVIMENTO — Dados aqui são apenas para testes!';
+    document.body.prepend(banner);
+    document.body.classList.add('has-dev-banner');
+  }
+
+  initAuth();
+
+  // Pre-tournament phase: if no tournament selected, show selector
+  if (!getActiveTournamentId()) {
+    openTournamentSelector();
+    return;
+  }
+
+  initTournament();
 });
 
 window.addEventListener('hashchange', () => {

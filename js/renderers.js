@@ -4,6 +4,47 @@
  */
 
 // ------------------------------------------------------------------
+// TOURNAMENT SELECTOR
+// ------------------------------------------------------------------
+
+async function renderSeletor() {
+  const container = document.getElementById('selectorTorneioList');
+  if (!container) return;
+
+  container.innerHTML = '<p class="selector-loading">Carregando campeonatos...</p>';
+
+  let torneiros = [];
+  if (typeof FirestoreService !== 'undefined' && FirestoreService.isActive()) {
+    torneiros = await FirestoreService.listTournaments();
+  }
+
+  if (torneiros.length === 0) {
+    container.innerHTML = '<p class="selector-empty">Nenhum campeonato encontrado.</p>';
+    return;
+  }
+
+  const statusLabel = {
+    configuracao: 'Configuração',
+    grupos: 'Fase de Grupos',
+    playoffs: 'Playoffs',
+    encerrado: 'Encerrado'
+  };
+
+  container.innerHTML = torneiros.map(t => `
+    <div class="selector-card" onclick="enterTournament('${UI.escapeHtml(t.id)}')">
+      <div class="selector-card-info">
+        <span class="selector-card-name">${UI.escapeHtml(t.nome)}</span>
+        <span class="selector-card-game">${UI.escapeHtml(t.jogo)}</span>
+      </div>
+      <span class="selector-card-status badge badge-${UI.escapeHtml(t.status)}">
+        ${statusLabel[t.status] || t.status}
+      </span>
+    </div>
+  `).join('');
+}
+window.renderSeletor = renderSeletor;
+
+// ------------------------------------------------------------------
 // TEAMS
 // ------------------------------------------------------------------
 
@@ -408,6 +449,7 @@ function renderRegistrationCard(r, status, showActions) {
 // ------------------------------------------------------------------
 
 window.Renderers = {
+  seletor: renderSeletor,
   home: renderHome,
   times: renderTimes,
   classificacao: renderClassificacao,

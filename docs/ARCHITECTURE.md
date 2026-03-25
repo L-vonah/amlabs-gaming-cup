@@ -90,10 +90,12 @@ campeonato-amlabs/
 Os scripts são carregados em sequência no `index.html`. A ordem importa porque cada módulo depende dos anteriores:
 
 ```
-firebase-config.js → auth.js → firestore-service.js → state.js → ui.js
+env.js → firebase-config.js → auth.js → firestore-service.js → state.js → ui.js
 → playoff-formats.js → renderers-home.js → renderers-matches.js
 → renderers.js → actions.js → app.js
 ```
+
+**`env.js` deve ser o primeiro script carregado** — expõe `APP_ENV`, `IS_PROD`, `STORAGE_PREFIX`, `getActiveTournamentId()` e `setActiveTournamentId()` como globais que todos os módulos seguintes dependem.
 
 ---
 
@@ -101,10 +103,13 @@ firebase-config.js → auth.js → firestore-service.js → state.js → ui.js
 
 ### 4.1 State — Objeto Principal
 
-Armazenado em `localStorage` (chave: `campeonato_amlabs_v1`) e sincronizado ao Firestore (doc: `campeonatos/amlabs-2026`).
+Armazenado em `localStorage` (chave: `{prefix}campeonato_{uuid}_v1`) e sincronizado ao Firestore (doc: `campeonatos/{uuid}`).
+
+O `uuid` é o ID do campeonato ativo (lido de `sessionStorage` via `getActiveTournamentId()`). O `prefix` é `''` em produção ou `'dev_'` em desenvolvimento (definido por `STORAGE_PREFIX` em `env.js`).
 
 ```javascript
 {
+  _schemaVersion: 1,        // versão do schema — usado por migrateState()
   campeonato: {
     nome: '1º Campeonato EA Sports FC AMLabs 2026',
     edicao: 1,
@@ -177,7 +182,7 @@ Armazenado em `localStorage` (chave: `campeonato_amlabs_v1`) e sincronizado ao F
 ```javascript
 {
   id: 'insc_xxx' | 'firestore-auto-id',
-  torneiId: 'amlabs-2026',
+  torneiId: '{uuid}',     // UUID do campeonato ativo
   participante: 'João',
   nome: 'São Paulo FC',
   abreviacao: 'SPF',
@@ -195,7 +200,7 @@ Armazenado em `localStorage` (chave: `campeonato_amlabs_v1`) e sincronizado ao F
 ```javascript
 {
   id: 'log_xxx' | 'firestore-auto-id',
-  torneiId: 'amlabs-2026',
+  torneiId: '{uuid}',     // UUID do campeonato ativo
   timestamp: 'ISO date',
   usuario: 'email ou PC-XXXXXXXX',
   acao: 'Adicionou o time "Real Madrid"',
@@ -203,8 +208,8 @@ Armazenado em `localStorage` (chave: `campeonato_amlabs_v1`) e sincronizado ao F
   device: 'PC-XXXXXXXX'
 }
 ```
-**localStorage:** `campeonato_amlabs_audit_v1` (máx 500 entradas)
-**Coleção Firestore:** `auditLog/`
+**localStorage:** `{prefix}campeonato_{uuid}_audit_v1` (máx 500 entradas)
+**Coleção Firestore:** `auditLog/` (filtrado por `torneiId == uuid`)
 
 ---
 
@@ -576,14 +581,15 @@ inscricoes/{entry} — read: público, create: qualquer um, update/delete: admin
 
 ### 11.1 Firebase
 
-```javascript
-// firebase-config.js
-projectId: 'amlabs-gaming-cup-df736'
-authDomain: 'amlabs-gaming-cup-df736.firebaseapp.com'
-```
+Dois projetos Firebase (ambos Spark/gratuito), selecionados em runtime por `env.js`:
+
+| Ambiente | Projeto | projectId |
+|----------|---------|-----------|
+| Produção (`amlabs-cup.netlify.app`, `l-vonah.github.io`) | `amlabs-gaming-cup-df736` | `amlabs-gaming-cup-df736` |
+| Desenvolvimento (localhost, previews Netlify) | `amlabs-gaming-cup-dev` | `amlabs-gaming-cup-dev` |
 
 **Coleções:** `campeonatos`, `auditLog`, `inscricoes`
-**Doc principal:** `campeonatos/amlabs-2026`
+**Doc por campeonato:** `campeonatos/{uuid}` (UUID gerado via `crypto.randomUUID()` na criação)
 **Plano:** Spark (gratuito)
 
 ### 11.2 Netlify
@@ -596,11 +602,23 @@ authDomain: 'amlabs-gaming-cup-df736.firebaseapp.com'
 
 ### 11.3 Chaves de localStorage
 
+As chaves são geradas dinamicamente por funções getter em `state.js` e `firestore-service.js`, incluindo o UUID do campeonato ativo e o prefixo de ambiente:
+
+| Padrão da chave | Conteúdo |
+|-----------------|----------|
+| `{prefix}campeonato_{uuid}_v1` | Estado completo do campeonato |
+| `{prefix}campeonato_{uuid}_audit_v1` | Log de auditoria local |
+| `{prefix}campeonato_{uuid}_inscricoes_v1` | Inscrições (fallback quando Firebase offline) |
+
+Onde `prefix` é `''` em produção e `'dev_'` em desenvolvimento. O `uuid` é o ID do campeonato ativo (via `getActiveTournamentId()`).
+
+### 11.4 sessionStorage
+
 | Chave | Conteúdo |
 |-------|----------|
-| `campeonato_amlabs_v1` | Estado completo do campeonato |
-| `campeonato_amlabs_audit_v1` | Log de auditoria local |
-| `campeonato_amlabs_inscricoes_v1` | Inscrições (fallback quando Firebase offline) |
+| `active_tournament_id` | UUID do campeonato ativo na aba atual |
+
+Usar `sessionStorage` garante que cada aba pode ter um campeonato diferente aberto simultaneamente.
 
 ---
 
@@ -634,7 +652,7 @@ authDomain: 'amlabs-gaming-cup-df736.firebaseapp.com'
 
 1. **Confronto direto não resolve empates de 3+ times** — apenas entre 2 times empatados em todos os outros critérios
 2. **Zero testes automatizados** — sem cobertura de unit ou integration tests
-3. **Sem versionamento de schema** — se a estrutura do state mudar, não há migration automática
+3. ~~**Sem versionamento de schema**~~ — implementado: `_schemaVersion` + `migrateState()` em `state.js`
 4. **Admin único hardcoded** — não suporta múltiplos admins
 5. **CSS monolítico** — ~2648 linhas sem pré-processador ou módulos
 6. **Sem minificação** — JS e CSS servidos sem build step
@@ -676,3 +694,45 @@ authDomain: 'amlabs-gaming-cup-df736.firebaseapp.com'
 - ID conventions (`rr_`, `time_`, match IDs)
 
 Se necessário, implemente uma função de migração em `state.js` que detecta a versão antiga e converte.
+
+---
+
+## 16. Ambiente e Multi-Torneio
+
+### 16.1 Detecção de Ambiente (`js/env.js`)
+
+O primeiro script carregado detecta o ambiente por hostname e expõe globais:
+
+```javascript
+APP_ENV       // 'production' | 'development'
+IS_PROD       // true | false
+STORAGE_PREFIX // '' | 'dev_'
+```
+
+**Produção:** `amlabs-cup.netlify.app` e `l-vonah.github.io`
+**Desenvolvimento:** localhost, `*.netlify.app` previews, `file://`
+
+Em dev aparece um banner âmbar fixo no topo da página.
+
+### 16.2 Seletor de Torneio
+
+O bootstrap em `app.js` tem uma fase pré-torneio:
+
+```
+DOMContentLoaded:
+  1. initAuth()
+  2. getActiveTournamentId() === null?
+     SIM → openTournamentSelector()  ← exibe lista de torneios, para aqui
+     NÃO → initTournament()          ← fluxo normal
+```
+
+O `sessionStorage` mantém o torneio ativo por aba. Abrir uma nova aba volta ao seletor.
+
+### 16.3 Schema Versioning
+
+`DEFAULT_STATE` tem `_schemaVersion: 1`. Em todo `_ensureCache()`, o state carregado passa por `migrateState()` antes de ser retornado.
+
+**Convenção para futuras mudanças de schema:**
+1. Incremente `CURRENT_SCHEMA_VERSION` em `state.js`
+2. Adicione um bloco `if (version < N)` em `migrateState()`
+3. Documente a mudança neste arquivo

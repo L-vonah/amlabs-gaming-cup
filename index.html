@@ -37,6 +37,8 @@
     <div class="header-badge">
       <span class="badge-status configuracao" id="headerStatusBadge">Inscri&ccedil;&atilde;o</span>
     </div>
+    <button class="btn-trocar-torneio" onclick="clearActiveTournamentId(); location.reload();"
+      title="Trocar campeonato">&#8592; Trocar</button>
   </div>
 </header>
 
@@ -44,6 +46,42 @@
      MAIN CONTENT
      =============================================================== -->
 <main class="main-content">
+
+  <!-- ===============================================================
+       TOURNAMENT SELECTOR (shown when no tournament is active)
+       =============================================================== -->
+  <section id="sectionSeletor" class="section" style="display:none;">
+    <div class="container">
+      <div class="selector-header">
+        <h1 class="selector-title">AMLabs Gaming Cup</h1>
+        <p class="selector-subtitle">Selecione um campeonato para continuar</p>
+      </div>
+
+      <div id="selectorTorneioList" class="selector-list">
+        <!-- Rendered by Renderers.seletor() -->
+      </div>
+
+      <!-- Admin only: create new tournament -->
+      <div class="admin-only selector-create-area" style="display:none;">
+        <hr class="selector-divider">
+        <h3 class="selector-create-title">Novo Campeonato</h3>
+        <form id="formCreateTournament" onsubmit="submitCreateTournament(event)">
+          <div class="form-group">
+            <label for="inputTournamentNome">Nome do campeonato</label>
+            <input type="text" id="inputTournamentNome" class="form-control"
+              placeholder="Ex: 2º Campeonato EA Sports FC AMLabs 2027"
+              maxlength="100" required>
+          </div>
+          <div class="form-group">
+            <label for="inputTournamentJogo">Jogo</label>
+            <input type="text" id="inputTournamentJogo" class="form-control"
+              placeholder="Ex: EA Sports FC" maxlength="60" required>
+          </div>
+          <button type="submit" class="btn btn-primary">Criar Campeonato</button>
+        </form>
+      </div>
+    </div>
+  </section>
 
   <!-- ---------------------------------------------------------------
        LIFECYCLE BAR (shown on most pages)
