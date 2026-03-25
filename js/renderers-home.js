@@ -4,6 +4,7 @@
  */
 
 function renderHome() {
+  if (!getActiveTournamentId()) return;
   const state = AppState.loadReadOnly();
   const tabela = AppState.calcularClassificacao(state);
   const partidas = state.faseGrupos.partidas;
