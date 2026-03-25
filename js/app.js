@@ -322,6 +322,15 @@ document.addEventListener('click', (e) => {
 // ------------------------------------------------------------------
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Dev banner — only shown outside production
+  if (!IS_PROD) {
+    const banner = document.createElement('div');
+    banner.className = 'dev-banner';
+    banner.textContent = '⚠ AMBIENTE DE DESENVOLVIMENTO — Dados aqui são apenas para testes!';
+    document.body.prepend(banner);
+    document.body.classList.add('has-dev-banner');
+  }
+
   initAuth();
   initNavFromHash();
   updateInscricoesVisibility();

@@ -3,8 +3,8 @@
  * Centralized data layer using localStorage for persistence
  */
 
-const STATE_KEY = 'campeonato_amlabs_v1';
-const AUDIT_LOG_KEY = 'campeonato_amlabs_audit_v1';
+const STATE_KEY = STORAGE_PREFIX + 'campeonato_amlabs_v1';
+const AUDIT_LOG_KEY = STORAGE_PREFIX + 'campeonato_amlabs_audit_v1';
 
 const DEFAULT_STATE = {
   campeonato: {
