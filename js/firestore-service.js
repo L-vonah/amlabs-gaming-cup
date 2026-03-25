@@ -8,7 +8,7 @@ const TOURNAMENT_ID = 'amlabs-2026';
 const CAMPEONATOS_COLLECTION = 'campeonatos';
 const AUDIT_COLLECTION = 'auditLog';
 const INSCRICOES_COLLECTION = 'inscricoes';
-const INSCRICOES_LOCAL_KEY = 'campeonato_amlabs_inscricoes_v1';
+const INSCRICOES_LOCAL_KEY = STORAGE_PREFIX + 'campeonato_amlabs_inscricoes_v1';
 
 // Cached tournament data from Firestore listener
 let _firestoreCache = null;
@@ -37,7 +37,7 @@ const FirestoreService = {
         if (!adminLoggedIn && window.AppState && window.AppState.convertFirestoreToState) {
           const legacyState = window.AppState.convertFirestoreToState(_firestoreCache);
           if (legacyState) {
-            localStorage.setItem('campeonato_amlabs_v1', JSON.stringify(legacyState));
+            localStorage.setItem(STATE_KEY, JSON.stringify(legacyState));
             if (window.AppState.invalidateCache) window.AppState.invalidateCache();
           }
         }

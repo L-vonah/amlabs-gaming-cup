@@ -2646,3 +2646,26 @@ body {
   height: 12px;
   border-radius: 2px;
 }
+
+/* ---------------------------------------------------------------
+   Dev Environment Banner
+   --------------------------------------------------------------- */
+.dev-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  background: #f59e0b;
+  color: #1a1a1a;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 6px 16px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+body.has-dev-banner {
+  padding-top: 32px;
+}
