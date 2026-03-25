@@ -1,5 +1,5 @@
 /**
- * Firebase Configuration — AMLabs Gaming Cup
+ * Firebase Configuration — Campeonatos AMLabs
  * Selects production or development project based on APP_ENV (set by env.js).
  */
 
@@ -37,5 +37,5 @@ if (FIREBASE_CONFIGURED) {
   db.settings({ cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED, merge: true });
   db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
 } else {
-  console.info('[Campeonatos AMLabs] Firebase not configured.');
+  console.info('[Campeonatos AMLabs] Firebase não configurado.');
 }

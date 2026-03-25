@@ -1,5 +1,5 @@
 /**
- * Authentication — AMLabs Gaming Cup
+ * Authentication — Campeonatos AMLabs
  * Google Login via Firebase Auth. Only admin can edit.
  */
 

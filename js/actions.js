@@ -1,5 +1,5 @@
 /**
- * Actions — 1o Campeonato EA Sports FC AMLabs
+ * Actions — Campeonatos AMLabs
  * All user-triggered event handlers
  */
 

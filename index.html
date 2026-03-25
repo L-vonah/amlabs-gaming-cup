@@ -18,7 +18,8 @@
 <header class="site-header">
   <!-- Line 1: Top bar — logo + tournament trigger -->
   <div class="header-top-bar" id="headerTopBar">
-    <a class="site-logo" id="siteLogo" onclick="UI.navigateTo('home')" style="cursor:pointer">
+    <a class="site-logo" id="siteLogo" onclick="clearActiveTournamentId(); location.reload();" style="cursor:pointer"
+       title="Voltar aos campeonatos">
       <img src="assets/logo-amlabs.png" alt="AMLabs" class="logo-img">
       <span class="logo-text">Campeonatos <span>AMLabs</span></span>
     </a>
@@ -35,9 +36,12 @@
       <div class="dropdown-title">Campeonatos</div>
       <div id="dropdownTorneioList"></div>
       <hr class="dropdown-divider">
-      <div class="dropdown-create admin-only" style="display:none;"
+      <div class="dropdown-create admin-only"
            onclick="closeTournamentDropdown(); UI.openModal('modalCreateTournament');">
         <span>+</span> Novo Campeonato
+      </div>
+      <div class="dropdown-link" onclick="closeTournamentDropdown(); clearActiveTournamentId(); location.reload();">
+        Ver todos os campeonatos
       </div>
     </div>
   </div>
@@ -120,10 +124,9 @@
     <div id="championBanner" style="display:none"></div>
 
     <div class="hero">
-      <div class="hero-badge">1&ordf; Edi&ccedil;&atilde;o &bull; 2026</div>
-      <h1 class="hero-title">1&ordm; Campeonato EA Sports FC<br><span class="highlight">AMLabs 2026</span></h1>
-      <p class="hero-subtitle">Fase de grupos todos contra todos + Playoffs com Dupla Elimina&ccedil;&atilde;o (Chave Superior &amp; Inferior)</p>
-
+      <div class="hero-badge" id="heroBadge"></div>
+      <h1 class="hero-title" id="heroTitle"></h1>
+      <p class="hero-subtitle" id="heroSubtitle"></p>
     </div>
 
     <div class="grid-2">

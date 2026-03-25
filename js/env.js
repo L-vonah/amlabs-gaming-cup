@@ -1,5 +1,5 @@
 /**
- * Environment Detection — AMLabs Gaming Cup
+ * Environment Detection — Campeonatos AMLabs
  * Must be the first script loaded. Exposes APP_ENV, IS_PROD.
  */
 

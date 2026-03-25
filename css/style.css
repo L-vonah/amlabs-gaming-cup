@@ -263,6 +263,17 @@ body {
   letter-spacing: 0.04em;
   flex-shrink: 0;
 }
+/* Badge base (used in dropdown, selector cards, etc.) */
+.badge {
+  display: inline-block;
+  font-size: 0.6rem;
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
 .badge-configuracao { background: rgba(253,203,110,0.25); color: #e67e22; }
 .badge-grupos { background: var(--color-primary-glow); color: var(--color-primary); }
 .badge-playoffs { background: var(--color-upper-bg); color: var(--color-upper); }
@@ -284,6 +295,16 @@ body {
   font-weight: 600;
 }
 .dropdown-create:hover { background: var(--color-primary-glow); }
+.dropdown-link {
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-align: center;
+}
+.dropdown-link:hover { background: var(--color-surface); color: var(--color-text); }
 
 /* Loading / Error states */
 .app-loading-state,

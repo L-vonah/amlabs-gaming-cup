@@ -1,5 +1,5 @@
 /**
- * App Bootstrap — 1o Campeonato EA Sports FC AMLabs
+ * App Bootstrap — Campeonatos AMLabs
  * Navigation, score modal, mobile bar, and initialization
  */
 
