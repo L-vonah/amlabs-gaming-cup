@@ -285,7 +285,16 @@ Critérios de desempate (em ordem):
 - Admin aprova → time é criado automaticamente e adicionado ao state
 - Se estado for `grupos`, aprovação também regenera as partidas
 
-### 6.5 Auditoria
+### 6.5 Deleção de Campeonato
+
+- Permitida SOMENTE durante `configuracao` (campeonato não iniciado)
+- Exclusiva do admin
+- Remove permanentemente: documento `campeonatos/{uuid}`, todas as `inscricoes` com `torneiId == uuid`, todos os `auditLog` com `torneiId == uuid`
+- Operação atômica via `WriteBatch` do Firestore
+- Não há "soft delete" — a ação é irreversível
+- Dialog de confirmação exibe contagem de times cadastrados quando > 0
+
+### 6.6 Auditoria
 
 - Toda ação que modifica estado gera uma entrada no audit log
 - Identificação: email do admin logado OU browser fingerprint (formato `PC-XXXXXXXX`)
@@ -335,7 +344,7 @@ Critérios de desempate (em ordem):
 |--------|------------------|-------------------|
 | `firebase-config.js` | Inicializa Firebase, define `FIREBASE_CONFIGURED` | `FIREBASE_CONFIGURED` (global) |
 | `auth.js` | Login/logout Google, `isAdmin()`, `updateAdminUI()` | `ADMIN_EMAIL`, `currentUser`, `isAdmin()`, `loginAdmin()`, `logoutAdmin()`, `initAuth()`, `updateAdminUI()` |
-| `firestore-service.js` | CRUD Firestore, real-time listener, inscrições | `FirestoreService` |
+| `firestore-service.js` | CRUD Firestore, real-time listener, inscrições, deleção de campeonato | `FirestoreService` (inclui `deleteTournament(uuid)`) |
 | `state.js` | Estado centralizado, todas as operações de domínio | `AppState` |
 | `ui.js` | Helpers de UI compartilhados | `UI` |
 | `playoff-formats.js` | Registry de formatos de playoff | `PlayoffFormats` |
@@ -344,6 +353,7 @@ Critérios de desempate (em ordem):
 | `renderers.js` | Demais renderers + monta objeto `Renderers` | `Renderers` |
 | `actions.js` | Handlers: `submitAddTime()`, `deleteTime()`, `saveInlineResult()`, etc. | Funções globais + `getDeviceId()`, `getAuditUser()` |
 | `app.js` | Bootstrap, score modal, mobile nav, wrappers | Funções globais |
+| `portal.js` | Landing page: listar torneios, criar, deletar, paginação | `portalShowMore`, `portalEnterTournament`, `portalCreateTournament`, `portalRequestDelete`, `portalExecuteDelete` |
 
 ### 7.3 Objeto `Renderers`
 
@@ -567,7 +577,10 @@ window.PlayoffFormats = {
 - Elementos com classe `admin-only` são mostrados/escondidos por `updateAdminUI()`
 - Elementos com classe `visitor-only` são o inverso
 - Todo handler em `actions.js` verifica `UI.checkAdmin()` antes de executar
-- Botão de login é discreto (no footer), para não confundir visitantes
+- `updateAdminUI()` em `auth.js` gerencia:
+  - Desktop: `#adminLoginBtn` e `#adminInfo` (footer de ambas as páginas)
+  - Mobile (`campeonato.html`): `#mobileLoginBtn` e `#mobileLogoutBtn` (sheet "Mais")
+  - Mobile (`index.html`): o footer fica visível via classe `.landing-footer` — os mesmos `#adminLoginBtn` e `#adminInfo` do desktop são usados
 
 ### 10.3 Firestore Rules
 
@@ -756,6 +769,7 @@ O dropdown trigger mostra o nome do campeonato ativo. Clicar abre um dropdown co
 | Bottom tab bar | Oculta | 60px fixo no bottom, 5 tabs |
 | "Mais" sheet | N/A | Bottom sheet com grid 4 colunas |
 | Lifecycle bar | Barra com steps | Oculta (mobile usa lifecycle no dashboard) |
-| Footer | Visível | Oculta (admin vai no "Mais") |
+| Footer (`campeonato.html`) | Visível | Oculta (admin vai no "Mais") |
+| Footer (`index.html`) | Visível | Visível — classe `.landing-footer` sobrescreve o `display:none` global |
 | Tournament dropdown | 380px absolute | Full-width |
-| Portal mode | Landing page, sem nav/bottom bar | Landing page, sem bottom bar |
+| Portal (landing) | Landing page, sem nav/bottom bar | Landing page, sem bottom bar |
