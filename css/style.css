@@ -1979,6 +1979,8 @@ body {
 
   /* ----- Footer: hide on mobile (admin goes in "More") ----- */
   .site-footer { display: none; }
+  /* Exception: landing page footer stays visible on mobile (no bottom bar there) */
+  .landing-footer { display: block; }
 
   /* ----- Audit log ----- */
   .audit-entry { padding: 12px 16px; }
