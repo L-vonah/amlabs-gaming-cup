@@ -210,7 +210,8 @@ const FirestoreService = {
         nome: doc.data().metadata?.nome || 'Campeonato',
         jogo: doc.data().metadata?.jogo || '',
         status: doc.data().metadata?.status || 'configuracao',
-        criadoEm: doc.data().metadata?.criadoEm || null
+        criadoEm: doc.data().metadata?.criadoEm || null,
+        timesCount: (doc.data().times || []).length
       }));
     } catch (error) {
       console.error('Error listing tournaments:', error);
@@ -262,6 +263,40 @@ const FirestoreService = {
     } catch (error) {
       console.error('Error creating tournament:', error);
       return null;
+    }
+  },
+
+  /**
+   * Permanently delete a tournament and all its related data.
+   * Cleans: campeonatos/{uuid}, inscricoes (by torneiId), auditLog (by torneiId).
+   */
+  async deleteTournament(uuid) {
+    if (!FIREBASE_CONFIGURED || !UI.checkAdmin()) return false;
+
+    try {
+      const db = firebase.firestore();
+      const batch = db.batch();
+
+      // Delete tournament document
+      batch.delete(db.collection(CAMPEONATOS_COLLECTION).doc(uuid));
+
+      // Delete related inscricoes
+      const inscricoes = await db.collection(INSCRICOES_COLLECTION)
+        .where('torneiId', '==', uuid)
+        .get();
+      inscricoes.docs.forEach(doc => batch.delete(doc.ref));
+
+      // Delete related auditLog entries
+      const auditEntries = await db.collection(AUDIT_COLLECTION)
+        .where('torneiId', '==', uuid)
+        .get();
+      auditEntries.docs.forEach(doc => batch.delete(doc.ref));
+
+      await batch.commit();
+      return true;
+    } catch (error) {
+      console.error('Error deleting tournament:', error);
+      return false;
     }
   }
 };
