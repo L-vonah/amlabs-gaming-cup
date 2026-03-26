@@ -275,14 +275,8 @@ async function renderHistorico() {
   const container = document.getElementById('historicoContainer');
   if (!container) return;
 
-  // Load from Firestore if available, fallback to localStorage
-  let logs;
-  if (typeof FirestoreService !== 'undefined' && FirestoreService.isActive()) {
-    container.innerHTML = '<div style="text-align:center;padding:24px;color:var(--color-text-muted)">Carregando...</div>';
-    logs = await FirestoreService.loadAuditLog();
-  } else {
-    logs = AppState.loadAuditLog();
-  }
+  container.innerHTML = '<div style="text-align:center;padding:24px;color:var(--color-text-muted)">Carregando...</div>';
+  const logs = await AppState.loadAuditLog();
 
   if (logs.length === 0) {
     container.innerHTML = `
@@ -294,10 +288,7 @@ async function renderHistorico() {
     return;
   }
 
-  // Show newest first (Firestore already returns desc; localStorage needs reverse)
-  const sorted = typeof FirestoreService !== 'undefined' && FirestoreService.isActive()
-    ? logs
-    : [...logs].reverse();
+  const sorted = logs; // Already ordered desc from Firestore
 
   container.innerHTML = `
     <div class="audit-log">

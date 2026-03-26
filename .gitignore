@@ -3,3 +3,6 @@
 
 # Git worktrees
 .worktrees
+
+# Superpowers local artifacts (plans, specs — local use only)
+docs/superpowers/

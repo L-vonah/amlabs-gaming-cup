@@ -4,12 +4,36 @@
  */
 
 function renderHome() {
+  if (!getActiveTournamentId()) return;
   const state = AppState.loadReadOnly();
   const tabela = AppState.calcularClassificacao(state);
   const partidas = state.faseGrupos.partidas;
 
-  UI.updateHeaderBadge(state.campeonato.status);
   UI.updateLifecycleBar(state.campeonato.status);
+
+  // Hero section — dynamic from state
+  const heroBadge = document.getElementById('heroBadge');
+  const heroTitle = document.getElementById('heroTitle');
+  const heroSubtitle = document.getElementById('heroSubtitle');
+
+  const statusLabel = { configuracao: 'Inscrições abertas', grupos: 'Fase de Grupos', playoffs: 'Playoffs', encerrado: 'Encerrado' };
+
+  if (heroBadge) {
+    const jogo = state.campeonato.jogo ? state.campeonato.jogo : '';
+    heroBadge.textContent = jogo + (jogo ? ' · ' : '') + (statusLabel[state.campeonato.status] || '');
+  }
+  if (heroTitle) {
+    heroTitle.textContent = state.campeonato.nome || 'Campeonato';
+  }
+  if (heroSubtitle) {
+    const formatLabels = {
+      'double-elim-4': 'Dupla Eliminação (Chave Superior & Inferior)',
+      'play-in-6': 'Play-In (1º e 2º com bye nas quartas)',
+      'gauntlet-6': 'Escada/Gauntlet (1º direto na final superior)'
+    };
+    const playoffLabel = formatLabels[state.playoffs.formato] || '';
+    heroSubtitle.textContent = playoffLabel ? 'Fase de grupos todos contra todos + Playoffs com ' + playoffLabel : 'Fase de grupos todos contra todos + Playoffs';
+  }
 
   // Champion banner — shown prominently when tournament is finished
   const championBanner = document.getElementById('championBanner');
@@ -27,12 +51,12 @@ function renderHome() {
             <div class="champion-trophy">
               <span class="champion-trophy-icon">&#127942;</span>
             </div>
-            <div class="champion-label">CAMPE&Atilde;O DO CAMPEONATO 2026</div>
+            <div class="champion-label">CAMPE&Atilde;O</div>
             <div class="champion-name">${winner ? UI.escapeHtml(winner.nome) : '?'}</div>
             ${winner && winner.participante ? `<div class="champion-label" style="margin-top:4px;letter-spacing:.12em;font-size:.85rem">${UI.escapeHtml(winner.participante)}</div>` : ''}
             ${winner ? `<div class="champion-avatar-wrapper">${UI.renderAvatar(winner, 80)}</div>` : ''}
             <div class="champion-score">${gf ? gf.golsA + ' &times; ' + gf.golsB : ''} &mdash; Grande Final</div>
-            <div class="champion-badge">1&ordm; Campeonato EA Sports FC AMLabs 2026</div>
+            <div class="champion-badge">${UI.escapeHtml(state.campeonato.nome || 'Campeonato')}</div>
           </div>
         </div>`;
     } else {

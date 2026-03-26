@@ -1,14 +1,11 @@
 /**
- * Firestore Service — AMLabs Gaming Cup
- * CRUD operations for Firestore with DDD structure.
- * Falls back gracefully when Firebase is not configured.
+ * Firestore Service — Campeonatos AMLabs
+ * CRUD operations for Firestore. Single source of truth — no localStorage.
  */
 
-const TOURNAMENT_ID = 'amlabs-2026';
 const CAMPEONATOS_COLLECTION = 'campeonatos';
 const AUDIT_COLLECTION = 'auditLog';
 const INSCRICOES_COLLECTION = 'inscricoes';
-const INSCRICOES_LOCAL_KEY = STORAGE_PREFIX + 'campeonato_amlabs_inscricoes_v1';
 
 // Cached tournament data from Firestore listener
 let _firestoreCache = null;
@@ -20,36 +17,50 @@ const FirestoreService = {
   },
 
   /**
-   * Start listening to tournament changes in real-time.
+   * Start real-time listener. Returns a Promise that resolves on first snapshot.
+   * Subsequent snapshots trigger onUpdate callback and feed AppState cache.
    */
   startListener(onUpdate) {
-    if (!FIREBASE_CONFIGURED) return;
+    if (!FIREBASE_CONFIGURED) return Promise.reject(new Error('Firebase not configured'));
 
-    const docRef = firebase.firestore()
-      .collection(CAMPEONATOS_COLLECTION)
-      .doc(TOURNAMENT_ID);
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('Timeout loading tournament data')), 10000);
+      let firstSnapshot = true;
 
-    _firestoreListenerUnsubscribe = docRef.onSnapshot((doc) => {
-      if (doc.exists) {
-        _firestoreCache = doc.data();
-        // Sync to localStorage for visitors; skip for admin to avoid overwriting local writes
-        const adminLoggedIn = UI.checkAdmin();
-        if (!adminLoggedIn && window.AppState && window.AppState.convertFirestoreToState) {
-          const legacyState = window.AppState.convertFirestoreToState(_firestoreCache);
-          if (legacyState) {
-            localStorage.setItem(STATE_KEY, JSON.stringify(legacyState));
-            if (window.AppState.invalidateCache) window.AppState.invalidateCache();
+      const docRef = firebase.firestore()
+        .collection(CAMPEONATOS_COLLECTION)
+        .doc(getActiveTournamentId());
+
+      _firestoreListenerUnsubscribe = docRef.onSnapshot((doc) => {
+        if (doc.exists) {
+          _firestoreCache = doc.data();
+          if (window.AppState && window.AppState.feedFromFirestore) {
+            window.AppState.feedFromFirestore(_firestoreCache);
+          }
+        } else {
+          _firestoreCache = null;
+        }
+
+        if (firstSnapshot) {
+          firstSnapshot = false;
+          clearTimeout(timeout);
+          if (doc.exists) {
+            resolve(_firestoreCache);
+          } else {
+            reject(new Error('Tournament not found'));
           }
         }
-      } else {
-        _firestoreCache = null;
-      }
-      if (onUpdate) onUpdate(_firestoreCache);
-    }, (error) => {
-      console.error('Firestore listener error:', error);
-      if (typeof UI !== 'undefined') {
-        UI.showToast('Erro de conexão com o servidor. Usando dados locais.', 'error');
-      }
+
+        if (onUpdate) onUpdate(_firestoreCache);
+      }, (error) => {
+        console.error('Firestore listener error:', error);
+        if (firstSnapshot) {
+          firstSnapshot = false;
+          clearTimeout(timeout);
+          reject(error);
+        }
+        if (onUpdate) onUpdate(null, error);
+      });
     });
   },
 
@@ -64,7 +75,7 @@ const FirestoreService = {
     try {
       const doc = await firebase.firestore()
         .collection(CAMPEONATOS_COLLECTION)
-        .doc(TOURNAMENT_ID)
+        .doc(getActiveTournamentId())
         .get();
 
       if (doc.exists) {
@@ -94,7 +105,7 @@ const FirestoreService = {
 
       await firebase.firestore()
         .collection(CAMPEONATOS_COLLECTION)
-        .doc(TOURNAMENT_ID)
+        .doc(getActiveTournamentId())
         .set(data, { merge: false });
 
       return true;
@@ -114,7 +125,7 @@ const FirestoreService = {
       await firebase.firestore()
         .collection(AUDIT_COLLECTION)
         .add({
-          torneiId: TOURNAMENT_ID,
+          torneiId: getActiveTournamentId(),
           usuario: currentUser ? currentUser.email : 'unknown',
           acao: action,
           detalhes: details || null,
@@ -129,8 +140,10 @@ const FirestoreService = {
   // ----- Registration (Inscricoes) -----
 
   async submitRegistration(data) {
+    if (!FIREBASE_CONFIGURED) return null;
+
     const entry = {
-      torneiId: TOURNAMENT_ID,
+      torneiId: getActiveTournamentId(),
       ...data,
       status: 'pendente',
       criadoEm: new Date().toISOString(),
@@ -139,27 +152,17 @@ const FirestoreService = {
       resolvidoPor: null
     };
 
-    if (!FIREBASE_CONFIGURED) {
-      entry.id = 'insc_' + Date.now();
-      const list = JSON.parse(localStorage.getItem(INSCRICOES_LOCAL_KEY) || '[]');
-      list.push(entry);
-      localStorage.setItem(INSCRICOES_LOCAL_KEY, JSON.stringify(list));
-      return entry;
-    }
-
     const docRef = await firebase.firestore().collection(INSCRICOES_COLLECTION).add(entry);
     return { id: docRef.id, ...entry };
   },
 
   async loadRegistrations() {
-    if (!FIREBASE_CONFIGURED) {
-      return JSON.parse(localStorage.getItem(INSCRICOES_LOCAL_KEY) || '[]');
-    }
+    if (!FIREBASE_CONFIGURED) return [];
 
     try {
       const snapshot = await firebase.firestore()
         .collection(INSCRICOES_COLLECTION)
-        .where('torneiId', '==', TOURNAMENT_ID)
+        .where('torneiId', '==', getActiveTournamentId())
         .orderBy('criadoEm', 'desc')
         .get();
       return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -170,14 +173,7 @@ const FirestoreService = {
   },
 
   async updateRegistration(id, data) {
-    if (!FIREBASE_CONFIGURED) {
-      const list = JSON.parse(localStorage.getItem(INSCRICOES_LOCAL_KEY) || '[]');
-      const idx = list.findIndex(r => r.id === id);
-      if (idx >= 0) Object.assign(list[idx], data);
-      localStorage.setItem(INSCRICOES_LOCAL_KEY, JSON.stringify(list));
-      return;
-    }
-
+    if (!FIREBASE_CONFIGURED) return;
     await firebase.firestore().collection(INSCRICOES_COLLECTION).doc(id).update(data);
   },
 
@@ -187,7 +183,7 @@ const FirestoreService = {
     try {
       const snapshot = await firebase.firestore()
         .collection(AUDIT_COLLECTION)
-        .where('torneiId', '==', TOURNAMENT_ID)
+        .where('torneiId', '==', getActiveTournamentId())
         .orderBy('timestamp', 'desc')
         .limit(200)
         .get();
@@ -196,6 +192,111 @@ const FirestoreService = {
     } catch (error) {
       console.error('Error loading audit log:', error);
       return [];
+    }
+  },
+
+  /**
+   * List all tournaments ordered by creation date (newest first).
+   */
+  async listTournaments() {
+    if (!FIREBASE_CONFIGURED) return [];
+    try {
+      const snapshot = await firebase.firestore()
+        .collection(CAMPEONATOS_COLLECTION)
+        .orderBy('metadata.criadoEm', 'desc')
+        .get();
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        nome: doc.data().metadata?.nome || 'Campeonato',
+        jogo: doc.data().metadata?.jogo || '',
+        status: doc.data().metadata?.status || 'configuracao',
+        criadoEm: doc.data().metadata?.criadoEm || null,
+        timesCount: (doc.data().times || []).length
+      }));
+    } catch (error) {
+      console.error('Error listing tournaments:', error);
+      return [];
+    }
+  },
+
+  /**
+   * Create a new tournament document in Firestore.
+   */
+  async createTournament({ nome, jogo }) {
+    if (!FIREBASE_CONFIGURED || !UI.checkAdmin()) return null;
+
+    const uuid = crypto.randomUUID();
+    const now = new Date().toISOString();
+
+    const doc = {
+      id: uuid,
+      _schemaVersion: 1,
+      metadata: {
+        nome,
+        jogo,
+        status: 'configuracao',
+        criadoEm: now,
+        atualizadoEm: now
+      },
+      config: {
+        formato: 'grupos+playoffs',
+        classificadosPorGrupo: 4,
+        regrasClassificacao: {
+          vitoria: 3,
+          empate: 1,
+          derrota: 0,
+          criteriosDesempate: ['pontos', 'vitorias', 'saldoGols', 'golsMarcados', 'confrontoDireto']
+        }
+      },
+      times: [],
+      faseGrupos: { status: 'aguardando', partidas: [] },
+      playoffs: { formato: 'double-elim-4', status: 'aguardando', matches: {} },
+      campeao: null
+    };
+
+    try {
+      await firebase.firestore()
+        .collection(CAMPEONATOS_COLLECTION)
+        .doc(uuid)
+        .set(doc);
+      return uuid;
+    } catch (error) {
+      console.error('Error creating tournament:', error);
+      return null;
+    }
+  },
+
+  /**
+   * Permanently delete a tournament and all its related data.
+   * Cleans: campeonatos/{uuid}, inscricoes (by torneiId), auditLog (by torneiId).
+   */
+  async deleteTournament(uuid) {
+    if (!FIREBASE_CONFIGURED || !UI.checkAdmin()) return false;
+
+    try {
+      const db = firebase.firestore();
+      const batch = db.batch();
+
+      // Delete tournament document
+      batch.delete(db.collection(CAMPEONATOS_COLLECTION).doc(uuid));
+
+      // Delete related inscricoes
+      const inscricoes = await db.collection(INSCRICOES_COLLECTION)
+        .where('torneiId', '==', uuid)
+        .get();
+      inscricoes.docs.forEach(doc => batch.delete(doc.ref));
+
+      // Delete related auditLog entries
+      const auditEntries = await db.collection(AUDIT_COLLECTION)
+        .where('torneiId', '==', uuid)
+        .get();
+      auditEntries.docs.forEach(doc => batch.delete(doc.ref));
+
+      await batch.commit();
+      return true;
+    } catch (error) {
+      console.error('Error deleting tournament:', error);
+      return false;
     }
   }
 };

@@ -1,5 +1,5 @@
 /**
- * Authentication — AMLabs Gaming Cup
+ * Authentication — Campeonatos AMLabs
  * Google Login via Firebase Auth. Only admin can edit.
  */
 
@@ -12,7 +12,7 @@ function isAdmin() {
 
 function initAuth() {
   if (!FIREBASE_CONFIGURED) {
-    // In localStorage mode, show admin controls by default (local use)
+    // Without Firebase, show admin controls by default (local dev)
     currentUser = { email: ADMIN_EMAIL, displayName: 'Admin Local' };
     updateAdminUI();
     return;
@@ -70,6 +70,8 @@ function updateAdminUI() {
   const visitorElements = document.querySelectorAll('.visitor-only');
   const adminBtn = document.getElementById('adminLoginBtn');
   const adminInfo = document.getElementById('adminInfo');
+  const mobileLoginBtn = document.getElementById('mobileLoginBtn');
+  const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
 
   if (isAdmin()) {
     adminElements.forEach(el => el.style.display = '');
@@ -80,10 +82,14 @@ function updateAdminUI() {
       const emailEl = adminInfo.querySelector('.admin-email');
       if (emailEl) emailEl.textContent = currentUser.email;
     }
+    if (mobileLoginBtn) mobileLoginBtn.style.display = 'none';
+    if (mobileLogoutBtn) mobileLogoutBtn.style.display = '';
   } else {
     adminElements.forEach(el => el.style.display = 'none');
     visitorElements.forEach(el => el.style.display = '');
     if (adminBtn) adminBtn.style.display = '';
     if (adminInfo) adminInfo.style.display = 'none';
+    if (mobileLoginBtn) mobileLoginBtn.style.display = '';
+    if (mobileLogoutBtn) mobileLogoutBtn.style.display = 'none';
   }
 }

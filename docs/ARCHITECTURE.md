@@ -90,10 +90,12 @@ campeonato-amlabs/
 Os scripts são carregados em sequência no `index.html`. A ordem importa porque cada módulo depende dos anteriores:
 
 ```
-firebase-config.js → auth.js → firestore-service.js → state.js → ui.js
+env.js → firebase-config.js → auth.js → firestore-service.js → state.js → ui.js
 → playoff-formats.js → renderers-home.js → renderers-matches.js
 → renderers.js → actions.js → app.js
 ```
+
+**`env.js` deve ser o primeiro script carregado** — expõe `APP_ENV`, `IS_PROD`, `STORAGE_PREFIX`, `getActiveTournamentId()` e `setActiveTournamentId()` como globais que todos os módulos seguintes dependem.
 
 ---
 
@@ -101,14 +103,16 @@ firebase-config.js → auth.js → firestore-service.js → state.js → ui.js
 
 ### 4.1 State — Objeto Principal
 
-Armazenado em `localStorage` (chave: `campeonato_amlabs_v1`) e sincronizado ao Firestore (doc: `campeonatos/amlabs-2026`).
+Armazenado em `localStorage` (chave: `{prefix}campeonato_{uuid}_v1`) e sincronizado ao Firestore (doc: `campeonatos/{uuid}`).
+
+O `uuid` é o ID do campeonato ativo (lido de `sessionStorage` via `getActiveTournamentId()`). O `prefix` é `''` em produção ou `'dev_'` em desenvolvimento (definido por `STORAGE_PREFIX` em `env.js`).
 
 ```javascript
 {
+  _schemaVersion: 1,        // versão do schema — usado por migrateState()
   campeonato: {
-    nome: '1º Campeonato EA Sports FC AMLabs 2026',
-    edicao: 1,
-    temporada: '2026',
+    nome: '',               // preenchido pelo Firestore
+    jogo: '',               // preenchido pelo Firestore
     status: 'configuracao'  // configuracao | grupos | playoffs | encerrado
   },
   config: {
@@ -177,7 +181,7 @@ Armazenado em `localStorage` (chave: `campeonato_amlabs_v1`) e sincronizado ao F
 ```javascript
 {
   id: 'insc_xxx' | 'firestore-auto-id',
-  torneiId: 'amlabs-2026',
+  torneiId: '{uuid}',     // UUID do campeonato ativo
   participante: 'João',
   nome: 'São Paulo FC',
   abreviacao: 'SPF',
@@ -195,7 +199,7 @@ Armazenado em `localStorage` (chave: `campeonato_amlabs_v1`) e sincronizado ao F
 ```javascript
 {
   id: 'log_xxx' | 'firestore-auto-id',
-  torneiId: 'amlabs-2026',
+  torneiId: '{uuid}',     // UUID do campeonato ativo
   timestamp: 'ISO date',
   usuario: 'email ou PC-XXXXXXXX',
   acao: 'Adicionou o time "Real Madrid"',
@@ -203,8 +207,8 @@ Armazenado em `localStorage` (chave: `campeonato_amlabs_v1`) e sincronizado ao F
   device: 'PC-XXXXXXXX'
 }
 ```
-**localStorage:** `campeonato_amlabs_audit_v1` (máx 500 entradas)
-**Coleção Firestore:** `auditLog/`
+**localStorage:** `{prefix}campeonato_{uuid}_audit_v1` (máx 500 entradas)
+**Coleção Firestore:** `auditLog/` (filtrado por `torneiId == uuid`)
 
 ---
 
@@ -281,7 +285,16 @@ Critérios de desempate (em ordem):
 - Admin aprova → time é criado automaticamente e adicionado ao state
 - Se estado for `grupos`, aprovação também regenera as partidas
 
-### 6.5 Auditoria
+### 6.5 Deleção de Campeonato
+
+- Permitida SOMENTE durante `configuracao` (campeonato não iniciado)
+- Exclusiva do admin
+- Remove permanentemente: documento `campeonatos/{uuid}`, todas as `inscricoes` com `torneiId == uuid`, todos os `auditLog` com `torneiId == uuid`
+- Operação atômica via `WriteBatch` do Firestore
+- Não há "soft delete" — a ação é irreversível
+- Dialog de confirmação exibe contagem de times cadastrados quando > 0
+
+### 6.6 Auditoria
 
 - Toda ação que modifica estado gera uma entrada no audit log
 - Identificação: email do admin logado OU browser fingerprint (formato `PC-XXXXXXXX`)
@@ -331,7 +344,7 @@ Critérios de desempate (em ordem):
 |--------|------------------|-------------------|
 | `firebase-config.js` | Inicializa Firebase, define `FIREBASE_CONFIGURED` | `FIREBASE_CONFIGURED` (global) |
 | `auth.js` | Login/logout Google, `isAdmin()`, `updateAdminUI()` | `ADMIN_EMAIL`, `currentUser`, `isAdmin()`, `loginAdmin()`, `logoutAdmin()`, `initAuth()`, `updateAdminUI()` |
-| `firestore-service.js` | CRUD Firestore, real-time listener, inscrições | `FirestoreService` |
+| `firestore-service.js` | CRUD Firestore, real-time listener, inscrições, deleção de campeonato | `FirestoreService` (inclui `deleteTournament(uuid)`) |
 | `state.js` | Estado centralizado, todas as operações de domínio | `AppState` |
 | `ui.js` | Helpers de UI compartilhados | `UI` |
 | `playoff-formats.js` | Registry de formatos de playoff | `PlayoffFormats` |
@@ -340,6 +353,7 @@ Critérios de desempate (em ordem):
 | `renderers.js` | Demais renderers + monta objeto `Renderers` | `Renderers` |
 | `actions.js` | Handlers: `submitAddTime()`, `deleteTime()`, `saveInlineResult()`, etc. | Funções globais + `getDeviceId()`, `getAuditUser()` |
 | `app.js` | Bootstrap, score modal, mobile nav, wrappers | Funções globais |
+| `portal.js` | Landing page: listar torneios, criar, deletar, paginação | `portalShowMore`, `portalEnterTournament`, `portalCreateTournament`, `portalRequestDelete`, `portalExecuteDelete` |
 
 ### 7.3 Objeto `Renderers`
 
@@ -391,14 +405,14 @@ O `app.js` sobrescreve `Renderers.home` e `Renderers.classificacao` com wrappers
 
 `calcularClassificacao()` armazena o resultado em `_classificacaoCache`. O cache é invalidado quando `saveState()` é chamado. Funciona comparando referência de objeto (`state === _ensureCache()`), então só funciona com `loadReadOnly()`.
 
-### 8.4 Persistência Dual-Layer
+### 8.4 Persistência — Firestore como Fonte Única
 
 ```
                 ADMIN                              VISITANTE
                   │                                    │
      AppState.save()                        Firestore onSnapshot
           │                                        │
-     localStorage ──→ Firestore (async)       Firestore ──→ localStorage
+     cache memória ──→ Firestore            Firestore ──→ cache memória
           │              ▲                         │
      renderiza           │                    renderiza
           │         saveTournament()                │
@@ -406,16 +420,19 @@ O `app.js` sobrescreve `Renderers.home` e `Renderers.classificacao` com wrappers
         [DOM]       (apenas admin)              [DOM]
 ```
 
-- **Admin:** escreve no localStorage, sincroniza pro Firestore async via `saveTournament()`
-- **Visitante:** recebe updates do Firestore via `onSnapshot()`, que sobrescreve o localStorage local
-- **Offline:** Firestore persistence (IndexedDB) mantém dados locais. Se Firebase cair, tudo continua funcionando via localStorage
+- **Firestore** é a única fonte de verdade. **Não usa localStorage.**
+- **sessionStorage** armazena apenas `active_tournament_id` (UUID do campeonato ativo)
+- **Cache em memória** (`_stateCache`) é alimentado pelo listener em tempo real via `feedFromFirestore()`
+- **Admin:** `AppState.save()` atualiza cache + escreve no Firestore
+- **Visitante:** recebe updates do Firestore via `onSnapshot()` → `feedFromFirestore()` → re-renderiza
+- **Falha do Firebase:** mostra tela de erro ("Não foi possível conectar ao servidor")
 
 ### 8.5 Conversão de Formato
 
-O localStorage usa formato "legado" (flat). O Firestore usa formato "DDD" (com `metadata`, `config.regrasClassificacao`, etc.). Duas funções fazem a conversão:
+O cache em memória usa formato "state" (flat). O Firestore usa formato "DDD" (com `metadata`, `config.regrasClassificacao`, etc.). Duas funções fazem a conversão:
 
-- `convertStateToFirestore(state)` — legado → DDD (ao salvar)
-- `convertFirestoreToState(data)` — DDD → legado (ao receber do listener)
+- `convertStateToFirestore(state)` — state → DDD (ao salvar)
+- `convertFirestoreToState(data)` — DDD → state (ao receber do listener via `feedFromFirestore`)
 
 ---
 
@@ -560,7 +577,10 @@ window.PlayoffFormats = {
 - Elementos com classe `admin-only` são mostrados/escondidos por `updateAdminUI()`
 - Elementos com classe `visitor-only` são o inverso
 - Todo handler em `actions.js` verifica `UI.checkAdmin()` antes de executar
-- Botão de login é discreto (no footer), para não confundir visitantes
+- `updateAdminUI()` em `auth.js` gerencia:
+  - Desktop: `#adminLoginBtn` e `#adminInfo` (footer de ambas as páginas)
+  - Mobile (`campeonato.html`): `#mobileLoginBtn` e `#mobileLogoutBtn` (sheet "Mais")
+  - Mobile (`index.html`): o footer fica visível via classe `.landing-footer` — os mesmos `#adminLoginBtn` e `#adminInfo` do desktop são usados
 
 ### 10.3 Firestore Rules
 
@@ -576,14 +596,15 @@ inscricoes/{entry} — read: público, create: qualquer um, update/delete: admin
 
 ### 11.1 Firebase
 
-```javascript
-// firebase-config.js
-projectId: 'amlabs-gaming-cup-df736'
-authDomain: 'amlabs-gaming-cup-df736.firebaseapp.com'
-```
+Dois projetos Firebase (ambos Spark/gratuito), selecionados em runtime por `env.js`:
+
+| Ambiente | Projeto | projectId |
+|----------|---------|-----------|
+| Produção (`amlabs-cup.netlify.app`, `l-vonah.github.io`) | `amlabs-gaming-cup-df736` | `amlabs-gaming-cup-df736` |
+| Desenvolvimento (localhost, previews Netlify) | `amlabs-gaming-cup-dev` | `amlabs-gaming-cup-dev` |
 
 **Coleções:** `campeonatos`, `auditLog`, `inscricoes`
-**Doc principal:** `campeonatos/amlabs-2026`
+**Doc por campeonato:** `campeonatos/{uuid}` (UUID gerado via `crypto.randomUUID()` na criação)
 **Plano:** Spark (gratuito)
 
 ### 11.2 Netlify
@@ -594,13 +615,23 @@ authDomain: 'amlabs-gaming-cup-df736.firebaseapp.com'
 - **Publish:** `/` (root)
 - **Deploy automático:** git push master → Netlify
 
-### 11.3 Chaves de localStorage
+### 11.3 Armazenamento do Browser
+
+**localStorage não é utilizado.** Toda persistência está no Firestore.
+
+**sessionStorage** armazena apenas:
 
 | Chave | Conteúdo |
 |-------|----------|
-| `campeonato_amlabs_v1` | Estado completo do campeonato |
-| `campeonato_amlabs_audit_v1` | Log de auditoria local |
-| `campeonato_amlabs_inscricoes_v1` | Inscrições (fallback quando Firebase offline) |
+| `active_tournament_id` | UUID do campeonato ativo na aba atual |
+
+### 11.4 sessionStorage
+
+| Chave | Conteúdo |
+|-------|----------|
+| `active_tournament_id` | UUID do campeonato ativo na aba atual |
+
+Usar `sessionStorage` garante que cada aba pode ter um campeonato diferente aberto simultaneamente.
 
 ---
 
@@ -634,7 +665,7 @@ authDomain: 'amlabs-gaming-cup-df736.firebaseapp.com'
 
 1. **Confronto direto não resolve empates de 3+ times** — apenas entre 2 times empatados em todos os outros critérios
 2. **Zero testes automatizados** — sem cobertura de unit ou integration tests
-3. **Sem versionamento de schema** — se a estrutura do state mudar, não há migration automática
+3. ~~**Sem versionamento de schema**~~ — implementado: `_schemaVersion` + `migrateState()` em `state.js`
 4. **Admin único hardcoded** — não suporta múltiplos admins
 5. **CSS monolítico** — ~2648 linhas sem pré-processador ou módulos
 6. **Sem minificação** — JS e CSS servidos sem build step
@@ -676,3 +707,69 @@ authDomain: 'amlabs-gaming-cup-df736.firebaseapp.com'
 - ID conventions (`rr_`, `time_`, match IDs)
 
 Se necessário, implemente uma função de migração em `state.js` que detecta a versão antiga e converte.
+
+---
+
+## 16. Ambiente e Multi-Torneio
+
+### 16.1 Detecção de Ambiente (`js/env.js`)
+
+O primeiro script carregado detecta o ambiente por hostname e expõe globais:
+
+```javascript
+APP_ENV       // 'production' | 'development'
+IS_PROD       // true | false
+STORAGE_PREFIX // '' | 'dev_'
+```
+
+**Produção:** `amlabs-cup.netlify.app` e `l-vonah.github.io`
+**Desenvolvimento:** localhost, `*.netlify.app` previews, `file://`
+
+Em dev aparece um banner âmbar fixo no topo da página.
+
+### 16.2 Seletor de Torneio
+
+O bootstrap em `app.js` tem uma fase pré-torneio:
+
+```
+DOMContentLoaded:
+  1. initAuth()
+  2. getActiveTournamentId() === null?
+     SIM → openTournamentSelector()  ← exibe lista de torneios, para aqui
+     NÃO → initTournament()          ← fluxo normal
+```
+
+O `sessionStorage` mantém o torneio ativo por aba. Abrir uma nova aba volta ao seletor.
+
+### 16.3 Schema Versioning
+
+`DEFAULT_STATE` tem `_schemaVersion: 1`. Em todo `_ensureCache()`, o state carregado passa por `migrateState()` antes de ser retornado.
+
+**Convenção para futuras mudanças de schema:**
+1. Incremente `CURRENT_SCHEMA_VERSION` em `state.js`
+2. Adicione um bloco `if (version < N)` em `migrateState()`
+3. Documente a mudança neste arquivo
+
+### 16.4 Header e Navegação
+
+Header de duas linhas:
+- **Linha 1 (top bar):** Logo AMLabs + dropdown trigger do campeonato ativo
+- **Linha 2 (nav bar):** Navegação horizontal — todas as seções visíveis
+
+O dropdown trigger mostra o nome do campeonato ativo. Clicar abre um dropdown com a lista de todos os campeonatos + botão "Novo Campeonato" (admin only). Clicar num campeonato faz reload na página com o novo UUID.
+
+### 16.5 Responsividade e Mobile
+
+**Breakpoint:** 768px
+
+| Elemento | Desktop (>768px) | Mobile (≤768px) |
+|----------|-------------------|------------------|
+| Header top bar | 56px, logo + trigger | 48px, compacto |
+| Header nav bar | 44px, nav horizontal | Oculta (`display: none`) |
+| Bottom tab bar | Oculta | 60px fixo no bottom, 5 tabs |
+| "Mais" sheet | N/A | Bottom sheet com grid 4 colunas |
+| Lifecycle bar | Barra com steps | Oculta (mobile usa lifecycle no dashboard) |
+| Footer (`campeonato.html`) | Visível | Oculta (admin vai no "Mais") |
+| Footer (`index.html`) | Visível | Visível — classe `.landing-footer` sobrescreve o `display:none` global |
+| Tournament dropdown | 380px absolute | Full-width |
+| Portal (landing) | Landing page, sem nav/bottom bar | Landing page, sem bottom bar |

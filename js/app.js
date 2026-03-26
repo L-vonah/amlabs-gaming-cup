@@ -1,5 +1,5 @@
 /**
- * App Bootstrap — 1o Campeonato EA Sports FC AMLabs
+ * App Bootstrap — Campeonatos AMLabs
  * Navigation, score modal, mobile bar, and initialization
  */
 
@@ -257,7 +257,6 @@ UI.navigateTo = function(section) {
   _origNavigateTo(section);
   updateMobileTabBar(section);
   const st = AppState.loadReadOnly();
-  UI.updateHeaderBadge(st.campeonato.status);
   UI.updateLifecycleBar(st.campeonato.status);
 };
 
@@ -321,8 +320,172 @@ document.addEventListener('click', (e) => {
 // Boot
 // ------------------------------------------------------------------
 
+function showLoadingState() {
+  const main = document.querySelector('.main-content');
+  if (!main) return;
+  let loader = document.getElementById('appLoadingState');
+  if (!loader) {
+    loader = document.createElement('div');
+    loader.id = 'appLoadingState';
+    loader.className = 'app-loading-state';
+    loader.innerHTML = '<div class="loading-spinner"></div><p>Carregando campeonato...</p>';
+    main.prepend(loader);
+  }
+  loader.style.display = 'flex';
+}
+
+function showErrorState(message) {
+  const loader = document.getElementById('appLoadingState');
+  if (loader) loader.style.display = 'none';
+  const main = document.querySelector('.main-content');
+  if (!main) return;
+  let error = document.getElementById('appErrorState');
+  if (!error) {
+    error = document.createElement('div');
+    error.id = 'appErrorState';
+    error.className = 'app-error-state';
+    main.prepend(error);
+  }
+  error.innerHTML = `
+    <div class="error-icon">⚠</div>
+    <p class="error-title">Falha ao carregar</p>
+    <p class="error-message">${UI.escapeHtml(message)}</p>
+    <a class="btn btn-primary" href="index.html">Voltar aos campeonatos</a>
+  `;
+  error.style.display = 'flex';
+}
+
+function hideLoadingState() {
+  const loader = document.getElementById('appLoadingState');
+  if (loader) loader.style.display = 'none';
+  const error = document.getElementById('appErrorState');
+  if (error) error.style.display = 'none';
+}
+
+/**
+ * Load tournament from Firestore and initialize the dashboard.
+ */
+async function initTournament() {
+  showLoadingState();
+
+  try {
+    if (typeof FirestoreService !== 'undefined' && FirestoreService.isActive()) {
+      await FirestoreService.startListener((data, error) => {
+        if (error) return;
+        if (data && data.metadata) {
+          const tn = document.getElementById('tournamentTriggerName');
+          if (tn) tn.textContent = data.metadata.nome;
+          document.title = data.metadata.nome + ' — Campeonatos AMLabs';
+        }
+        const active = document.querySelector('.nav-link.active');
+        if (active) {
+          const section = active.getAttribute('data-nav');
+          if (window.Renderers && window.Renderers[section]) {
+            window.Renderers[section]();
+          }
+        }
+      });
+    } else {
+      throw new Error('Firebase não configurado');
+    }
+  } catch (error) {
+    console.error('Failed to load tournament:', error);
+    showErrorState(error.message === 'Tournament not found'
+      ? 'Campeonato não encontrado. Ele pode ter sido removido.'
+      : 'Não foi possível conectar ao servidor. Verifique sua conexão.');
+    return;
+  }
+
+  hideLoadingState();
+
+  const state = AppState.loadReadOnly();
+  const tournamentName = document.getElementById('tournamentTriggerName');
+  if (tournamentName) {
+    tournamentName.textContent = state.campeonato.nome || 'Campeonato';
+  }
+  document.title = (state.campeonato.nome || 'Campeonato') + ' — Campeonatos AMLabs';
+
+  updateInscricoesVisibility();
+
+  const inputCorTimo = document.getElementById('inputCorTimo');
+  const inputInscCor = document.getElementById('inputInscCor');
+  if (inputCorTimo) inputCorTimo.value = UI.getRandomColor();
+  if (inputInscCor) inputInscCor.value = UI.getRandomColor();
+
+  initNavFromHash();
+}
+
+// ------------------------------------------------------------------
+// Tournament Dropdown (campeonato.html header)
+// ------------------------------------------------------------------
+
+async function openTournamentDropdown() {
+  const dropdown = document.getElementById('tournamentDropdown');
+  if (!dropdown) return;
+  dropdown.style.display = 'block';
+
+  const listContainer = document.getElementById('dropdownTorneioList');
+  if (!listContainer) return;
+  listContainer.innerHTML = '<p style="padding:8px 12px;font-size:0.8rem;color:var(--color-text-muted);">Carregando...</p>';
+
+  const activeId = getActiveTournamentId();
+  let torneiros = [];
+  if (typeof FirestoreService !== 'undefined' && FirestoreService.isActive()) {
+    torneiros = await FirestoreService.listTournaments();
+  }
+
+  const statusLabel = { configuracao: 'Inscrições', grupos: 'Grupos', playoffs: 'Playoffs', encerrado: 'Encerrado' };
+  const statusClass = { configuracao: 'badge-configuracao', grupos: 'badge-grupos', playoffs: 'badge-playoffs', encerrado: 'badge-encerrado' };
+
+  if (torneiros.length === 0) {
+    listContainer.innerHTML = '<p style="padding:8px 12px;font-size:0.8rem;color:var(--color-text-muted);">Nenhum campeonato.</p>';
+    return;
+  }
+
+  const visible = torneiros.slice(0, 3);
+
+  listContainer.innerHTML = visible.map(t => `
+    <div class="dropdown-item${t.id === activeId ? ' dropdown-item-active' : ''}"
+         onclick="enterTournament('${UI.escapeHtml(t.id)}')">
+      <div class="dropdown-item-info">
+        <span class="dropdown-item-name">${UI.escapeHtml(t.nome)}</span>
+        <span class="dropdown-item-meta">${UI.escapeHtml(t.jogo)}${t.criadoEm ? ' · ' + new Date(t.criadoEm).toLocaleDateString('pt-BR') : ''}</span>
+      </div>
+      <span class="dropdown-item-badge ${statusClass[t.status] || ''}">${statusLabel[t.status] || t.status}</span>
+    </div>
+  `).join('');
+}
+
+function closeTournamentDropdown() {
+  const dropdown = document.getElementById('tournamentDropdown');
+  if (dropdown) dropdown.style.display = 'none';
+}
+
+function toggleTournamentDropdown() {
+  const dropdown = document.getElementById('tournamentDropdown');
+  if (!dropdown) return;
+  dropdown.style.display === 'block' ? closeTournamentDropdown() : openTournamentDropdown();
+}
+
+window.toggleTournamentDropdown = toggleTournamentDropdown;
+window.closeTournamentDropdown = closeTournamentDropdown;
+
+document.addEventListener('click', (e) => {
+  const dropdown = document.getElementById('tournamentDropdown');
+  const trigger = document.getElementById('tournamentTrigger');
+  if (dropdown && dropdown.style.display === 'block') {
+    if (!dropdown.contains(e.target) && (!trigger || !trigger.contains(e.target))) {
+      closeTournamentDropdown();
+    }
+  }
+});
+
+// ------------------------------------------------------------------
+// DOMContentLoaded (campeonato.html only)
+// ------------------------------------------------------------------
+
 document.addEventListener('DOMContentLoaded', () => {
-  // Dev banner — only shown outside production
+  // Dev banner
   if (!IS_PROD) {
     const banner = document.createElement('div');
     banner.className = 'dev-banner';
@@ -332,27 +495,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   initAuth();
-  initNavFromHash();
-  updateInscricoesVisibility();
 
-  // Set random default colors on color inputs
-  const inputCorTimo = document.getElementById('inputCorTimo');
-  const inputInscCor = document.getElementById('inputInscCor');
-  if (inputCorTimo) inputCorTimo.value = UI.getRandomColor();
-  if (inputInscCor) inputInscCor.value = UI.getRandomColor();
-
-  // Start Firestore listener if configured
-  if (typeof FirestoreService !== 'undefined' && FirestoreService.isActive()) {
-    FirestoreService.startListener((data) => {
-      const active = document.querySelector('.nav-link.active');
-      if (active) {
-        const section = active.getAttribute('data-nav');
-        if (window.Renderers && window.Renderers[section]) {
-          window.Renderers[section]();
-        }
-      }
-    });
+  // No tournament selected → redirect to landing
+  if (!getActiveTournamentId()) {
+    window.location.href = 'index.html';
+    return;
   }
+
+  initTournament();
 });
 
 window.addEventListener('hashchange', () => {
