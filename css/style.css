@@ -305,6 +305,7 @@ body {
   color: var(--color-primary);
   font-size: 0.85rem;
   font-weight: 600;
+  text-decoration: none;
 }
 .dropdown-create:hover { background: var(--color-primary-glow); }
 
