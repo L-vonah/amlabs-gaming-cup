@@ -1786,7 +1786,6 @@ body {
   .tournament-trigger-name { max-width: 160px; font-size: 0.72rem; }
   .tournament-dropdown { left: 8px; right: 8px; width: auto; }
 
-  /* Portal mode mobile rules are global (see .portal-mode section above) */
 
   /* ----- Bottom Tab Bar ----- */
   .mobile-bottom-bar {
@@ -2959,10 +2958,3 @@ body.has-dev-banner {
   font-size: 0.85rem;
 }
 
-/* Portal mode — ONLY selector visible, everything else force-hidden */
-.portal-mode .section:not(#sectionSeletor) { display: none !important; }
-.portal-mode #lifecycleBar { display: none !important; }
-.portal-mode .header-nav-bar { display: none !important; }
-.portal-mode #mobileBottomBar { display: none !important; }
-.portal-mode .mobile-more-overlay { display: none !important; }
-.portal-mode .site-footer { border-top-color: transparent; }

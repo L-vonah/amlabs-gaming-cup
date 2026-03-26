@@ -8,39 +8,13 @@
 // ------------------------------------------------------------------
 
 /**
- * Enter a tournament by UUID. Sets session and boots the app.
+ * Enter a tournament by UUID. Navigates to campeonato.html.
  */
 function enterTournament(uuid) {
   setActiveTournamentId(uuid);
-  window.location.reload();
+  window.location.href = 'campeonato.html';
 }
 window.enterTournament = enterTournament;
-
-/**
- * Handle the "Criar Campeonato" form submission.
- */
-async function submitCreateTournament(event) {
-  event.preventDefault();
-  if (!UI.checkAdmin()) return;
-
-  const nome = document.getElementById('inputTournamentNome').value.trim();
-  const jogo = document.getElementById('inputTournamentJogo').value.trim();
-
-  if (!nome || !jogo) {
-    UI.showToast('Preencha o nome e o jogo do campeonato.', 'error');
-    return;
-  }
-
-  const uuid = await FirestoreService.createTournament({ nome, jogo });
-  if (!uuid) {
-    UI.showToast('Erro ao criar campeonato. Tente novamente.', 'error');
-    return;
-  }
-
-  UI.showToast('Campeonato criado!', 'success');
-  enterTournament(uuid);
-}
-window.submitCreateTournament = submitCreateTournament;
 
 // ------------------------------------------------------------------
 // Browser fingerprint — replaces name prompt for audit log identity

@@ -321,7 +321,6 @@ document.addEventListener('click', (e) => {
 // ------------------------------------------------------------------
 
 function showLoadingState() {
-  document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
   const main = document.querySelector('.main-content');
   if (!main) return;
   let loader = document.getElementById('appLoadingState');
@@ -330,13 +329,12 @@ function showLoadingState() {
     loader.id = 'appLoadingState';
     loader.className = 'app-loading-state';
     loader.innerHTML = '<div class="loading-spinner"></div><p>Carregando campeonato...</p>';
-    main.appendChild(loader);
+    main.prepend(loader);
   }
   loader.style.display = 'flex';
 }
 
 function showErrorState(message) {
-  document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
   const loader = document.getElementById('appLoadingState');
   if (loader) loader.style.display = 'none';
   const main = document.querySelector('.main-content');
@@ -346,13 +344,13 @@ function showErrorState(message) {
     error = document.createElement('div');
     error.id = 'appErrorState';
     error.className = 'app-error-state';
-    main.appendChild(error);
+    main.prepend(error);
   }
   error.innerHTML = `
     <div class="error-icon">⚠</div>
     <p class="error-title">Falha ao carregar</p>
     <p class="error-message">${UI.escapeHtml(message)}</p>
-    <button class="btn btn-primary" onclick="clearActiveTournamentId(); location.reload();">Voltar aos campeonatos</button>
+    <a class="btn btn-primary" href="index.html">Voltar aos campeonatos</a>
   `;
   error.style.display = 'flex';
 }
@@ -365,56 +363,11 @@ function hideLoadingState() {
 }
 
 /**
- * Show the tournament selector screen — portal mode.
- */
-function openTournamentSelector() {
-  document.body.classList.add('portal-mode');
-
-  // Hide tournament-specific elements
-  const navBar = document.getElementById('navBar');
-  const mobileBottomBar = document.getElementById('mobileBottomBar');
-  const mobileMoreOverlay = document.getElementById('mobileMoreOverlay');
-  const lifecycleBar = document.getElementById('lifecycleBar');
-  const tournamentTrigger = document.getElementById('tournamentTrigger');
-  if (navBar) navBar.style.display = 'none';
-  if (mobileBottomBar) mobileBottomBar.style.display = 'none';
-  if (mobileMoreOverlay) mobileMoreOverlay.style.display = 'none';
-  if (lifecycleBar) lifecycleBar.style.display = 'none';
-  if (tournamentTrigger) tournamentTrigger.style.display = 'none';
-
-  hideLoadingState();
-
-  // Hide all content sections, show selector
-  document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
-  const seletor = document.getElementById('sectionSeletor');
-  if (seletor) seletor.style.display = 'block';
-
-  document.title = 'Campeonatos AMLabs';
-
-  if (window.Renderers && window.Renderers.seletor) {
-    window.Renderers.seletor();
-  }
-}
-window.openTournamentSelector = openTournamentSelector;
-
-/**
- * Enter tournament mode — async, waits for Firestore data.
+ * Load tournament from Firestore and initialize the dashboard.
  */
 async function initTournament() {
-  document.body.classList.remove('portal-mode');
-
-  // Show loading while Firestore loads
   showLoadingState();
 
-  // Show nav bar, tournament trigger
-  const navBar = document.getElementById('navBar');
-  const lifecycleBar = document.getElementById('lifecycleBar');
-  const tournamentTrigger = document.getElementById('tournamentTrigger');
-  if (navBar) navBar.style.display = '';
-  if (lifecycleBar) lifecycleBar.style.display = '';
-  if (tournamentTrigger) tournamentTrigger.style.display = '';
-
-  // Start listener — returns Promise that resolves on first snapshot
   try {
     if (typeof FirestoreService !== 'undefined' && FirestoreService.isActive()) {
       await FirestoreService.startListener((data, error) => {
@@ -445,7 +398,6 @@ async function initTournament() {
 
   hideLoadingState();
 
-  // Update header with tournament name
   const state = AppState.loadReadOnly();
   const tournamentName = document.getElementById('tournamentTriggerName');
   if (tournamentName) {
@@ -464,7 +416,7 @@ async function initTournament() {
 }
 
 // ------------------------------------------------------------------
-// Tournament Dropdown
+// Tournament Dropdown (campeonato.html header)
 // ------------------------------------------------------------------
 
 async function openTournamentDropdown() {
@@ -510,11 +462,7 @@ function closeTournamentDropdown() {
 function toggleTournamentDropdown() {
   const dropdown = document.getElementById('tournamentDropdown');
   if (!dropdown) return;
-  if (dropdown.style.display === 'block') {
-    closeTournamentDropdown();
-  } else {
-    openTournamentDropdown();
-  }
+  dropdown.style.display === 'block' ? closeTournamentDropdown() : openTournamentDropdown();
 }
 
 window.toggleTournamentDropdown = toggleTournamentDropdown;
@@ -531,11 +479,11 @@ document.addEventListener('click', (e) => {
 });
 
 // ------------------------------------------------------------------
-// DOMContentLoaded
+// DOMContentLoaded (campeonato.html only)
 // ------------------------------------------------------------------
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Dev banner — only shown outside production
+  // Dev banner
   if (!IS_PROD) {
     const banner = document.createElement('div');
     banner.className = 'dev-banner';
@@ -546,9 +494,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   initAuth();
 
-  // Pre-tournament phase: if no tournament selected, show selector
+  // No tournament selected → redirect to landing
   if (!getActiveTournamentId()) {
-    openTournamentSelector();
+    window.location.href = 'index.html';
     return;
   }
 

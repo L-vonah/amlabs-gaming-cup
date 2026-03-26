@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Campeonatos AMLabs</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- ===============================================================
+     HEADER
+     =============================================================== -->
+<header class="site-header">
+  <!-- Line 1: Top bar — logo + tournament trigger -->
+  <div class="header-top-bar">
+    <a class="site-logo" href="index.html" title="Voltar aos campeonatos">
+      <img src="assets/logo-amlabs.png" alt="AMLabs" class="logo-img">
+      <span class="logo-text">Campeonatos <span>AMLabs</span></span>
+    </a>
+
+    <div class="tournament-trigger" id="tournamentTrigger" onclick="toggleTournamentDropdown()">
+      <span class="tournament-trigger-name" id="tournamentTriggerName">Campeonato</span>
+      <span class="tournament-trigger-chevron">&#9660;</span>
+    </div>
+
+    <div class="tournament-dropdown" id="tournamentDropdown" style="display:none;">
+      <div class="dropdown-title">Campeonatos</div>
+      <div id="dropdownTorneioList"></div>
+      <hr class="dropdown-divider">
+      <a class="dropdown-create admin-only" href="index.html">
+        <span>+</span> Novo Campeonato
+      </a>
+      <a class="dropdown-link" href="index.html">Ver todos os campeonatos</a>
+    </div>
+  </div>
+
+  <!-- Line 2: Nav bar -->
+  <div class="header-nav-bar" id="navBar">
+    <nav class="main-nav" id="mainNav">
+      <button class="nav-link active" data-nav="home" onclick="UI.navigateTo('home')">In&iacute;cio</button>
+      <button class="nav-link inscricoes-only" data-nav="inscricoes" onclick="UI.navigateTo('inscricoes')">Inscri&ccedil;&otilde;es</button>
+      <button class="nav-link" data-nav="times" onclick="UI.navigateTo('times')">Times</button>
+      <button class="nav-link" data-nav="classificacao" onclick="UI.navigateTo('classificacao')">Classifica&ccedil;&atilde;o</button>
+      <button class="nav-link" data-nav="partidas" onclick="UI.navigateTo('partidas')">Partidas</button>
+      <button class="nav-link" data-nav="bracket" onclick="UI.navigateTo('bracket')">Chaveamento</button>
+      <button class="nav-link" data-nav="estatisticas" onclick="UI.navigateTo('estatisticas')">Estat&iacute;sticas</button>
+      <button class="nav-link" data-nav="regras" onclick="UI.navigateTo('regras')">Regras</button>
+      <button class="nav-link admin-only" data-nav="historico" onclick="UI.navigateTo('historico')">Hist&oacute;rico</button>
+    </nav>
+  </div>
+</header>
+
+<!-- ===============================================================
+     MAIN CONTENT
+     =============================================================== -->
+<main class="main-content">
+
+  <!-- ---------------------------------------------------------------
+       LIFECYCLE BAR (shown on most pages)
+       --------------------------------------------------------------- -->
+  <div class="lifecycle-bar" id="lifecycleBar">
+    <div class="lifecycle-step active" data-step="configuracao">
+      <div class="lifecycle-step-dot">1</div>
+      <span class="lifecycle-step-label">Inscri&ccedil;&atilde;o</span>
+    </div>
+    <div class="lifecycle-line" data-after="configuracao"></div>
+    <div class="lifecycle-step" data-step="grupos">
+      <div class="lifecycle-step-dot">2</div>
+      <span class="lifecycle-step-label">Fase de Grupos</span>
+    </div>
+    <div class="lifecycle-line" data-after="grupos"></div>
+    <div class="lifecycle-step" data-step="playoffs">
+      <div class="lifecycle-step-dot">3</div>
+      <span class="lifecycle-step-label">Playoffs</span>
+    </div>
+    <div class="lifecycle-line" data-after="playoffs"></div>
+    <div class="lifecycle-step" data-step="encerrado">
+      <div class="lifecycle-step-dot">4</div>
+      <span class="lifecycle-step-label">Encerrado</span>
+    </div>
+  </div>
+
+  <!-- ---------------------------------------------------------------
+       HOME
+       --------------------------------------------------------------- -->
+  <section id="section-home" class="page-section active">
+
+    <!-- Champion banner — only visible when tournament is finished -->
+    <div id="championBanner" style="display:none"></div>
+
+    <div class="hero">
+      <div class="hero-badge" id="heroBadge"></div>
+      <h1 class="hero-title" id="heroTitle"></h1>
+      <p class="hero-subtitle" id="heroSubtitle"></p>
+    </div>
+
+    <div class="grid-2">
+      <!-- Classification / Bracket mini-view -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title" id="homeLeaderTitle">
+            <span class="section-title-icon icon-bg-yellow">&#127942;</span>
+            Classifica&ccedil;&atilde;o
+          </span>
+        </div>
+        <div id="homeLeader"></div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <!-- Next matches -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">
+              <span class="section-title-icon icon-bg-blue">&#9654;</span>
+              Pr&oacute;ximas Partidas
+            </span>
+          </div>
+          <div class="card-body" id="homeNextMatches"></div>
+        </div>
+
+        <!-- Last results -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">
+              <span class="section-title-icon icon-bg-green">&#10003;</span>
+              &Uacute;ltimos Resultados
+            </span>
+          </div>
+          <div class="card-body" id="homeLastResults"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick actions (admin only) -->
+    <div class="card mt-24 admin-only">
+      <div class="card-header">
+        <span class="card-title">
+          <span class="section-title-icon icon-bg-blue">&#9881;</span>
+          A&ccedil;&otilde;es R&aacute;pidas
+        </span>
+      </div>
+      <div class="card-body quick-actions-grid">
+        <button class="btn btn-primary" onclick="UI.navigateTo('times');setTimeout(()=>document.getElementById('inputNomeTimo').focus(),100)">+ Adicionar Time</button>
+        <button class="btn btn-secondary" onclick="exportData()">Exportar Dados</button>
+        <label class="btn btn-secondary" style="cursor:pointer">
+          Importar Dados
+          <input type="file" accept=".json" onchange="importData(event)" style="display:none">
+        </label>
+        <div class="quick-actions-separator"></div>
+        <button class="btn btn-danger btn-sm" onclick="confirmReset()">Reiniciar Campeonato</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------------
+       TIMES
+       --------------------------------------------------------------- -->
+  <!-- ---------------------------------------------------------------
+       INSCRICOES (Public Registration)
+       --------------------------------------------------------------- -->
+  <section id="section-inscricoes" class="page-section">
+    <div class="section-header">
+      <h2 class="section-title">
+        <span class="section-title-icon icon-bg-purple">&#128221;</span>
+        Inscri&ccedil;&otilde;es
+      </h2>
+    </div>
+
+    <div class="manage-layout">
+      <div id="inscricoesContainer"></div>
+
+      <div class="card" id="inscricaoFormCard" style="position:sticky;top:80px">
+        <div class="card-header">
+          <span class="card-title">Inscrever meu Time</span>
+        </div>
+        <div class="card-body">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="form-group">
+              <label class="form-label" for="inputInscParticipante">Participante *</label>
+              <input class="form-input" type="text" id="inputInscParticipante" placeholder="Ex: Jo&atilde;o"
+                onkeydown="if(event.key==='Enter')submitPublicRegistration()">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inputInscNome">Nome do Time *</label>
+              <input class="form-input" type="text" id="inputInscNome" placeholder="Ex: S&atilde;o Paulo FC"
+                onkeydown="if(event.key==='Enter')submitPublicRegistration()">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inputInscAbrev">Abrevia&ccedil;&atilde;o (1 a 3 letras)</label>
+              <input class="form-input" type="text" id="inputInscAbrev" placeholder="Ex: SPF" maxlength="3"
+                pattern="[A-Za-z]{1,3}" style="text-transform:uppercase"
+                oninput="this.value=this.value.replace(/[^A-Za-z]/g,'')"
+                onkeydown="if(event.key==='Enter')submitPublicRegistration()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Cor do Time</label>
+              <div class="color-picker-wrapper">
+                <input type="color" id="inputInscCor" value="#6c5ce7">
+                <span style="font-size:.8rem;color:var(--color-text-muted)">Escolha a cor do escudo</span>
+              </div>
+            </div>
+            <button class="btn btn-primary w-full" onclick="submitPublicRegistration()">Enviar Inscri&ccedil;&atilde;o</button>
+            <p style="font-size:.75rem;color:var(--color-text-dim);text-align:center;margin-top:-4px">Sua inscri&ccedil;&atilde;o ser&aacute; analisada pelo administrador</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------------
+       TIMES
+       --------------------------------------------------------------- -->
+  <section id="section-times" class="page-section">
+    <div class="section-header">
+      <h2 class="section-title">
+        <span class="section-title-icon icon-bg-blue">&#128101;</span>
+        Times Participantes
+        <span class="text-dim text-sm font-bold" id="timesCount" style="font-size:.85rem;color:var(--color-text-dim)">0 times</span>
+      </h2>
+    </div>
+
+    <div class="manage-layout">
+      <!-- Teams list -->
+      <div>
+        <div class="teams-grid" id="timesGrid"></div>
+
+        <div class="mt-24 admin-only" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-primary" id="btnGerarGrupos" onclick="gerarFaseGrupos()" disabled>
+            Gerar Fase de Grupos
+          </button>
+        </div>
+      </div>
+
+      <!-- Add team form (admin only) -->
+      <div class="card admin-only" style="position:sticky;top:80px">
+        <div class="card-header">
+          <span class="card-title">Adicionar Time</span>
+        </div>
+        <div class="card-body">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="form-group">
+              <label class="form-label" for="inputPartTimo">Participante *</label>
+              <input class="form-input" type="text" id="inputPartTimo" placeholder="Ex: Jo&atilde;o"
+                onkeydown="if(event.key==='Enter')submitAddTime()">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inputNomeTimo">Nome do Time *</label>
+              <input class="form-input" type="text" id="inputNomeTimo" placeholder="Ex: S&atilde;o Paulo FC"
+                onkeydown="if(event.key==='Enter')submitAddTime()">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="inputAbrevTimo">Abrevia&ccedil;&atilde;o (1 a 3 letras)</label>
+              <input class="form-input" type="text" id="inputAbrevTimo" placeholder="Ex: SPF" maxlength="3"
+                pattern="[A-Za-z]{1,3}" style="text-transform:uppercase"
+                oninput="this.value=this.value.replace(/[^A-Za-z]/g,'')"
+                onkeydown="if(event.key==='Enter')submitAddTime()">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Cor do Time</label>
+              <div class="color-picker-wrapper">
+                <input type="color" id="inputCorTimo" value="#6c5ce7">
+                <span style="font-size:.8rem;color:var(--color-text-muted)">Escolha a cor do escudo</span>
+              </div>
+            </div>
+
+            <button class="btn btn-primary w-full" onclick="submitAddTime()">Adicionar Time</button>
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="text-dim text-xs">Times s&oacute; podem ser removidos antes do in&iacute;cio da fase de grupos.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------------
+       CLASSIFICACAO
+       --------------------------------------------------------------- -->
+  <section id="section-classificacao" class="page-section">
+    <div class="section-header">
+      <h2 class="section-title">
+        <span class="section-title-icon icon-bg-yellow">&#128202;</span>
+        Classifica&ccedil;&atilde;o &mdash; Fase de Grupos
+      </h2>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm btn-secondary" onclick="renderClassificacao()">Atualizar</button>
+        <button class="btn btn-sm btn-primary admin-only" onclick="iniciarPlayoffs()" id="btnIniciarPlayoffs" style="display:none">Iniciar Playoffs</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div id="tabelaClassificacao"></div>
+    </div>
+
+    <div class="mt-16" style="font-size:.8rem;color:var(--color-text-dim)">
+      Os 4 primeiros colocados se classificam para os Playoffs (Dupla Elimina&ccedil;&atilde;o).
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------------
+       PARTIDAS
+       --------------------------------------------------------------- -->
+  <section id="section-partidas" class="page-section">
+    <div class="section-header">
+      <h2 class="section-title">
+        <span class="section-title-icon icon-bg-purple">&#128197;</span>
+        Calend&aacute;rio de Partidas
+      </h2>
+    </div>
+
+    <div id="partidasContainer"></div>
+  </section>
+
+  <!-- ---------------------------------------------------------------
+       CHAVEAMENTO (Bracket)
+       --------------------------------------------------------------- -->
+  <section id="section-bracket" class="page-section">
+    <div class="section-header">
+      <h2 class="section-title">
+        <span class="section-title-icon icon-bg-purple">&#127942;</span>
+        <span id="bracketTitle">Chaveamento</span>
+      </h2>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-sm btn-secondary" onclick="renderBracket()">Atualizar</button>
+        <button class="btn btn-sm btn-secondary admin-only" onclick="resetPlayoffs()" style="color:var(--color-loss)" id="btnRefazerPlayoffs">Refazer Playoffs</button>
+      </div>
+    </div>
+
+    <!-- Format selector (admin only, pre-playoffs) -->
+    <div id="formatSelectorContainer" style="display:none">
+      <div class="format-selector-card">
+        <div class="format-selector-header">
+          <label class="form-label" for="playoffFormatSelect">Formato dos Playoffs</label>
+          <select id="playoffFormatSelect" class="form-input format-select" onchange="onFormatChange()"></select>
+        </div>
+        <div id="formatWarning" class="format-warning" style="display:none"></div>
+        <div style="margin-top:12px">
+          <button class="btn btn-primary admin-only" id="btnGerarPlayoffs" onclick="iniciarPlayoffs()">Gerar Playoffs</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preview bracket (pre-playoffs) or live bracket (during playoffs) -->
+    <div id="bracketContainer"></div>
+
+    <!-- Info cards (rendered by format) -->
+    <div id="bracketInfoCards"></div>
+  </section>
+
+  <!-- ---------------------------------------------------------------
+       ESTATISTICAS
+       --------------------------------------------------------------- -->
+  <section id="section-estatisticas" class="page-section">
+    <div class="section-header">
+      <h2 class="section-title">
+        <span class="section-title-icon icon-bg-blue">&#128200;</span>
+        Estat&iacute;sticas do Campeonato
+      </h2>
+    </div>
+
+    <!-- Overview -->
+    <div class="stats-overview">
+      <div class="stat-card">
+        <div class="stat-card-value" id="statTotalTimes">0</div>
+        <div class="stat-card-label">Times</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-value" id="statTotalPartidas">0</div>
+        <div class="stat-card-label">Partidas</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-value" id="statTotalGols">0</div>
+        <div class="stat-card-label">Gols Marcados</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-value" id="statMediaGols">0</div>
+        <div class="stat-card-label">M&eacute;dia Gols/Partida</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <!-- Top goleadores -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">
+            <span class="section-title-icon icon-bg-orange">&#9917;</span>
+            Times Mais Goleadores
+          </span>
+        </div>
+        <div class="card-body">
+          <div class="top-list" id="statTopGols"></div>
+        </div>
+      </div>
+
+      <!-- Melhores defesas -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">
+            <span class="section-title-icon icon-bg-green">&#128737;</span>
+            Melhores Defesas
+          </span>
+        </div>
+        <div class="card-body">
+          <div class="top-list" id="statTopDef"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2 mt-24">
+      <!-- Maior goleada -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">
+            <span class="section-title-icon icon-bg-yellow">&#9733;</span>
+            Maior Goleada
+          </span>
+        </div>
+        <div class="card-body" id="statGoleada"></div>
+      </div>
+
+      <!-- Partida com mais gols -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">&#9917; Mais Gols na Partida</span>
+        </div>
+        <div class="card-body" id="statMaisGols"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------------
+       REGRAS
+       --------------------------------------------------------------- -->
+  <section id="section-regras" class="page-section">
+    <div class="section-header">
+      <h2 class="section-title">
+        <span class="section-title-icon icon-bg-blue">&#128203;</span>
+        Regras do Campeonato
+      </h2>
+    </div>
+
+    <div class="rules-grid">
+
+      <!-- Fase de grupos -->
+      <div class="rule-card">
+        <div class="rule-card-header">
+          <div class="rule-icon icon-bg-blue" style="width:40px;height:40px;border-radius:var(--radius)">&#9917;</div>
+          <h3 class="rule-card-title">Fase de Grupos</h3>
+        </div>
+        <ul class="rule-list">
+          <li>Todos os times participam em um &uacute;nico grupo, jogando em sistema todos contra todos (round-robin).</li>
+          <li>Turno &uacute;nico: cada par de times se enfrenta uma vez.</li>
+          <li>Vit&oacute;ria vale <strong>3 pontos</strong>, empate vale <strong>1 ponto</strong> para cada time, derrota vale <strong>0 pontos</strong>.</li>
+          <li>Os melhores colocados se classificam para os Playoffs (quantidade depende do formato escolhido).</li>
+        </ul>
+      </div>
+
+      <!-- Criterios de desempate -->
+      <div class="rule-card">
+        <div class="rule-card-header">
+          <div class="rule-icon icon-bg-yellow" style="width:40px;height:40px;border-radius:var(--radius)">&#9878;</div>
+          <h3 class="rule-card-title">Crit&eacute;rios de Desempate</h3>
+        </div>
+        <ul class="rule-list">
+          <li>1&ordm; crit&eacute;rio: <strong>Pontos</strong></li>
+          <li>2&ordm; crit&eacute;rio: <strong>N&uacute;mero de Vit&oacute;rias</strong></li>
+          <li>3&ordm; crit&eacute;rio: <strong>Saldo de Gols</strong> (gols marcados menos sofridos)</li>
+          <li>4&ordm; crit&eacute;rio: <strong>Gols Marcados</strong></li>
+          <li>5&ordm; crit&eacute;rio: <strong>Confronto Direto</strong> (se dois times estiverem empatados)</li>
+        </ul>
+      </div>
+
+      <!-- Grande Final & Vantagem -->
+      <div class="rule-card">
+        <div class="rule-card-header">
+          <div class="rule-icon icon-bg-yellow" style="width:40px;height:40px;border-radius:var(--radius)">&#127942;</div>
+          <h3 class="rule-card-title">Grande Final &amp; Vantagem</h3>
+        </div>
+        <ul class="rule-list">
+          <li>Disputa entre o vencedor da <strong>Chave Superior</strong> e o vencedor da <strong>Chave Inferior</strong>.</li>
+          <li>Jogo &uacute;nico, sem empate (prorroga&ccedil;&atilde;o/p&ecirc;naltis se necess&aacute;rio).</li>
+          <li>O jogador da <strong>Chave Superior</strong> (sem derrota) escolhe qual vantagem de ban aplicar.</li>
+        </ul>
+        <div class="highlight-box" style="margin-top:12px">
+          <span>&#9733;</span>
+          <span><strong>Exemplos de vantagem:</strong> advers&aacute;rio s&oacute; pode usar times de 4&#9733; ou menos, ban de 3 jogadores do time advers&aacute;rio, entre outras op&ccedil;&otilde;es customiz&aacute;veis.</span>
+        </div>
+        <div class="highlight-box" style="margin-top:8px">
+          <span>!</span>
+          <span>Esta regra pode ser alterada durante o campeonato, mediante <strong>consenso dos participantes</strong>.</span>
+        </div>
+      </div>
+
+      <!-- Formato Geral dos Playoffs -->
+      <div class="rule-card">
+        <div class="rule-card-header">
+          <div class="rule-icon icon-bg-green" style="width:40px;height:40px;border-radius:var(--radius)">&#128204;</div>
+          <h3 class="rule-card-title">Formato dos Playoffs</h3>
+        </div>
+        <ul class="rule-list">
+          <li>Todos os jogos dos playoffs s&atilde;o decididos em jogo &uacute;nico.</li>
+          <li><strong>Empates n&atilde;o s&atilde;o permitidos</strong>. Em caso de empate, utiliza-se prorroga&ccedil;&atilde;o e/ou p&ecirc;naltis.</li>
+          <li>O formato e as regras das chaves est&atilde;o detalhados na <strong>tela de Chaveamento</strong>.</li>
+        </ul>
+      </div>
+
+      <!-- Configuração de Jogo -->
+      <div class="rule-card">
+        <div class="rule-card-header">
+          <div class="rule-icon icon-bg-purple" style="width:40px;height:40px;border-radius:var(--radius)">&#127918;</div>
+          <h3 class="rule-card-title">Configura&ccedil;&atilde;o de Jogo</h3>
+        </div>
+        <ul class="rule-list">
+          <li>Dura&ccedil;&atilde;o: <strong>6 minutos por tempo</strong>.</li>
+          <li>Sele&ccedil;&atilde;o de times: <strong>livre em todas as fases</strong>. Cada jogador pode escolher qualquer time a cada partida, inclusive repetir.</li>
+        </ul>
+      </div>
+
+      <!-- Problema Técnico -->
+      <div class="rule-card">
+        <div class="rule-card-header">
+          <div class="rule-icon icon-bg-orange" style="width:40px;height:40px;border-radius:var(--radius)">&#9888;</div>
+          <h3 class="rule-card-title">Problema T&eacute;cnico / Desconex&atilde;o</h3>
+        </div>
+        <ul class="rule-list">
+          <li><strong>1&ordm; tempo + diferen&ccedil;a menor que 3 gols:</strong> partida recome&ccedil;a do zero.</li>
+          <li><strong>1&ordm; tempo + diferen&ccedil;a de 3 gols ou mais:</strong> vale o placar parcial, jogo encerrado.</li>
+          <li><strong>2&ordm; tempo:</strong> vale o placar parcial, jogo encerrado.</li>
+          <li><strong>Desconex&atilde;o intencional:</strong> derrota por WO (3&times;0).</li>
+        </ul>
+      </div>
+
+      <!-- Prazo e WO -->
+      <div class="rule-card">
+        <div class="rule-card-header">
+          <div class="rule-icon icon-bg-blue" style="width:40px;height:40px;border-radius:var(--radius)">&#128197;</div>
+          <h3 class="rule-card-title">Prazo e Organiza&ccedil;&atilde;o</h3>
+        </div>
+        <ul class="rule-list">
+          <li>Os jogadores se organizam livremente para jogar suas partidas, em qualquer ordem de rodada.</li>
+          <li>N&atilde;o h&aacute; prazo fixo por rodada. O admin decide caso a caso se necess&aacute;rio aplicar WO.</li>
+        </ul>
+      </div>
+
+      <!-- Desistência -->
+      <div class="rule-card">
+        <div class="rule-card-header">
+          <div class="rule-icon icon-bg-orange" style="width:40px;height:40px;border-radius:var(--radius)">&#128683;</div>
+          <h3 class="rule-card-title">Desist&ecirc;ncia</h3>
+        </div>
+        <ul class="rule-list">
+          <li>Partidas <strong>j&aacute; jogadas</strong>: se o advers&aacute;rio venceu com placar melhor que 3&times;0, mant&eacute;m. Caso contr&aacute;rio, o resultado &eacute; alterado para <strong>3&times;0</strong> a favor do advers&aacute;rio.</li>
+          <li>Partidas <strong>pendentes</strong>: WO de 3&times;0 para o advers&aacute;rio.</li>
+        </ul>
+      </div>
+
+      <!-- Registro de Resultado -->
+      <div class="rule-card">
+        <div class="rule-card-header">
+          <div class="rule-icon icon-bg-green" style="width:40px;height:40px;border-radius:var(--radius)">&#128172;</div>
+          <h3 class="rule-card-title">Registro de Resultado</h3>
+        </div>
+        <ul class="rule-list">
+          <li>Ap&oacute;s cada partida, os jogadores informam o resultado via <strong>Microsoft Teams</strong>.</li>
+          <li>O admin registra o placar no sistema com base nas informa&ccedil;&otilde;es dos jogadores.</li>
+        </ul>
+      </div>
+
+    </div>
+
+  </section>
+
+  <!-- ---------------------------------------------------------------
+       HISTORICO (Audit Log)
+       --------------------------------------------------------------- -->
+  <section id="section-historico" class="page-section">
+    <div class="section-header">
+      <h2 class="section-title">
+        <span class="section-title-icon icon-bg-purple">&#128203;</span>
+        Hist&oacute;rico de Altera&ccedil;&otilde;es
+      </h2>
+      <button class="btn btn-sm btn-secondary" onclick="renderHistorico()">Atualizar</button>
+    </div>
+
+    <div class="card">
+      <div class="card-body" style="padding:0">
+        <div id="historicoContainer"></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ===============================================================
+     MOBILE BOTTOM TAB BAR
+     =============================================================== -->
+<nav class="mobile-bottom-bar" id="mobileBottomBar">
+  <button class="mobile-tab active" data-nav="home" onclick="mobileNavigate('home')">
+    <span class="mobile-tab-icon">&#127968;</span>
+    <span>In&iacute;cio</span>
+  </button>
+  <button class="mobile-tab" data-nav="partidas" onclick="mobileNavigate('partidas')">
+    <span class="mobile-tab-icon">&#128197;</span>
+    <span>Partidas</span>
+  </button>
+  <button class="mobile-tab" data-nav="classificacao" onclick="mobileNavigate('classificacao')">
+    <span class="mobile-tab-icon">&#128202;</span>
+    <span>Tabela</span>
+  </button>
+  <button class="mobile-tab" data-nav="bracket" onclick="mobileNavigate('bracket')">
+    <span class="mobile-tab-icon">&#127942;</span>
+    <span>Chaveamento</span>
+  </button>
+  <button class="mobile-tab" id="mobileMoreBtn" onclick="toggleMobileMore()">
+    <span class="mobile-tab-icon">&#8226;&#8226;&#8226;</span>
+    <span>Mais</span>
+  </button>
+</nav>
+
+<!-- Mobile "More" sheet -->
+<div class="mobile-more-overlay" id="mobileMoreOverlay" onclick="closeMobileMore()">
+  <div class="mobile-more-sheet" onclick="event.stopPropagation()">
+    <div class="mobile-more-handle"></div>
+    <div class="mobile-more-grid">
+      <button class="mobile-more-item inscricoes-only" data-nav="inscricoes" onclick="mobileNavigate('inscricoes')">
+        <span class="mobile-more-icon">&#128221;</span>
+        <span>Inscri&ccedil;&otilde;es</span>
+      </button>
+      <button class="mobile-more-item" data-nav="estatisticas" onclick="mobileNavigate('estatisticas')">
+        <span class="mobile-more-icon">&#128200;</span>
+        <span>Estat&iacute;sticas</span>
+      </button>
+      <button class="mobile-more-item" data-nav="times" onclick="mobileNavigate('times')">
+        <span class="mobile-more-icon">&#128101;</span>
+        <span>Times</span>
+      </button>
+      <button class="mobile-more-item" data-nav="regras" onclick="mobileNavigate('regras')">
+        <span class="mobile-more-icon">&#128203;</span>
+        <span>Regras</span>
+      </button>
+      <button class="mobile-more-item admin-only" data-nav="historico" onclick="mobileNavigate('historico')">
+        <span class="mobile-more-icon">&#128336;</span>
+        <span>Hist&oacute;rico</span>
+      </button>
+      <button class="mobile-more-item" onclick="loginAdmin()">
+        <span class="mobile-more-icon">&#128274;</span>
+        <span>Admin</span>
+      </button>
+      <button class="mobile-more-item" onclick="logoutAdmin()" id="mobileLogoutBtn" style="display:none">
+        <span class="mobile-more-icon">&#128275;</span>
+        <span>Sair</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===============================================================
+     MODAL - EDIT TEAM
+     =============================================================== -->
+<div class="modal-overlay" id="modalEditTeam">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <span class="modal-title">Editar Time</span>
+      <button class="btn-icon" onclick="UI.closeModal('modalEditTeam')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editTeamId">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="form-group">
+          <label class="form-label">Participante *</label>
+          <input class="form-input" type="text" id="editTeamParticipante" placeholder="Nome do participante">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nome do Time *</label>
+          <input class="form-input" type="text" id="editTeamNome">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Abrevia&ccedil;&atilde;o</label>
+          <input class="form-input" type="text" id="editTeamAbrev" maxlength="3" pattern="[A-Za-z]{1,3}" style="text-transform:uppercase"
+            oninput="this.value=this.value.replace(/[^A-Za-z]/g,'')">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cor</label>
+          <input type="color" id="editTeamCor">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="UI.closeModal('modalEditTeam')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveEditTeam()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===============================================================
+     MODAL - SCORE
+     =============================================================== -->
+<div class="modal-overlay" id="modalScore">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <span class="modal-title" id="modalScoreTitle">Registrar Resultado</span>
+      <button class="btn-icon" onclick="UI.closeModal('modalScore')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="modalScoreMatchId">
+      <input type="hidden" id="modalScoreIsGrandFinal">
+      <div style="display:flex;align-items:center;justify-content:center;gap:16px;padding:12px 0">
+        <div style="text-align:center;flex:1">
+          <div style="font-weight:700;font-size:.95rem;margin-bottom:8px" id="modalScoreTeamA"></div>
+          <input type="number" id="modalScoreGolsA" min="0" max="99" value="" placeholder="0" class="score-input" style="width:64px;font-size:1.6rem;padding:10px">
+        </div>
+        <span style="font-size:1.2rem;font-weight:800;color:var(--color-text-dim)">x</span>
+        <div style="text-align:center;flex:1">
+          <div style="font-weight:700;font-size:.95rem;margin-bottom:8px" id="modalScoreTeamB"></div>
+          <input type="number" id="modalScoreGolsB" min="0" max="99" value="" placeholder="0" class="score-input" style="width:64px;font-size:1.6rem;padding:10px">
+        </div>
+      </div>
+      <p id="modalScoreHint" style="font-size:.75rem;color:var(--color-text-dim);text-align:center;margin-top:8px;display:none">Em caso de empate, selecione o vencedor dos p&ecirc;naltis.</p>
+      <div id="penaltySelector" style="display:none;margin-top:12px;text-align:center">
+        <div style="font-size:.75rem;font-weight:700;color:var(--color-loss);margin-bottom:8px">Empate &mdash; Quem venceu nos p&ecirc;naltis?</div>
+        <div style="display:flex;gap:8px;justify-content:center">
+          <button type="button" class="btn btn-sm btn-secondary penalty-btn" id="penaltyBtnA" onclick="selectPenaltyWinner('A')" style="flex:1;max-width:160px"></button>
+          <button type="button" class="btn btn-sm btn-secondary penalty-btn" id="penaltyBtnB" onclick="selectPenaltyWinner('B')" style="flex:1;max-width:160px"></button>
+        </div>
+        <input type="hidden" id="modalScorePenaltyWinner" value="">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="UI.closeModal('modalScore')">Cancelar</button>
+      <button class="btn btn-success" onclick="submitScoreModal()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===============================================================
+     MODAL - PLAYOFF EDIT CONFIRMATION
+     =============================================================== -->
+<div class="modal-overlay" id="modalPlayoffEdit">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Editar Resultado do Playoff</span>
+      <button class="btn-icon" onclick="UI.closeModal('modalPlayoffEdit')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--color-text-muted);font-size:.9rem">Editar este resultado pode <strong style="color:var(--color-loss)">resetar partidas seguintes</strong> do playoff caso o vencedor mude. Deseja continuar?</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="UI.closeModal('modalPlayoffEdit')">Cancelar</button>
+      <button class="btn btn-primary" id="btnConfirmPlayoffEdit">Sim, editar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalResetPlayoffs">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Refazer Playoffs</span>
+      <button class="btn-icon" onclick="UI.closeModal('modalResetPlayoffs')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--color-text-muted);font-size:.9rem">Tem certeza? Todos os dados dos playoffs ser&atilde;o <strong style="color:var(--color-loss)">resetados</strong>. A fase de grupos ser&aacute; mantida.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="UI.closeModal('modalResetPlayoffs')">Cancelar</button>
+      <button class="btn btn-danger" onclick="executeResetPlayoffs()">Sim, refazer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalReset">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Reiniciar Campeonato</span>
+      <button class="btn-icon" onclick="UI.closeModal('modalReset')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--color-text-muted);font-size:.9rem">Tem certeza que deseja <strong style="color:var(--color-loss)">reiniciar completamente</strong> o campeonato? Todos os times, resultados, hist&oacute;rico e configura&ccedil;&otilde;es ser&atilde;o perdidos. Esta a&ccedil;&atilde;o n&atilde;o pode ser desfeita.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="UI.closeModal('modalReset')">Cancelar</button>
+      <button class="btn btn-danger" onclick="executeReset()">Sim, reiniciar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===============================================================
+     TOAST CONTAINER
+     =============================================================== -->
+<!-- ===============================================================
+     FOOTER
+     =============================================================== -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <span class="footer-text">Campeonatos AMLabs</span>
+    <div class="footer-admin">
+      <button id="adminLoginBtn" class="btn-admin-login" onclick="loginAdmin()">&#128274; Admin</button>
+      <div id="adminInfo" style="display:none" class="admin-info-bar">
+        <span class="admin-email"></span>
+        <button class="btn-admin-logout" onclick="logoutAdmin()">Sair</button>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ===============================================================
+     SCRIPTS
+     =============================================================== -->
+<!-- Environment detection — must be first -->
+<script src="js/env.js"></script>
+
+<!-- Firebase SDKs (compat mode for simplicity) -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+
+<!-- App scripts (order matters) -->
+<script src="js/firebase-config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/firestore-service.js"></script>
+<script src="js/playoff-formats.js"></script>
+<script src="js/state.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/renderers-matches.js"></script>
+<script src="js/renderers-home.js"></script>
+<script src="js/renderers.js"></script>
+<script src="js/actions.js"></script>
+
+<script src="js/app.js"></script>
+
+</body>
+</html>
