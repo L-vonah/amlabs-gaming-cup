@@ -2933,6 +2933,25 @@ body.has-dev-banner {
   color: var(--color-primary);
 }
 
+.selector-card-delete {
+  background: none;
+  border: none;
+  padding: 6px;
+  border-radius: var(--radius);
+  color: var(--color-text-dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: color 0.15s, background 0.15s;
+}
+
+.selector-card-delete:hover {
+  color: var(--color-loss);
+  background: var(--color-loss-bg);
+}
+
 .selector-loading {
   text-align: center;
   color: var(--color-text-muted);

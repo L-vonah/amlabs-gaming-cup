@@ -6,6 +6,7 @@
 const PORTAL_PAGE_SIZE = 3;
 let _allTournaments = [];
 let _visibleCount = PORTAL_PAGE_SIZE;
+let _pendingDeleteUuid = null;
 
 async function portalRenderList() {
   const container = document.getElementById('portalTorneioList');
@@ -50,6 +51,18 @@ function portalRenderCards() {
 
   container.innerHTML = visible.map(t => {
     const date = t.criadoEm ? new Date(t.criadoEm).toLocaleDateString('pt-BR') : '';
+    const deleteBtn = t.status === 'configuracao' && UI.checkAdmin()
+      ? `<button class="selector-card-delete admin-only"
+           onclick="event.stopPropagation(); portalRequestDelete('${UI.escapeHtml(t.id)}', '${UI.escapeHtml(t.nome).replace(/'/g, "\\'")}', ${t.timesCount || 0})"
+           title="Deletar campeonato">
+           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+             <polyline points="3 6 5 6 21 6"></polyline>
+             <path d="M19 6l-1 14H6L5 6"></path>
+             <path d="M10 11v6M14 11v6"></path>
+             <path d="M9 6V4h6v2"></path>
+           </svg>
+         </button>`
+      : '';
     return `
     <div class="selector-card" onclick="portalEnterTournament('${UI.escapeHtml(t.id)}')">
       <div class="selector-card-info">
@@ -58,6 +71,7 @@ function portalRenderCards() {
       </div>
       <div class="selector-card-right">
         <span class="badge badge-${UI.escapeHtml(t.status)}">${statusLabel[t.status] || t.status}</span>
+        ${deleteBtn}
         <span class="selector-card-arrow">→</span>
       </div>
     </div>`;
@@ -71,6 +85,38 @@ function portalRenderCards() {
 function portalShowMore() {
   _visibleCount += PORTAL_PAGE_SIZE;
   portalRenderCards();
+}
+
+function portalRequestDelete(uuid, nome, timesCount) {
+  if (!UI.checkAdmin()) return;
+  _pendingDeleteUuid = uuid;
+
+  const msg = document.getElementById('deleteModalMessage');
+  if (timesCount > 0) {
+    const plural = timesCount > 1 ? 's' : '';
+    msg.innerHTML = `<strong>${UI.escapeHtml(nome)}</strong> possui <strong>${timesCount} time${plural}</strong> cadastrado${plural}. Esta ação é permanente e não pode ser desfeita.`;
+  } else {
+    msg.innerHTML = `Deletar <strong>${UI.escapeHtml(nome)}</strong>? Esta ação é permanente e não pode ser desfeita.`;
+  }
+
+  UI.openModal('modalDeleteTournament');
+}
+
+async function portalExecuteDelete() {
+  if (!_pendingDeleteUuid || !UI.checkAdmin()) return;
+
+  const uuid = _pendingDeleteUuid;
+  _pendingDeleteUuid = null;
+  UI.closeModal('modalDeleteTournament');
+
+  const ok = await FirestoreService.deleteTournament(uuid);
+  if (ok) {
+    UI.showToast('Campeonato deletado.', 'success');
+    _allTournaments = _allTournaments.filter(t => t.id !== uuid);
+    portalRenderCards();
+  } else {
+    UI.showToast('Erro ao deletar campeonato. Tente novamente.', 'error');
+  }
 }
 
 function portalEnterTournament(uuid) {
@@ -118,3 +164,5 @@ document.addEventListener('DOMContentLoaded', () => {
 window.portalShowMore = portalShowMore;
 window.portalEnterTournament = portalEnterTournament;
 window.portalCreateTournament = portalCreateTournament;
+window.portalRequestDelete = portalRequestDelete;
+window.portalExecuteDelete = portalExecuteDelete;
