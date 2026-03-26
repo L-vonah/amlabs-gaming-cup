@@ -442,7 +442,9 @@ async function openTournamentDropdown() {
     return;
   }
 
-  listContainer.innerHTML = torneiros.map(t => `
+  const visible = torneiros.slice(0, 3);
+
+  listContainer.innerHTML = visible.map(t => `
     <div class="dropdown-item${t.id === activeId ? ' dropdown-item-active' : ''}"
          onclick="enterTournament('${UI.escapeHtml(t.id)}')">
       <div class="dropdown-item-info">
