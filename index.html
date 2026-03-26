@@ -85,6 +85,25 @@
 </div>
 
 <!-- ===============================================================
+     MODAL: DELETE TOURNAMENT
+     =============================================================== -->
+<div class="modal-overlay" id="modalDeleteTournament">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <span class="modal-title" style="color:var(--color-loss)">&#128465; Deletar Campeonato</span>
+      <button class="btn-icon" onclick="UI.closeModal('modalDeleteTournament')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <p id="deleteModalMessage" style="line-height:1.6"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="UI.closeModal('modalDeleteTournament')">Cancelar</button>
+      <button class="btn btn-danger" onclick="portalExecuteDelete()">Deletar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===============================================================
      FOOTER
      =============================================================== -->
 <footer class="site-footer landing-footer">
