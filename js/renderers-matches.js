@@ -594,9 +594,14 @@ function _renderInfoCards(format) {
 // ------------------------------------------------------------------
 
 function canStartPlayoffs(state) {
+  const gt = getGameType(state.campeonato.gameType);
   const tabela = AppState.calcularClassificacao(state);
-  const pending = state.faseGrupos.partidas.filter(p => p.status === 'pendente').length;
-  return tabela.length >= 4 && pending === 0;
+  if (gt.requireAllMatches) {
+    const pending = state.faseGrupos.partidas.filter(p => p.status === 'pendente').length;
+    return tabela.length >= 4 && pending === 0;
+  }
+  // For games that don't require all matches (e.g., Sinuca), just need enough teams
+  return tabela.length >= 4;
 }
 
 /**

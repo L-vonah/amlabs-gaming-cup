@@ -290,21 +290,22 @@ function iniciarPlayoffs() {
 
 /**
  * Saves a group stage result. Called by the score modal (submitScoreModal).
- * @param {string} partidaId
- * @param {number} golsA
- * @param {number} golsB
+ * Supports both numeric scores (EA Sports FC) and winner-only (Sinuca).
  */
-function saveInlineResult(partidaId, golsA, golsB) {
+function saveInlineResult(partidaId, scoreA, scoreB, winnerSide) {
   if (!UI.checkAdmin()) { UI.showToast('Voc\u00ea precisa estar logado como admin para editar.', 'error'); return; }
 
-  if (isNaN(golsA) || isNaN(golsB) || golsA < 0 || golsB < 0) {
-    UI.showToast('Informe placar válido (números não negativos).', 'error');
-    return;
-  }
+  const gt = getActiveGameType();
 
-  if (golsA > 99 || golsB > 99) {
-    UI.showToast('Placar maximo permitido: 99.', 'error');
-    return;
+  if (gt.scoreType === 'numeric') {
+    if (isNaN(scoreA) || isNaN(scoreB) || scoreA < 0 || scoreB < 0) {
+      UI.showToast('Informe placar válido (números não negativos).', 'error');
+      return;
+    }
+    if (gt.maxScore && (scoreA > gt.maxScore || scoreB > gt.maxScore)) {
+      UI.showToast('Placar máximo permitido: ' + gt.maxScore + '.', 'error');
+      return;
+    }
   }
 
   const state = AppState.load();
@@ -315,7 +316,6 @@ function saveInlineResult(partidaId, golsA, golsB) {
   }
 
   const partida = state.faseGrupos.partidas.find(p => p.id === partidaId);
-
   if (!partida) {
     UI.showToast('Partida não encontrada.', 'error');
     return;
@@ -324,25 +324,38 @@ function saveInlineResult(partidaId, golsA, golsB) {
   const tA = AppState.getTimeById(state, partida.timeA);
   const tB = AppState.getTimeById(state, partida.timeB);
 
-  partida.golsA = golsA;
-  partida.golsB = golsB;
+  partida.scoreA = gt.scoreType === 'numeric' ? scoreA : null;
+  partida.scoreB = gt.scoreType === 'numeric' ? scoreB : null;
   partida.status = 'concluida';
+
+  // Set vencedor
+  if (gt.scoreType === 'numeric') {
+    if (scoreA > scoreB) partida.vencedor = partida.timeA;
+    else if (scoreB > scoreA) partida.vencedor = partida.timeB;
+    else partida.vencedor = null; // draw
+  } else {
+    partida.vencedor = winnerSide === 'A' ? partida.timeA : partida.timeB;
+  }
 
   AppState.save(state);
 
-  const scoreStr = `${tA ? tA.nome : '?'} ${golsA} x ${golsB} ${tB ? tB.nome : '?'}`;
-  AppState.addAuditLog(getAuditUser(), `Registrou resultado: ${scoreStr}`, { partidaId, golsA, golsB, rodada: partida.rodada });
-  UI.showToast(`Resultado salvo: ${scoreStr}`, 'success');
+  const nomeA = tA ? tA.nome : '?';
+  const nomeB = tB ? tB.nome : '?';
+  const nomeVencedor = partida.vencedor ? (partida.vencedor === partida.timeA ? nomeA : nomeB) : null;
+  const auditStr = gt.auditResultLabel(nomeA, nomeB, scoreA, scoreB, nomeVencedor);
+  AppState.addAuditLog(getAuditUser(), 'Registrou resultado: ' + auditStr, { partidaId, scoreA, scoreB, rodada: partida.rodada });
+  UI.showToast('Resultado salvo: ' + auditStr, 'success');
 
-  // Re-render relevant sections
   Renderers.classificacao();
 
-  // Check if all matches done — suggest starting playoffs
-  const pending = state.faseGrupos.partidas.filter(p => p.status === 'pendente').length;
-  if (pending === 0 && state.times.length >= 4) {
-    setTimeout(() => {
-      UI.showToast('Todos os jogos concluídos! Você pode iniciar os Playoffs.', 'info', 5000);
-    }, 500);
+  // Check if all matches done — suggest starting playoffs (only if required)
+  if (gt.requireAllMatches) {
+    const pending = state.faseGrupos.partidas.filter(p => p.status === 'pendente').length;
+    if (pending === 0 && state.times.length >= 4) {
+      setTimeout(() => {
+        UI.showToast('Todos os jogos concluídos! Você pode iniciar os Playoffs.', 'info', 5000);
+      }, 500);
+    }
   }
 }
 
@@ -351,27 +364,41 @@ function saveInlineResult(partidaId, golsA, golsB) {
 // Playoff Results
 // ------------------------------------------------------------------
 
-function savePlayoffResult(matchId, golsA, golsB, penaltyWinner) {
+function savePlayoffResult(matchId, scoreA, scoreB, penaltyWinner, winnerSide) {
   if (!UI.checkAdmin()) { UI.showToast('Voc\u00ea precisa estar logado como admin para editar.', 'error'); return; }
 
-  if (isNaN(golsA) || isNaN(golsB) || golsA < 0 || golsB < 0) {
-    UI.showToast('Informe placar válido.', 'error');
-    return;
-  }
+  const gt = getActiveGameType();
 
-  if (golsA > 99 || golsB > 99) {
-    UI.showToast('Placar maximo permitido: 99.', 'error');
-    return;
+  if (gt.scoreType === 'numeric') {
+    if (isNaN(scoreA) || isNaN(scoreB) || scoreA < 0 || scoreB < 0) {
+      UI.showToast('Informe placar válido.', 'error');
+      return;
+    }
+    if (gt.maxScore && (scoreA > gt.maxScore || scoreB > gt.maxScore)) {
+      UI.showToast('Placar máximo permitido: ' + gt.maxScore + '.', 'error');
+      return;
+    }
   }
 
   const state = AppState.load();
 
-  // Find match details for audit log
   const match = state.playoffs.matches ? state.playoffs.matches[matchId] : null;
   const tA = match ? AppState.getTimeById(state, match.timeA) : null;
   const tB = match ? AppState.getTimeById(state, match.timeB) : null;
 
-  const ok = AppState.registrarResultadoPlayoff(state, matchId, golsA, golsB, penaltyWinner);
+  let ok;
+  if (gt.scoreType !== 'numeric' && winnerSide) {
+    // Winner-only: use dummy scores for the registrar function
+    ok = AppState.registrarResultadoPlayoff(state, matchId,
+      winnerSide === 'A' ? 1 : 0,
+      winnerSide === 'B' ? 1 : 0,
+      null);
+    // Override scores back to null (display only)
+    if (ok && match) { match.scoreA = null; match.scoreB = null; }
+  } else {
+    const effPenalty = gt.penaltyResolution ? penaltyWinner : null;
+    ok = AppState.registrarResultadoPlayoff(state, matchId, scoreA, scoreB, effPenalty);
+  }
 
   if (!ok) {
     UI.showToast('Erro ao salvar resultado do playoff.', 'error');
@@ -380,11 +407,14 @@ function savePlayoffResult(matchId, golsA, golsB, penaltyWinner) {
 
   AppState.save(state);
 
-  const faseLabel = match ? match.fase : matchId;
-  const scoreStr = `${tA ? tA.nome : '?'} ${golsA} x ${golsB} ${tB ? tB.nome : '?'}`;
-  AppState.addAuditLog(getAuditUser(), `Registrou resultado de playoff: ${scoreStr}`, { matchId, fase: faseLabel, golsA, golsB });
-  UI.showToast('Resultado de playoff salvo!', 'success');
+  const nomeA = tA ? tA.nome : '?';
+  const nomeB = tB ? tB.nome : '?';
+  const nomeVencedor = match && match.vencedor ? (match.vencedor === match.timeA ? nomeA : nomeB) : null;
+  const auditStr = gt.auditResultLabel(nomeA, nomeB, scoreA, scoreB, nomeVencedor);
+  AppState.addAuditLog(getAuditUser(), 'Registrou resultado playoff: ' + auditStr, { matchId });
+  UI.showToast('Resultado salvo: ' + auditStr, 'success');
   Renderers.bracket();
+  Renderers.home();
 }
 
 // ------------------------------------------------------------------
