@@ -713,16 +713,32 @@
     <div class="modal-body">
       <input type="hidden" id="modalScoreMatchId">
       <input type="hidden" id="modalScoreIsGrandFinal">
-      <div style="display:flex;align-items:center;justify-content:center;gap:16px;padding:12px 0">
+      <!-- Numeric score inputs (EA Sports FC) -->
+      <div id="scoreInputNumeric" style="display:flex;align-items:center;justify-content:center;gap:16px;padding:12px 0">
         <div style="text-align:center;flex:1">
           <div style="font-weight:700;font-size:.95rem;margin-bottom:8px" id="modalScoreTeamA"></div>
-          <input type="number" id="modalScoreGolsA" min="0" max="99" value="" placeholder="0" class="score-input" style="width:64px;font-size:1.6rem;padding:10px">
+          <input type="number" id="modalScoreScoreA" min="0" max="99" value="" placeholder="0" class="score-input" style="width:64px;font-size:1.6rem;padding:10px">
         </div>
         <span style="font-size:1.2rem;font-weight:800;color:var(--color-text-dim)">x</span>
         <div style="text-align:center;flex:1">
           <div style="font-weight:700;font-size:.95rem;margin-bottom:8px" id="modalScoreTeamB"></div>
-          <input type="number" id="modalScoreGolsB" min="0" max="99" value="" placeholder="0" class="score-input" style="width:64px;font-size:1.6rem;padding:10px">
+          <input type="number" id="modalScoreScoreB" min="0" max="99" value="" placeholder="0" class="score-input" style="width:64px;font-size:1.6rem;padding:10px">
         </div>
+      </div>
+      <!-- Winner-only buttons (Sinuca) -->
+      <div id="scoreInputWinner" style="display:none;padding:12px 0">
+        <div style="display:flex;align-items:center;justify-content:center;gap:16px">
+          <button type="button" class="btn-winner" id="winnerBtnA" onclick="selectWinner('A')">
+            <span id="winnerBtnAName"></span>
+            <span class="btn-winner-label">Vencedor</span>
+          </button>
+          <span style="font-size:1rem;font-weight:800;color:var(--color-text-dim)">vs</span>
+          <button type="button" class="btn-winner" id="winnerBtnB" onclick="selectWinner('B')">
+            <span id="winnerBtnBName"></span>
+            <span class="btn-winner-label">Vencedor</span>
+          </button>
+        </div>
+        <input type="hidden" id="modalScoreWinnerSide" value="">
       </div>
       <p id="modalScoreHint" style="font-size:.75rem;color:var(--color-text-dim);text-align:center;margin-top:8px;display:none">Em caso de empate, selecione o vencedor dos p&ecirc;naltis.</p>
       <div id="penaltySelector" style="display:none;margin-top:12px;text-align:center">

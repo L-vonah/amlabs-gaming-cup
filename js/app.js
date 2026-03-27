@@ -24,40 +24,61 @@ window.switchPartidaTab = switchPartidaTab;
 // ------------------------------------------------------------------
 
 function openScoreModal(matchId, teamA, teamB, isGrandFinal) {
+  const gt = getActiveGameType();
+  const isNumeric = gt.scoreType === 'numeric';
+
   document.getElementById('modalScoreMatchId').value = matchId;
   document.getElementById('modalScoreIsGrandFinal').value = isGrandFinal ? '1' : '0';
-  document.getElementById('modalScoreTeamA').textContent = teamA;
-  document.getElementById('modalScoreTeamB').textContent = teamB;
   document.getElementById('modalScoreTitle').textContent = isGrandFinal ? 'Grande Final' : 'Registrar Resultado';
-  const isPlayoff = !matchId.startsWith('rr_') && !matchId.startsWith('insc');
-  document.getElementById('modalScoreHint').style.display = isPlayoff ? 'block' : 'none';
 
-  // Pre-fill if match has an existing concluded score; leave empty for new matches
+  // Show/hide correct input area
+  document.getElementById('scoreInputNumeric').style.display = isNumeric ? '' : 'none';
+  document.getElementById('scoreInputWinner').style.display = isNumeric ? 'none' : '';
+
+  if (isNumeric) {
+    document.getElementById('modalScoreTeamA').textContent = teamA;
+    document.getElementById('modalScoreTeamB').textContent = teamB;
+  } else {
+    document.getElementById('winnerBtnAName').textContent = teamA;
+    document.getElementById('winnerBtnBName').textContent = teamB;
+    document.getElementById('modalScoreWinnerSide').value = '';
+    document.querySelectorAll('.btn-winner').forEach(b => b.classList.remove('selected'));
+  }
+
+  const isPlayoff = !matchId.startsWith('rr_') && !matchId.startsWith('insc');
+
+  // Pre-fill if match has an existing concluded score
   const state = AppState.loadReadOnly();
-  let golsA = null, golsB = null;
+  let scoreA = null, scoreB = null;
   const grp = state.faseGrupos.partidas.find(p => p.id === matchId);
   if (grp && grp.status === 'concluida') {
-    golsA = grp.golsA;
-    golsB = grp.golsB;
+    scoreA = grp.scoreA;
+    scoreB = grp.scoreB;
   } else if (state.playoffs.matches && state.playoffs.matches[matchId]) {
     const pm = state.playoffs.matches[matchId];
-    if (pm.vencedor) { golsA = pm.golsA; golsB = pm.golsB; }
+    if (pm.vencedor) { scoreA = pm.scoreA; scoreB = pm.scoreB; }
   }
-  document.getElementById('modalScoreGolsA').value = golsA !== null ? golsA : 0;
-  document.getElementById('modalScoreGolsB').value = golsB !== null ? golsB : 0;
 
-  // Penalty setup
+  if (isNumeric) {
+    document.getElementById('modalScoreScoreA').value = scoreA !== null ? scoreA : 0;
+    document.getElementById('modalScoreScoreB').value = scoreB !== null ? scoreB : 0;
+  }
+
+  // Penalty setup — only for game types that support it
   const penaltyEl = document.getElementById('penaltySelector');
+  const hintEl = document.getElementById('modalScoreHint');
   const penaltyInput = document.getElementById('modalScorePenaltyWinner');
   const penaltyBtnA = document.getElementById('penaltyBtnA');
   const penaltyBtnB = document.getElementById('penaltyBtnB');
+
+  if (hintEl) hintEl.style.display = (isPlayoff && gt.penaltyResolution) ? 'block' : 'none';
   if (penaltyEl) penaltyEl.style.display = 'none';
   if (penaltyInput) penaltyInput.value = '';
   if (penaltyBtnA) { penaltyBtnA.textContent = teamA; penaltyBtnA.classList.remove('selected'); }
   if (penaltyBtnB) { penaltyBtnB.textContent = teamB; penaltyBtnB.classList.remove('selected'); }
 
   // Pre-fill penalty winner if exists
-  if (isPlayoff) {
+  if (isPlayoff && gt.penaltyResolution) {
     let existingPenalty = null;
     if (state.playoffs.matches && state.playoffs.matches[matchId]) {
       existingPenalty = state.playoffs.matches[matchId].penaltyWinner;
@@ -67,33 +88,62 @@ function openScoreModal(matchId, teamA, teamB, isGrandFinal) {
       if (penaltyBtnA && existingPenalty === state.playoffs.matches[matchId].timeA) penaltyBtnA.classList.add('selected');
       if (penaltyBtnB && existingPenalty === state.playoffs.matches[matchId].timeB) penaltyBtnB.classList.add('selected');
     }
-    // Show/hide penalty selector based on current scores
     _updatePenaltyVisibility();
   }
 
+  // Hide save button for winner-only mode (auto-submit on click)
+  const saveBtn = document.getElementById('modalScoreSaveBtn');
+  if (saveBtn) saveBtn.style.display = isNumeric ? '' : 'none';
+
   UI.openModal('modalScore');
-  setTimeout(() => document.getElementById('modalScoreGolsA').focus(), 100);
+  if (isNumeric) {
+    setTimeout(() => document.getElementById('modalScoreScoreA').focus(), 100);
+  }
 }
 window.openScoreModal = openScoreModal;
 
-function _executeScoreSave(matchId, isGF, golsA, golsB, penaltyWinner) {
+function selectWinner(side) {
+  document.getElementById('modalScoreWinnerSide').value = side;
+  document.getElementById('winnerBtnA').classList.toggle('selected', side === 'A');
+  document.getElementById('winnerBtnB').classList.toggle('selected', side === 'B');
+  // Auto-submit after a brief visual highlight
+  setTimeout(() => submitScoreModal(), 200);
+}
+window.selectWinner = selectWinner;
+
+function _executeScoreSave(matchId, isGF, scoreA, scoreB, penaltyWinner) {
   _scoreSubmitting = true;
   UI.closeModal('modalScore');
 
+  const gt = getActiveGameType();
+  const winnerSide = (gt.scoreType !== 'numeric') ? document.getElementById('modalScoreWinnerSide').value : null;
+
   if (isGF) {
     const state = AppState.load();
-    AppState.registrarResultadoGrandFinal(state, golsA, golsB, penaltyWinner);
+    if (gt.scoreType !== 'numeric' && winnerSide) {
+      AppState.registrarResultadoGrandFinal(state,
+        winnerSide === 'A' ? 1 : 0,
+        winnerSide === 'B' ? 1 : 0,
+        null);
+      const gf = PlayoffFormats.getSelected(state).getGrandFinal(state.playoffs.matches);
+      if (gf) { gf.scoreA = null; gf.scoreB = null; }
+    } else {
+      AppState.registrarResultadoGrandFinal(state, scoreA, scoreB, penaltyWinner);
+    }
     AppState.save(state);
-    AppState.addAuditLog(getAuditUser(), 'Registrou resultado da Grande Final: ' + golsA + ' x ' + golsB);
+    const auditMsg = gt.scoreType === 'numeric'
+      ? 'Registrou resultado da Grande Final: ' + scoreA + ' x ' + scoreB
+      : 'Registrou resultado da Grande Final';
+    AppState.addAuditLog(getAuditUser(), auditMsg);
     Renderers.bracket();
     Renderers.home();
   } else {
     const state = AppState.load();
     const grp = state.faseGrupos.partidas.find(p => p.id === matchId);
     if (grp) {
-      saveInlineResult(matchId, golsA, golsB);
+      saveInlineResult(matchId, scoreA, scoreB, winnerSide);
     } else {
-      savePlayoffResult(matchId, golsA, golsB, penaltyWinner);
+      savePlayoffResult(matchId, scoreA, scoreB, penaltyWinner, winnerSide);
     }
   }
 
@@ -105,31 +155,50 @@ function submitScoreModal() {
   if (_scoreSubmitting) return;
   const matchId = document.getElementById('modalScoreMatchId').value;
   const isGF = document.getElementById('modalScoreIsGrandFinal').value === '1';
-  const inputA = document.getElementById('modalScoreGolsA');
-  const inputB = document.getElementById('modalScoreGolsB');
-  const golsA = parseInt(inputA.value);
-  const golsB = parseInt(inputB.value);
+  const gt = getActiveGameType();
+  const isNumeric = gt.scoreType === 'numeric';
 
-  // Clear previous error highlights
-  inputA.style.borderColor = '';
-  inputB.style.borderColor = '';
+  let scoreA, scoreB, penaltyWinner = null;
 
-  if (isNaN(golsA) || isNaN(golsB) || golsA < 0 || golsB < 0) {
-    if (isNaN(golsA) || golsA < 0) inputA.style.borderColor = 'var(--color-loss)';
-    if (isNaN(golsB) || golsB < 0) inputB.style.borderColor = 'var(--color-loss)';
-    UI.showToast('Informe placar v\u00e1lido.', 'error');
-    return;
-  }
+  if (isNumeric) {
+    const inputA = document.getElementById('modalScoreScoreA');
+    const inputB = document.getElementById('modalScoreScoreB');
+    scoreA = parseInt(inputA.value);
+    scoreB = parseInt(inputB.value);
 
-  // Get penalty winner for playoff draws
-  const isPlayoff = !matchId.startsWith('rr_');
-  let penaltyWinner = null;
-  if (isPlayoff && golsA === golsB) {
-    penaltyWinner = document.getElementById('modalScorePenaltyWinner').value;
-    if (!penaltyWinner) {
-      UI.showToast('Empate! Selecione o vencedor dos p\u00eanaltis.', 'error');
+    inputA.style.borderColor = '';
+    inputB.style.borderColor = '';
+
+    if (isNaN(scoreA) || isNaN(scoreB) || scoreA < 0 || scoreB < 0) {
+      if (isNaN(scoreA) || scoreA < 0) inputA.style.borderColor = 'var(--color-loss)';
+      if (isNaN(scoreB) || scoreB < 0) inputB.style.borderColor = 'var(--color-loss)';
+      UI.showToast('Informe placar v\u00e1lido.', 'error');
       return;
     }
+
+    if (gt.maxScore && (scoreA > gt.maxScore || scoreB > gt.maxScore)) {
+      UI.showToast('Placar m\u00e1ximo permitido: ' + gt.maxScore + '.', 'error');
+      return;
+    }
+
+    // Penalty handling
+    const isPlayoff = !matchId.startsWith('rr_');
+    if (isPlayoff && scoreA === scoreB && gt.penaltyResolution) {
+      penaltyWinner = document.getElementById('modalScorePenaltyWinner').value;
+      if (!penaltyWinner) {
+        UI.showToast('Empate! Selecione o vencedor dos p\u00eanaltis.', 'error');
+        return;
+      }
+    }
+  } else {
+    // Winner-only mode
+    const winnerSide = document.getElementById('modalScoreWinnerSide').value;
+    if (!winnerSide) {
+      UI.showToast('Selecione o vencedor.', 'error');
+      return;
+    }
+    scoreA = null;
+    scoreB = null;
   }
 
   // Check if editing an existing playoff result — show modal confirmation
@@ -148,12 +217,12 @@ function submitScoreModal() {
     confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
     newBtn.addEventListener('click', function() {
       UI.closeModal('modalPlayoffEdit');
-      _executeScoreSave(matchId, isGF, golsA, golsB, penaltyWinner);
+      _executeScoreSave(matchId, isGF, scoreA, scoreB, penaltyWinner);
     });
     return;
   }
 
-  _executeScoreSave(matchId, isGF, golsA, golsB, penaltyWinner);
+  _executeScoreSave(matchId, isGF, scoreA, scoreB, penaltyWinner);
 }
 window.submitScoreModal = submitScoreModal;
 
@@ -167,8 +236,8 @@ function _updatePenaltyVisibility() {
   const matchId = document.getElementById('modalScoreMatchId').value;
   const isPlayoff = !matchId.startsWith('rr_') && !matchId.startsWith('insc');
   if (!isPlayoff) { penaltyEl.style.display = 'none'; return; }
-  const golsA = parseInt(document.getElementById('modalScoreGolsA').value);
-  const golsB = parseInt(document.getElementById('modalScoreGolsB').value);
+  const golsA = parseInt(document.getElementById('modalScoreScoreA').value);
+  const golsB = parseInt(document.getElementById('modalScoreScoreB').value);
   penaltyEl.style.display = (!isNaN(golsA) && !isNaN(golsB) && golsA === golsB) ? '' : 'none';
   // Clear selection if no longer a draw
   if (golsA !== golsB) {
@@ -192,7 +261,7 @@ window.selectPenaltyWinner = selectPenaltyWinner;
 
 // Listen for score changes to show/hide penalty selector
 document.addEventListener('input', (e) => {
-  if (e.target.id === 'modalScoreGolsA' || e.target.id === 'modalScoreGolsB') {
+  if (e.target.id === 'modalScoreScoreA' || e.target.id === 'modalScoreScoreB') {
     _updatePenaltyVisibility();
   }
 });
