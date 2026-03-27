@@ -9,11 +9,11 @@
 // ------------------------------------------------------------------
 
 function _newMatch(id, fase, label) {
-  return { id, fase, label, timeA: null, timeB: null, golsA: null, golsB: null, vencedor: null, perdedor: null };
+  return { id, fase, label, timeA: null, timeB: null, scoreA: null, scoreB: null, vencedor: null, perdedor: null };
 }
 
 function _clearMatch(m) {
-  m.golsA = null; m.golsB = null; m.vencedor = null; m.perdedor = null;
+  m.scoreA = null; m.scoreB = null; m.vencedor = null; m.perdedor = null;
 }
 
 function _clearMatchFull(m) {
@@ -23,7 +23,7 @@ function _clearMatchFull(m) {
 function _collectConcludedMatches(matches) {
   return Object.values(matches)
     .filter(m => m.vencedor)
-    .map(m => ({ timeA: m.timeA, timeB: m.timeB, golsA: m.golsA, golsB: m.golsB, id: m.id, fase: m.fase }));
+    .map(m => ({ timeA: m.timeA, timeB: m.timeB, scoreA: m.scoreA, scoreB: m.scoreB, id: m.id, fase: m.fase }));
 }
 
 // ------------------------------------------------------------------

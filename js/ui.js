@@ -175,10 +175,10 @@ function signedNumber(n) {
 // Match score class
 // ------------------------------------------------------------------
 
-function scoreClass(golsA, golsB) {
-  if (golsA === null || golsB === null) return '';
-  if (golsA > golsB) return 'winner-a';
-  if (golsB > golsA) return 'winner-b';
+function scoreClass(scoreA, scoreB) {
+  if (scoreA === null || scoreB === null) return '';
+  if (scoreA > scoreB) return 'winner-a';
+  if (scoreB > scoreA) return 'winner-b';
   return 'draw';
 }
 
