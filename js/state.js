@@ -5,18 +5,14 @@
  */
 
 const DEFAULT_STATE = {
-  _schemaVersion: 1,
+  _schemaVersion: 2,
   campeonato: {
     nome: '',
-    jogo: '',
+    gameType: 'futebol-virtual',
     status: 'configuracao' // configuracao | grupos | playoffs | encerrado
   },
   config: {
-    pontosPorVitoria: 3,
-    pontosPorEmpate: 1,
-    pontosPorDerrota: 0,
-    classificadosPorGrupo: 4,
-    criteriosDesempate: ['pontos', 'vitorias', 'saldoGols', 'golsMarcados', 'confrontoDireto']
+    classificadosPorGrupo: 4
   },
   times: [],
   faseGrupos: {
@@ -24,7 +20,7 @@ const DEFAULT_STATE = {
     partidas: []
   },
   playoffs: {
-    formato: 'double-elim-4',
+    formato: 'single-elim-4',
     status: 'aguardando', // aguardando | andamento | concluido
     matches: {}
   }
@@ -42,18 +38,57 @@ function invalidateCache() {
   _classificacaoCache = null;
 }
 
-const CURRENT_SCHEMA_VERSION = 1;
+const CURRENT_SCHEMA_VERSION = 2;
 
 function migrateState(state) {
   const version = state._schemaVersion || 0;
 
   if (version < 1) {
     // v0 → v1: initial versioning introduction, no structural changes needed.
-    // Template for future migrations: add fields, rename keys, etc.
   }
 
-  // Add future migration blocks here:
-  // if (version < 2) { state.someNewField = state.someNewField ?? defaultValue; }
+  if (version < 2) {
+    // v1 → v2: multi-game support
+    // Add gameType (default to futebol-virtual for existing tournaments)
+    if (!state.campeonato.gameType) {
+      state.campeonato.gameType = 'futebol-virtual';
+    }
+
+    // Migrate golsA/golsB → scoreA/scoreB in group matches
+    if (state.faseGrupos && state.faseGrupos.partidas) {
+      state.faseGrupos.partidas.forEach(p => {
+        if (p.golsA !== undefined) { p.scoreA = p.golsA; delete p.golsA; }
+        if (p.golsB !== undefined) { p.scoreB = p.golsB; delete p.golsB; }
+        // Derive vencedor if not set
+        if (p.status === 'concluida' && p.vencedor === undefined) {
+          if (p.scoreA > p.scoreB) p.vencedor = p.timeA;
+          else if (p.scoreB > p.scoreA) p.vencedor = p.timeB;
+          else p.vencedor = null; // draw
+        }
+      });
+    }
+
+    // Migrate golsA/golsB → scoreA/scoreB in playoff matches
+    if (state.playoffs && state.playoffs.matches) {
+      Object.values(state.playoffs.matches).forEach(m => {
+        if (m.golsA !== undefined) { m.scoreA = m.golsA; delete m.golsA; }
+        if (m.golsB !== undefined) { m.scoreB = m.golsB; delete m.golsB; }
+      });
+    }
+
+    // Remove jogo field (now derived from gameType)
+    if (state.campeonato.jogo !== undefined) {
+      delete state.campeonato.jogo;
+    }
+
+    // Remove old config scoring fields (now from GAME_TYPES)
+    if (state.config) {
+      delete state.config.pontosPorVitoria;
+      delete state.config.pontosPorEmpate;
+      delete state.config.pontosPorDerrota;
+      delete state.config.criteriosDesempate;
+    }
+  }
 
   state._schemaVersion = CURRENT_SCHEMA_VERSION;
   return state;
@@ -122,23 +157,16 @@ function saveState(state) {
 function convertStateToFirestore(state) {
   return {
     id: getActiveTournamentId(),
-    _schemaVersion: state._schemaVersion || 1,
+    _schemaVersion: state._schemaVersion || 2,
     metadata: {
       nome: state.campeonato.nome,
-      jogo: state.campeonato.jogo || '',
+      gameType: state.campeonato.gameType || 'futebol-virtual',
       status: state.campeonato.status,
       criadoEm: state._criadoEm || new Date().toISOString(),
       atualizadoEm: new Date().toISOString()
     },
     config: {
-      formato: 'grupos+playoffs',
-      classificadosPorGrupo: state.config.classificadosPorGrupo || 4,
-      regrasClassificacao: {
-        vitoria: state.config.pontosPorVitoria,
-        empate: state.config.pontosPorEmpate,
-        derrota: state.config.pontosPorDerrota,
-        criteriosDesempate: state.config.criteriosDesempate
-      }
+      classificadosPorGrupo: state.config.classificadosPorGrupo || 4
     },
     times: state.times,
     faseGrupos: state.faseGrupos,
@@ -148,7 +176,7 @@ function convertStateToFirestore(state) {
 }
 
 /**
- * Convert Firestore DDD format back to legacy state format.
+ * Convert Firestore DDD format back to state format.
  */
 function convertFirestoreToState(data) {
   if (!data) return null;
@@ -156,15 +184,20 @@ function convertFirestoreToState(data) {
     _schemaVersion: data._schemaVersion || 0,
     campeonato: {
       nome: data.metadata.nome,
-      jogo: data.metadata.jogo || '',
+      gameType: data.metadata.gameType || 'futebol-virtual',
+      // Legacy: if jogo field exists but no gameType, keep it for migration
+      ...(data.metadata.jogo && !data.metadata.gameType ? { jogo: data.metadata.jogo } : {}),
       status: data.metadata.status
     },
     config: {
-      pontosPorVitoria: data.config.regrasClassificacao.vitoria,
-      pontosPorEmpate: data.config.regrasClassificacao.empate,
-      pontosPorDerrota: data.config.regrasClassificacao.derrota,
       classificadosPorGrupo: (data.config && data.config.classificadosPorGrupo) || 4,
-      criteriosDesempate: data.config.regrasClassificacao.criteriosDesempate
+      // Legacy: pass through old scoring fields for migration
+      ...(data.config && data.config.regrasClassificacao ? {
+        pontosPorVitoria: data.config.regrasClassificacao.vitoria,
+        pontosPorEmpate: data.config.regrasClassificacao.empate,
+        pontosPorDerrota: data.config.regrasClassificacao.derrota,
+        criteriosDesempate: data.config.regrasClassificacao.criteriosDesempate
+      } : {})
     },
     times: data.times || [],
     faseGrupos: data.faseGrupos || { status: 'aguardando', partidas: [] },
@@ -268,8 +301,9 @@ function gerarRodadasRoundRobin(times) {
         rodada: rodada + 1,
         timeA: home,
         timeB: away,
-        golsA: null,
-        golsB: null,
+        scoreA: null,
+        scoreB: null,
+        vencedor: null,
         status: 'pendente'
       });
     }
@@ -299,7 +333,7 @@ function regenerarFaseGrupos(state) {
   state.faseGrupos.partidas.forEach(p => {
     if (p.status === 'concluida') {
       const key = [p.timeA, p.timeB].sort().join('|');
-      resultados[key] = { golsA: p.golsA, golsB: p.golsB, timeA: p.timeA, timeB: p.timeB };
+      resultados[key] = { scoreA: p.scoreA, scoreB: p.scoreB, vencedor: p.vencedor, timeA: p.timeA, timeB: p.timeB };
     }
   });
 
@@ -311,14 +345,15 @@ function regenerarFaseGrupos(state) {
     const key = [p.timeA, p.timeB].sort().join('|');
     if (resultados[key]) {
       const r = resultados[key];
-      // Match the original home/away with goals
+      // Match the original home/away with scores
       if (p.timeA === r.timeA) {
-        p.golsA = r.golsA;
-        p.golsB = r.golsB;
+        p.scoreA = r.scoreA;
+        p.scoreB = r.scoreB;
       } else {
-        p.golsA = r.golsB;
-        p.golsB = r.golsA;
+        p.scoreA = r.scoreB;
+        p.scoreB = r.scoreA;
       }
+      p.vencedor = r.vencedor;
       p.status = 'concluida';
     }
   });
@@ -337,6 +372,8 @@ function calcularClassificacao(state) {
   if (_classificacaoCache && state === _ensureCache()) return _classificacaoCache;
   const times = state.times;
   const partidas = state.faseGrupos.partidas.filter(p => p.status === 'concluida');
+  const gt = getGameType(state.campeonato.gameType);
+  const scoring = gt.scoring;
 
   const tabela = times.map(t => ({
     id: t.id,
@@ -348,9 +385,9 @@ function calcularClassificacao(state) {
     vitorias: 0,
     empates: 0,
     derrotas: 0,
-    golsMarcados: 0,
-    golsSofridos: 0,
-    saldoGols: 0,
+    scoreMarcados: 0,
+    scoreSofridos: 0,
+    saldoScore: 0,
     pontos: 0,
     forma: [] // last 5
   }));
@@ -368,76 +405,82 @@ function calcularClassificacao(state) {
 
     a.jogos++;
     b.jogos++;
-    a.golsMarcados += p.golsA;
-    a.golsSofridos += p.golsB;
-    b.golsMarcados += p.golsB;
-    b.golsSofridos += p.golsA;
 
-    if (p.golsA > p.golsB) {
-      a.vitorias++;
-      a.pontos += state.config.pontosPorVitoria;
-      b.derrotas++;
-      b.pontos += state.config.pontosPorDerrota;
-      a.forma.push('V');
-      b.forma.push('D');
-    } else if (p.golsA < p.golsB) {
-      b.vitorias++;
-      b.pontos += state.config.pontosPorVitoria;
-      a.derrotas++;
-      a.pontos += state.config.pontosPorDerrota;
-      b.forma.push('V');
-      a.forma.push('D');
+    // Score-based stats (only for numeric score types)
+    if (p.scoreA !== null && p.scoreB !== null) {
+      a.scoreMarcados += p.scoreA;
+      a.scoreSofridos += p.scoreB;
+      b.scoreMarcados += p.scoreB;
+      b.scoreSofridos += p.scoreA;
+    }
+
+    // V/E/D based on vencedor field
+    if (p.vencedor === p.timeA) {
+      a.vitorias++; a.pontos += scoring.vitoria;
+      b.derrotas++; b.pontos += scoring.derrota;
+      a.forma.push('V'); b.forma.push('D');
+    } else if (p.vencedor === p.timeB) {
+      b.vitorias++; b.pontos += scoring.vitoria;
+      a.derrotas++; a.pontos += scoring.derrota;
+      b.forma.push('V'); a.forma.push('D');
     } else {
-      a.empates++;
-      b.empates++;
-      a.pontos += state.config.pontosPorEmpate;
-      b.pontos += state.config.pontosPorEmpate;
-      a.forma.push('E');
-      b.forma.push('E');
+      a.empates++; b.empates++;
+      a.pontos += scoring.empate;
+      b.pontos += scoring.empate;
+      a.forma.push('E'); b.forma.push('E');
     }
   });
 
   tabela.forEach(t => {
-    t.saldoGols = t.golsMarcados - t.golsSofridos;
+    t.saldoScore = t.scoreMarcados - t.scoreSofridos;
     t.forma = t.forma.slice(-5); // keep last 5
   });
 
-  // Sort by criteria
+  // Dynamic sort based on game type tiebreakers
+  const tiebreakers = gt.tiebreakers;
+
   tabela.sort((a, b) => {
-    if (b.pontos !== a.pontos) return b.pontos - a.pontos;
-    if (b.vitorias !== a.vitorias) return b.vitorias - a.vitorias;
-    if (b.saldoGols !== a.saldoGols) return b.saldoGols - a.saldoGols;
-    if (b.golsMarcados !== a.golsMarcados) return b.golsMarcados - a.golsMarcados;
+    for (const criterion of tiebreakers) {
+      let diff = 0;
+      switch (criterion) {
+        case 'pontos': diff = b.pontos - a.pontos; break;
+        case 'vitorias': diff = b.vitorias - a.vitorias; break;
+        case 'saldoScore': diff = b.saldoScore - a.saldoScore; break;
+        case 'scoreMarcados': diff = b.scoreMarcados - a.scoreMarcados; break;
+        case 'admin': break; // resolved manually, not in sort
+        case 'confrontoDireto': break; // handled below (2-team only)
+      }
+      if (diff !== 0) return diff;
+    }
     return a.nome.localeCompare(b.nome);
   });
 
-  // Resolve remaining ties by confronto direto (two-team ties only)
-  for (let i = 0; i < tabela.length - 1; i++) {
-    let j = i + 1;
-    while (j < tabela.length &&
-      tabela[j].pontos === tabela[i].pontos &&
-      tabela[j].vitorias === tabela[i].vitorias &&
-      tabela[j].saldoGols === tabela[i].saldoGols &&
-      tabela[j].golsMarcados === tabela[i].golsMarcados) {
-      j++;
-    }
-    if (j - i === 2) {
-      const a = tabela[i];
-      const b = tabela[i + 1];
-      const directMatch = partidas.find(p =>
-        (p.timeA === a.id && p.timeB === b.id) ||
-        (p.timeA === b.id && p.timeB === a.id)
-      );
-      if (directMatch) {
-        const aIsHome = directMatch.timeA === a.id;
-        const aGols = aIsHome ? directMatch.golsA : directMatch.golsB;
-        const bGols = aIsHome ? directMatch.golsB : directMatch.golsA;
-        if (bGols > aGols) {
-          [tabela[i], tabela[i + 1]] = [tabela[i + 1], tabela[i]];
+  // Resolve confronto direto ties (only if in tiebreakers, 2-team ties only)
+  if (tiebreakers.includes('confrontoDireto')) {
+    for (let i = 0; i < tabela.length - 1; i++) {
+      let j = i + 1;
+      while (j < tabela.length &&
+        tabela[j].pontos === tabela[i].pontos &&
+        tabela[j].vitorias === tabela[i].vitorias &&
+        tabela[j].saldoScore === tabela[i].saldoScore &&
+        tabela[j].scoreMarcados === tabela[i].scoreMarcados) {
+        j++;
+      }
+      if (j - i === 2) {
+        const a = tabela[i];
+        const b = tabela[i + 1];
+        const directMatch = partidas.find(p =>
+          (p.timeA === a.id && p.timeB === b.id) ||
+          (p.timeA === b.id && p.timeB === a.id)
+        );
+        if (directMatch && directMatch.vencedor) {
+          if (directMatch.vencedor === b.id) {
+            [tabela[i], tabela[i + 1]] = [tabela[i + 1], tabela[i]];
+          }
         }
       }
+      i = j - 1;
     }
-    i = j - 1;
   }
 
   // Cache if reading from the shared cache (readOnly path)
@@ -458,49 +501,50 @@ function calcularEstatisticas(state) {
     const format = PlayoffFormats.getSelected(state);
     playoffPartidas = format.getAllMatches(state.playoffs.matches)
       .filter(m => m.vencedor)
-      .map(m => ({ timeA: m.timeA, timeB: m.timeB, golsA: m.golsA, golsB: m.golsB, id: m.id, fase: m.fase, penaltyWinner: m.penaltyWinner || null }));
+      .map(m => ({ timeA: m.timeA, timeB: m.timeB, scoreA: m.scoreA, scoreB: m.scoreB, id: m.id, fase: m.fase, penaltyWinner: m.penaltyWinner || null }));
   }
 
   const allPartidas = [...grupoPartidas, ...playoffPartidas];
   const totalPartidas = allPartidas.length;
-  const totalGols = allPartidas.reduce((s, p) => s + p.golsA + p.golsB, 0);
-  const mediaGols = totalPartidas > 0 ? (totalGols / totalPartidas).toFixed(2) : 0;
-  const maiorGoleada = allPartidas.reduce((best, p) => {
-    const diff = Math.abs(p.golsA - p.golsB);
-    const total = p.golsA + p.golsB;
+  const totalScore = allPartidas.reduce((s, p) => s + (p.scoreA || 0) + (p.scoreB || 0), 0);
+  const mediaScore = totalPartidas > 0 ? (totalScore / totalPartidas).toFixed(2) : 0;
+  const maiorVitoria = allPartidas.reduce((best, p) => {
+    const diff = Math.abs((p.scoreA || 0) - (p.scoreB || 0));
+    const total = (p.scoreA || 0) + (p.scoreB || 0);
     if (diff > best.diff || (diff === best.diff && total > best.total)) {
       return { diff, total, partida: p };
     }
     return best;
   }, { diff: 0, total: 0, partida: null });
 
-  const tabela = calcularClassificacao(state);
+  // Clone tabela to avoid mutating the classification cache (BUG FIX)
+  const tabela = JSON.parse(JSON.stringify(calcularClassificacao(state)));
 
-  // Add playoff goals to team stats
+  // Add playoff scores to team stats for statistics display
   playoffPartidas.forEach(p => {
     const idxA = tabela.findIndex(t => t.id === p.timeA);
     const idxB = tabela.findIndex(t => t.id === p.timeB);
     if (idxA !== -1) {
       tabela[idxA].jogos++;
-      tabela[idxA].golsMarcados += p.golsA;
-      tabela[idxA].golsSofridos += p.golsB;
+      tabela[idxA].scoreMarcados += (p.scoreA || 0);
+      tabela[idxA].scoreSofridos += (p.scoreB || 0);
     }
     if (idxB !== -1) {
       tabela[idxB].jogos++;
-      tabela[idxB].golsMarcados += p.golsB;
-      tabela[idxB].golsSofridos += p.golsA;
+      tabela[idxB].scoreMarcados += (p.scoreB || 0);
+      tabela[idxB].scoreSofridos += (p.scoreA || 0);
     }
   });
 
-  const topGoleadores = [...tabela].sort((a, b) => b.golsMarcados - a.golsMarcados).slice(0, 5);
-  const menosVazados = [...tabela].sort((a, b) => a.golsSofridos - b.golsSofridos).slice(0, 5);
+  const topScorers = [...tabela].sort((a, b) => b.scoreMarcados - a.scoreMarcados).slice(0, 5);
+  const menosVazados = [...tabela].sort((a, b) => a.scoreSofridos - b.scoreSofridos).slice(0, 5);
 
-  const partidaMaisGols = allPartidas.reduce((best, p) => {
-    const total = p.golsA + p.golsB;
+  const partidaMaisScore = allPartidas.reduce((best, p) => {
+    const total = (p.scoreA || 0) + (p.scoreB || 0);
     return total > best.total ? { total, partida: p } : best;
   }, { total: 0, partida: null });
 
-  return { totalPartidas, totalPartidasGrupos: grupoPartidas.length, totalPartidasPlayoffs: playoffPartidas.length, totalGols, mediaGols, maiorGoleada, partidaMaisGols, topGoleadores, menosVazados };
+  return { totalPartidas, totalPartidasGrupos: grupoPartidas.length, totalPartidasPlayoffs: playoffPartidas.length, totalScore, mediaScore, maiorVitoria, partidaMaisScore, topScorers, menosVazados };
 }
 
 // ------------------------------------------------------------------
@@ -521,22 +565,22 @@ function popularPlayoffs(state, formatId) {
   return true;
 }
 
-function registrarResultadoPlayoff(state, matchId, golsA, golsB, penaltyWinner) {
+function registrarResultadoPlayoff(state, matchId, scoreA, scoreB, penaltyWinner) {
   const format = PlayoffFormats.getSelected(state);
   const match = state.playoffs.matches[matchId];
   if (!match) return false;
   if (!match.timeA || !match.timeB) return false;
-  if (golsA === golsB && !penaltyWinner) return false;
+  if (scoreA === scoreB && !penaltyWinner) return false;
 
-  const newWinner = golsA !== golsB
-    ? (golsA > golsB ? match.timeA : match.timeB)
+  const newWinner = scoreA !== scoreB
+    ? (scoreA > scoreB ? match.timeA : match.timeB)
     : penaltyWinner;
   if (match.vencedor && match.vencedor !== newWinner) {
     format.resetDownstream(state.playoffs.matches, matchId);
   }
 
-  match.golsA = golsA;
-  match.golsB = golsB;
+  match.scoreA = scoreA;
+  match.scoreB = scoreB;
   match.vencedor = newWinner;
   match.perdedor = newWinner === match.timeA ? match.timeB : match.timeA;
   match.penaltyWinner = penaltyWinner || null;
@@ -559,14 +603,14 @@ function registrarResultadoPlayoff(state, matchId, golsA, golsB, penaltyWinner) 
   return true;
 }
 
-function registrarResultadoGrandFinal(state, golsA, golsB, penaltyWinner) {
+function registrarResultadoGrandFinal(state, scoreA, scoreB, penaltyWinner) {
   const format = PlayoffFormats.getSelected(state);
   const gf = format.getGrandFinal(state.playoffs.matches);
   if (!gf || !gf.timeA || !gf.timeB) return false;
-  if (golsA === golsB && !penaltyWinner) return false;
+  if (scoreA === scoreB && !penaltyWinner) return false;
 
-  const newWinner = golsA !== golsB
-    ? (golsA > golsB ? gf.timeA : gf.timeB)
+  const newWinner = scoreA !== scoreB
+    ? (scoreA > scoreB ? gf.timeA : gf.timeB)
     : penaltyWinner;
   if (gf.vencedor && gf.vencedor !== newWinner) {
     if (state.campeonato.status === 'encerrado') {
@@ -575,8 +619,8 @@ function registrarResultadoGrandFinal(state, golsA, golsB, penaltyWinner) {
     }
   }
 
-  gf.golsA = golsA;
-  gf.golsB = golsB;
+  gf.scoreA = scoreA;
+  gf.scoreB = scoreB;
   gf.vencedor = newWinner;
   gf.perdedor = newWinner === gf.timeA ? gf.timeB : gf.timeA;
   gf.penaltyWinner = penaltyWinner || null;
