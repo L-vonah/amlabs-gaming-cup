@@ -79,6 +79,9 @@ function renderClassificacao() {
     return;
   }
 
+  const gt = getGameType(state.campeonato.gameType);
+  const cols = gt.columns;
+
   container.innerHTML = `
     <div class="classification-table-wrapper">
       <table class="classification-table">
@@ -87,11 +90,11 @@ function renderClassificacao() {
             <th colspan="2">Time</th>
             <th class="text-center">J</th>
             <th class="text-center">V</th>
-            <th class="text-center">E</th>
+            ${cols.empates ? '<th class="text-center">E</th>' : ''}
             <th class="text-center">D</th>
-            <th class="text-center">GP</th>
-            <th class="text-center">GC</th>
-            <th class="text-center">SG</th>
+            ${cols.scoreMarcados ? '<th class="text-center">' + cols.scoreMarcados.label + '</th>' : ''}
+            ${cols.scoreSofridos ? '<th class="text-center">' + cols.scoreSofridos.label + '</th>' : ''}
+            ${cols.saldo ? '<th class="text-center">' + cols.saldo.label + '</th>' : ''}
             <th class="text-center">Pts</th>
             <th>Forma</th>
             <th></th>
@@ -102,7 +105,7 @@ function renderClassificacao() {
             const pos = i + 1;
             const tier = getTierForPosition(pos);
             const tierClass = tier ? tier.cssClass : '';
-            const sgClass = t.saldoGols > 0 ? 'stat-positive' : t.saldoGols < 0 ? 'stat-negative' : 'stat-neutral';
+            const sgClass = t.saldoScore > 0 ? 'stat-positive' : t.saldoScore < 0 ? 'stat-negative' : 'stat-neutral';
             return `
               <tr class="${tierClass}">
                 <td>
@@ -121,11 +124,11 @@ function renderClassificacao() {
                 </td>
                 <td class="text-center text-muted">${t.jogos}</td>
                 <td class="text-center stat-positive" style="font-weight:700">${t.vitorias}</td>
-                <td class="text-center stat-neutral">${t.empates}</td>
+                ${cols.empates ? '<td class="text-center stat-neutral">' + t.empates + '</td>' : ''}
                 <td class="text-center stat-negative">${t.derrotas}</td>
-                <td class="text-center">${t.golsMarcados}</td>
-                <td class="text-center">${t.golsSofridos}</td>
-                <td class="text-center ${sgClass}" style="font-weight:700">${UI.signedNumber(t.saldoGols)}</td>
+                ${cols.scoreMarcados ? '<td class="text-center">' + t.scoreMarcados + '</td>' : ''}
+                ${cols.scoreSofridos ? '<td class="text-center">' + t.scoreSofridos + '</td>' : ''}
+                ${cols.saldo ? '<td class="text-center ' + sgClass + '" style="font-weight:700">' + UI.signedNumber(t.saldoScore) + '</td>' : ''}
                 <td class="text-center"><span class="stat-pts">${t.pontos}</span></td>
                 <td>
                   <div class="form-badges">
@@ -140,7 +143,7 @@ function renderClassificacao() {
     </div>
     <div class="classification-tier-legend">
       ${tiers.map(tier => `<div class="tier-legend-item"><span class="tier-legend-dot" style="background:${tier.color}"></span>${UI.escapeHtml(tier.label)} (${tier.from === tier.to ? tier.from + '&ordm;' : tier.from + '&ordm;-' + tier.to + '&ordm;'})</div>`).join('')}
-      <span>&bull; Desempate: Pontos &rarr; Vit&oacute;rias &rarr; Saldo de Gols &rarr; Gols Marcados</span>
+      <span>&bull; Desempate: ${gt.tiebreakerLabels.join(' &rarr; ')}</span>
     </div>`;
 }
 
@@ -150,6 +153,20 @@ function renderClassificacao() {
 
 function renderEstatisticas() {
   const state = AppState.loadReadOnly();
+  const gt = getGameType(state.campeonato.gameType);
+
+  // Hide statistics entirely for game types that don't have them
+  if (!gt.hasStatistics) {
+    ['statTotalPartidas','statTotalGols','statMediaGols','statTotalTimes','statTopGols','statTopDef','statGoleada','statMaisGols'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        const card = el.closest('.card');
+        if (card) card.style.display = 'none';
+      }
+    });
+    return;
+  }
+
   const stats = AppState.calcularEstatisticas(state);
 
   // Overview cards
@@ -160,17 +177,17 @@ function renderEstatisticas() {
     totalTimes: document.getElementById('statTotalTimes')
   };
   if (els.totalPartidas) els.totalPartidas.textContent = stats.totalPartidas;
-  if (els.totalGols) els.totalGols.textContent = stats.totalGols;
-  if (els.mediaGols) els.mediaGols.textContent = stats.mediaGols;
+  if (els.totalGols) els.totalGols.textContent = stats.totalScore;
+  if (els.mediaGols) els.mediaGols.textContent = stats.mediaScore;
   if (els.totalTimes) els.totalTimes.textContent = state.times.length;
 
   // Top scorers (by team)
   const topGolsEl = document.getElementById('statTopGols');
   if (topGolsEl) {
-    if (stats.topGoleadores.length === 0) {
+    if (stats.topScorers.length === 0) {
       topGolsEl.innerHTML = '<div class="empty-state" style="padding:24px"><div class="empty-title">Sem dados ainda</div></div>';
     } else {
-      topGolsEl.innerHTML = stats.topGoleadores.map((t, i) => `
+      topGolsEl.innerHTML = stats.topScorers.map((t, i) => `
         <div class="stat-rank-item">
           <span class="stat-rank-pos ${i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : ''}">${i + 1}</span>
           ${UI.renderAvatar(t, 36)}
@@ -179,7 +196,7 @@ function renderEstatisticas() {
             ${t.participante ? '<div class="stat-rank-participant">' + UI.escapeHtml(t.participante) + '</div>' : ''}
           </div>
           <div class="stat-rank-numbers">
-            <span class="stat-rank-value" style="color:var(--color-primary)">${t.golsMarcados}</span>
+            <span class="stat-rank-value" style="color:var(--color-primary)">${t.scoreMarcados}</span>
             <span class="stat-rank-label">${t.jogos}J</span>
           </div>
         </div>`).join('');
@@ -201,7 +218,7 @@ function renderEstatisticas() {
             ${t.participante ? '<div class="stat-rank-participant">' + UI.escapeHtml(t.participante) + '</div>' : ''}
           </div>
           <div class="stat-rank-numbers">
-            <span class="stat-rank-value" style="color:var(--color-win)">${t.golsSofridos}</span>
+            <span class="stat-rank-value" style="color:var(--color-win)">${t.scoreSofridos}</span>
             <span class="stat-rank-label">${t.jogos}J</span>
           </div>
         </div>`).join('');
@@ -211,10 +228,10 @@ function renderEstatisticas() {
   // Biggest win
   const goleadaEl = document.getElementById('statGoleada');
   if (goleadaEl) {
-    if (!stats.maiorGoleada.partida) {
+    if (!stats.maiorVitoria.partida) {
       goleadaEl.innerHTML = '<div class="text-dim text-sm" style="padding:16px 0">Sem partidas concluídas</div>';
     } else {
-      const p = stats.maiorGoleada.partida;
+      const p = stats.maiorVitoria.partida;
       const tA = AppState.getTimeById(state, p.timeA);
       const tB = AppState.getTimeById(state, p.timeB);
       const pWinA = p.penaltyWinner === p.timeA;
@@ -222,24 +239,24 @@ function renderEstatisticas() {
       goleadaEl.innerHTML = `
         <div class="stat-match-row">
           ${UI.renderAvatar(tA, 28)}
-          <span class="stat-match-name ${p.golsA > p.golsB || pWinA ? 'winner' : ''}">${tA ? UI.escapeHtml(tA.nome) : '?'}</span>
-          <span class="stat-match-score">${pWinA ? '<span class="penalty-tag">P</span>' : ''}${p.golsA}</span>
+          <span class="stat-match-name ${(p.scoreA || 0) > (p.scoreB || 0) || pWinA ? 'winner' : ''}">${tA ? UI.escapeHtml(tA.nome) : '?'}</span>
+          <span class="stat-match-score">${pWinA ? '<span class="penalty-tag">P</span>' : ''}${p.scoreA}</span>
           <span class="bracket-mini-separator">:</span>
-          <span class="stat-match-score">${p.golsB}${pWinB ? '<span class="penalty-tag">P</span>' : ''}</span>
-          <span class="stat-match-name ${p.golsB > p.golsA || pWinB ? 'winner' : ''}" style="text-align:right">${tB ? UI.escapeHtml(tB.nome) : '?'}</span>
+          <span class="stat-match-score">${p.scoreB}${pWinB ? '<span class="penalty-tag">P</span>' : ''}</span>
+          <span class="stat-match-name ${(p.scoreB || 0) > (p.scoreA || 0) || pWinB ? 'winner' : ''}" style="text-align:right">${tB ? UI.escapeHtml(tB.nome) : '?'}</span>
           ${UI.renderAvatar(tB, 28)}
         </div>
-        <div class="stat-match-note">Diferen&ccedil;a de ${Math.abs(p.golsA - p.golsB)} gol${Math.abs(p.golsA - p.golsB) !== 1 ? 's' : ''}</div>`;
+        <div class="stat-match-note">Diferen&ccedil;a de ${Math.abs((p.scoreA || 0) - (p.scoreB || 0))} gol${Math.abs((p.scoreA || 0) - (p.scoreB || 0)) !== 1 ? 's' : ''}</div>`;
     }
   }
 
   // Match with most goals
   const maisGolsEl = document.getElementById('statMaisGols');
   if (maisGolsEl) {
-    if (!stats.partidaMaisGols || !stats.partidaMaisGols.partida) {
+    if (!stats.partidaMaisScore || !stats.partidaMaisScore.partida) {
       maisGolsEl.innerHTML = '<div class="text-dim text-sm" style="padding:16px 0">Sem partidas conclu&iacute;das</div>';
     } else {
-      const p = stats.partidaMaisGols.partida;
+      const p = stats.partidaMaisScore.partida;
       const tA = AppState.getTimeById(state, p.timeA);
       const tB = AppState.getTimeById(state, p.timeB);
       const mgPA = p.penaltyWinner === p.timeA;
@@ -247,14 +264,14 @@ function renderEstatisticas() {
       maisGolsEl.innerHTML = `
         <div class="stat-match-row">
           ${UI.renderAvatar(tA, 28)}
-          <span class="stat-match-name ${p.golsA > p.golsB || mgPA ? 'winner' : ''}">${tA ? UI.escapeHtml(tA.nome) : '?'}</span>
-          <span class="stat-match-score">${mgPA ? '<span class="penalty-tag">P</span>' : ''}${p.golsA}</span>
+          <span class="stat-match-name ${(p.scoreA || 0) > (p.scoreB || 0) || mgPA ? 'winner' : ''}">${tA ? UI.escapeHtml(tA.nome) : '?'}</span>
+          <span class="stat-match-score">${mgPA ? '<span class="penalty-tag">P</span>' : ''}${p.scoreA}</span>
           <span class="bracket-mini-separator">:</span>
-          <span class="stat-match-score">${p.golsB}${mgPB ? '<span class="penalty-tag">P</span>' : ''}</span>
-          <span class="stat-match-name ${p.golsB > p.golsA || mgPB ? 'winner' : ''}" style="text-align:right">${tB ? UI.escapeHtml(tB.nome) : '?'}</span>
+          <span class="stat-match-score">${p.scoreB}${mgPB ? '<span class="penalty-tag">P</span>' : ''}</span>
+          <span class="stat-match-name ${(p.scoreB || 0) > (p.scoreA || 0) || mgPB ? 'winner' : ''}" style="text-align:right">${tB ? UI.escapeHtml(tB.nome) : '?'}</span>
           ${UI.renderAvatar(tB, 28)}
         </div>
-        <div class="stat-match-note">${stats.partidaMaisGols.total} gols na partida</div>`;
+        <div class="stat-match-note">${stats.partidaMaisScore.total} gols na partida</div>`;
     }
   }
 }
