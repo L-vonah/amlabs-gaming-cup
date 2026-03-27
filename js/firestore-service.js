@@ -208,7 +208,7 @@ const FirestoreService = {
       return snapshot.docs.map(doc => ({
         id: doc.id,
         nome: doc.data().metadata?.nome || 'Campeonato',
-        jogo: doc.data().metadata?.jogo || '',
+        gameType: doc.data().metadata?.gameType || 'futebol-virtual',
         status: doc.data().metadata?.status || 'configuracao',
         criadoEm: doc.data().metadata?.criadoEm || null,
         timesCount: (doc.data().times || []).length
@@ -222,35 +222,29 @@ const FirestoreService = {
   /**
    * Create a new tournament document in Firestore.
    */
-  async createTournament({ nome, jogo }) {
+  async createTournament({ nome, gameType }) {
     if (!FIREBASE_CONFIGURED || !UI.checkAdmin()) return null;
 
+    const gt = getGameType(gameType);
     const uuid = crypto.randomUUID();
     const now = new Date().toISOString();
 
     const doc = {
       id: uuid,
-      _schemaVersion: 1,
+      _schemaVersion: 2,
       metadata: {
         nome,
-        jogo,
+        gameType: gt.id,
         status: 'configuracao',
         criadoEm: now,
         atualizadoEm: now
       },
       config: {
-        formato: 'grupos+playoffs',
-        classificadosPorGrupo: 4,
-        regrasClassificacao: {
-          vitoria: 3,
-          empate: 1,
-          derrota: 0,
-          criteriosDesempate: ['pontos', 'vitorias', 'saldoGols', 'golsMarcados', 'confrontoDireto']
-        }
+        classificadosPorGrupo: 4
       },
       times: [],
       faseGrupos: { status: 'aguardando', partidas: [] },
-      playoffs: { formato: 'double-elim-4', status: 'aguardando', matches: {} },
+      playoffs: { formato: 'single-elim-4', status: 'aguardando', matches: {} },
       campeao: null
     };
 

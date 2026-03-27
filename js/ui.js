@@ -175,10 +175,10 @@ function signedNumber(n) {
 // Match score class
 // ------------------------------------------------------------------
 
-function scoreClass(golsA, golsB) {
-  if (golsA === null || golsB === null) return '';
-  if (golsA > golsB) return 'winner-a';
-  if (golsB > golsA) return 'winner-b';
+function scoreClass(scoreA, scoreB) {
+  if (scoreA === null || scoreB === null) return '';
+  if (scoreA > scoreB) return 'winner-a';
+  if (scoreB > scoreA) return 'winner-b';
   return 'draw';
 }
 
@@ -206,6 +206,8 @@ function checkAdmin() {
  */
 function penaltyTag(match, side) {
   if (!match || !match.penaltyWinner) return '';
+  // Only show penalty tag for game types that support it
+  if (window.getActiveGameType && !getActiveGameType().penaltyResolution) return '';
   const teamId = match['time' + side];
   if (match.penaltyWinner === teamId) return '<span class="penalty-tag">P</span>';
   return '';

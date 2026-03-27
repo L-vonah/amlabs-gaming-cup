@@ -144,7 +144,7 @@ function renderPartidasPlayoffs(state, admin) {
     const concluded = entry.concluded;
     const nameA = tA ? UI.escapeHtml(tA.nome) : '?';
     const nameB = tB ? UI.escapeHtml(tB.nome) : '?';
-    const sc = concluded ? UI.scoreClass(m.golsA, m.golsB) : '';
+    const sc = concluded ? UI.scoreClass(m.scoreA, m.scoreB) : '';
     const gfAttr = entry.isGF ? '1' : '0';
 
     let desktopBtn = '';
@@ -175,9 +175,9 @@ function renderPartidasPlayoffs(state, admin) {
             ${UI.renderAvatar(tA, 24)}
           </div>
           <div class="match-score ${sc}">
-            ${concluded ? UI.penaltyTag(m, 'A') : ''}<span class="score-val">${concluded ? m.golsA : '-'}</span>
+            ${concluded ? UI.penaltyTag(m, 'A') : ''}<span class="score-val">${concluded ? m.scoreA : '-'}</span>
             <span class="dash">:</span>
-            <span class="score-val">${concluded ? m.golsB : '-'}</span>${concluded ? UI.penaltyTag(m, 'B') : ''}
+            <span class="score-val">${concluded ? m.scoreB : '-'}</span>${concluded ? UI.penaltyTag(m, 'B') : ''}
           </div>
           <div class="match-team away">
             ${UI.renderAvatar(tB, 24)}
@@ -190,12 +190,12 @@ function renderPartidasPlayoffs(state, admin) {
         <div class="match-mobile-row">
           ${UI.renderAvatar(tA, 28)}
           <span class="match-mobile-name">${nameA}</span>
-          <span class="match-mobile-score ${concluded && (m.golsA > m.golsB || m.penaltyWinner === m.timeA) ? 'win' : concluded && (m.golsA < m.golsB || m.penaltyWinner === m.timeB) ? 'loss' : ''}">${concluded ? m.golsA : '-'}${concluded ? UI.penaltyTag(m, 'A') : ''}</span>
+          <span class="match-mobile-score ${concluded && (m.scoreA > m.scoreB || m.penaltyWinner === m.timeA) ? 'win' : concluded && (m.scoreA < m.scoreB || m.penaltyWinner === m.timeB) ? 'loss' : ''}">${concluded ? m.scoreA : '-'}${concluded ? UI.penaltyTag(m, 'A') : ''}</span>
         </div>
         <div class="match-mobile-row">
           ${UI.renderAvatar(tB, 28)}
           <span class="match-mobile-name">${nameB}</span>
-          <span class="match-mobile-score ${concluded && (m.golsB > m.golsA || m.penaltyWinner === m.timeB) ? 'win' : concluded && (m.golsB < m.golsA || m.penaltyWinner === m.timeA) ? 'loss' : ''}">${concluded ? m.golsB : '-'}${concluded ? UI.penaltyTag(m, 'B') : ''}</span>
+          <span class="match-mobile-score ${concluded && (m.scoreB > m.scoreA || m.penaltyWinner === m.timeB) ? 'win' : concluded && (m.scoreB < m.scoreA || m.penaltyWinner === m.timeA) ? 'loss' : ''}">${concluded ? m.scoreB : '-'}${concluded ? UI.penaltyTag(m, 'B') : ''}</span>
         </div>
         ${mobileBtn ? '<div class="match-mobile-action">' + mobileBtn + '</div>' : ''}
       </div>
@@ -213,7 +213,7 @@ function renderMatchCardWithAction(p, state, admin) {
   const nameA = tA ? UI.escapeHtml(tA.nome) : 'Time A';
   const nameB = tB ? UI.escapeHtml(tB.nome) : 'Time B';
   const concluded = p.status === 'concluida';
-  const sc = concluded ? UI.scoreClass(p.golsA, p.golsB) : '';
+  const sc = concluded ? UI.scoreClass(p.scoreA, p.scoreB) : '';
 
   const partA = tA && tA.participante ? `<span class="team-participant">${UI.escapeHtml(tA.participante)}</span>` : '';
   const partB = tB && tB.participante ? `<span class="team-participant">${UI.escapeHtml(tB.participante)}</span>` : '';
@@ -237,9 +237,9 @@ function renderMatchCardWithAction(p, state, admin) {
             ${UI.renderAvatar(tA, 24)}
           </div>
           <div class="match-score ${sc}">
-            <span class="score-val">${concluded ? p.golsA : '-'}</span>
+            <span class="score-val">${concluded ? p.scoreA : '-'}</span>
             <span class="dash">:</span>
-            <span class="score-val">${concluded ? p.golsB : '-'}</span>
+            <span class="score-val">${concluded ? p.scoreB : '-'}</span>
           </div>
           <div class="match-team away">
             ${UI.renderAvatar(tB, 24)}
@@ -252,12 +252,12 @@ function renderMatchCardWithAction(p, state, admin) {
         <div class="match-mobile-row">
           ${UI.renderAvatar(tA, 28)}
           <span class="match-mobile-name">${nameA}${partA ? ' <span class="team-participant">' + UI.escapeHtml(tA.participante) + '</span>' : ''}</span>
-          <span class="match-mobile-score ${concluded && p.golsA > p.golsB ? 'win' : concluded && p.golsA < p.golsB ? 'loss' : ''}">${concluded ? p.golsA : '-'}</span>
+          <span class="match-mobile-score ${concluded && p.scoreA > p.scoreB ? 'win' : concluded && p.scoreA < p.scoreB ? 'loss' : ''}">${concluded ? p.scoreA : '-'}</span>
         </div>
         <div class="match-mobile-row">
           ${UI.renderAvatar(tB, 28)}
           <span class="match-mobile-name">${nameB}${partB ? ' <span class="team-participant">' + UI.escapeHtml(tB.participante) + '</span>' : ''}</span>
-          <span class="match-mobile-score ${concluded && p.golsB > p.golsA ? 'win' : concluded && p.golsB < p.golsA ? 'loss' : ''}">${concluded ? p.golsB : '-'}</span>
+          <span class="match-mobile-score ${concluded && p.scoreB > p.scoreA ? 'win' : concluded && p.scoreB < p.scoreA ? 'loss' : ''}">${concluded ? p.scoreB : '-'}</span>
         </div>
         ${mobileBtn ? '<div class="match-mobile-action">' + mobileBtn + '</div>' : ''}
       </div>
@@ -505,8 +505,8 @@ function _renderBracketMatch(m, state, tipo) {
 
   return `
     <div class="bracket-match ${tipo}-match" style="margin-bottom:8px">
-      ${_renderBracketSlot(tA, m.golsA, m.vencedor === m.timeA)}
-      ${_renderBracketSlot(tB, m.golsB, m.vencedor === m.timeB)}
+      ${_renderBracketSlot(tA, m.scoreA, m.vencedor === m.timeA)}
+      ${_renderBracketSlot(tB, m.scoreB, m.vencedor === m.timeB)}
     </div>`;
 }
 
@@ -594,9 +594,14 @@ function _renderInfoCards(format) {
 // ------------------------------------------------------------------
 
 function canStartPlayoffs(state) {
+  const gt = getGameType(state.campeonato.gameType);
   const tabela = AppState.calcularClassificacao(state);
-  const pending = state.faseGrupos.partidas.filter(p => p.status === 'pendente').length;
-  return tabela.length >= 4 && pending === 0;
+  if (gt.requireAllMatches) {
+    const pending = state.faseGrupos.partidas.filter(p => p.status === 'pendente').length;
+    return tabela.length >= 4 && pending === 0;
+  }
+  // For games that don't require all matches (e.g., Sinuca), just need enough teams
+  return tabela.length >= 4;
 }
 
 /**

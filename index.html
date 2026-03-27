@@ -64,15 +64,17 @@
       <form id="formCreateTournament" onsubmit="portalCreateTournament(event)">
         <div style="display:flex;flex-direction:column;gap:14px">
           <div class="form-group">
+            <label class="form-label">Tipo de jogo *</label>
+            <div class="game-type-selector" id="gameTypeSelector">
+              <!-- Rendered by portal.js -->
+            </div>
+            <input type="hidden" id="inputTournamentGameType" value="futebol-virtual">
+          </div>
+          <div class="form-group">
             <label class="form-label">Nome do campeonato *</label>
             <input class="form-input" type="text" id="inputTournamentNome"
               placeholder="Ex: 2&ordm; Campeonato EA Sports FC AMLabs 2027"
               maxlength="100" required>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Jogo *</label>
-            <input class="form-input" type="text" id="inputTournamentJogo"
-              placeholder="Ex: EA Sports FC" maxlength="60" required>
           </div>
         </div>
         <div class="modal-footer">
@@ -133,6 +135,7 @@
 <script src="js/firebase-config.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/firestore-service.js"></script>
+<script src="js/game-types.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/portal.js"></script>
 

@@ -28,13 +28,13 @@
 
 ## 1. Visão Geral
 
-**Nome:** 1º Campeonato EA Sports FC AMLabs 2026
-**Propósito:** Site de campeonato interno da empresa AMLabs para funcionários jogarem EA Sports FC entre si.
+**Nome:** Campeonatos AMLabs
+**Propósito:** Plataforma de campeonatos internos da empresa AMLabs. Suporta múltiplos tipos de jogo (EA Sports FC e Sinuca).
 **URL produção:** https://amlabs-cup.netlify.app
 **URL backup:** https://l-vonah.github.io/amlabs-gaming-cup
 **Repositório:** GitHub — L-vonah/amlabs-gaming-cup
 
-O sistema gerencia todo o ciclo de um campeonato de futebol virtual: inscrição de times, fase de grupos (round-robin), playoffs com dupla eliminação, e encerramento com campeão.
+O sistema gerencia todo o ciclo de um campeonato: inscrição de times/jogadores, fase de grupos (round-robin), playoffs com formatos configuráveis, e encerramento com campeão. Cada campeonato tem um tipo de jogo (Game Type) que define regras de pontuação, scoring, estatísticas e UI.
 
 ---
 
@@ -44,10 +44,9 @@ O sistema gerencia todo o ciclo de um campeonato de futebol virtual: inscrição
 |-----------|------------|
 | Frontend | HTML5 + CSS3 + Vanilla JavaScript (zero frameworks) |
 | Fonte tipográfica | Inter (Google Fonts) |
-| Persistência local | localStorage + cache em memória |
-| Persistência remota | Firebase Firestore (Spark Plan - gratuito) |
+| Persistência | Firebase Firestore (Spark Plan - gratuito) + cache em memória |
 | Autenticação | Firebase Auth (Google Login) |
-| Offline | Firestore persistence (IndexedDB) + fallback localStorage |
+| Offline | Firestore persistence (IndexedDB) |
 | Hospedagem | Netlify (deploy automático via git push master) |
 | Build | Nenhum — arquivos estáticos servidos direto |
 
@@ -61,12 +60,14 @@ O sistema gerencia todo o ciclo de um campeonato de futebol virtual: inscrição
 
 ```
 campeonato-amlabs/
-├── index.html                     # SPA shell — todas as seções, modals, formulários
+├── index.html                     # Landing page — seletor de campeonatos, criação
+├── campeonato.html                # Dashboard do campeonato — todas as seções
 ├── css/
 │   └── style.css                  # ~2648 linhas — tema claro AMLabs, responsive
 ├── js/
 │   ├── firebase-config.js         # Inicialização Firebase (28 linhas)
-│   ├── auth.js                    # Google Login, isAdmin(), updateAdminUI() (89 linhas)
+│   ├── game-types.js              # GAME_TYPES profiles (EA Sports FC, Sinuca), helpers
+│   ├── auth.js                    # Google Login, isAdmin(), updateAdminUI()
 │   ├── firestore-service.js       # CRUD Firestore + real-time listener (203 linhas)
 │   ├── state.js                   # Estado centralizado, lógica de domínio (627 linhas)
 │   ├── ui.js                      # Helpers: avatar, toast, modal, nav, escape (240 linhas)
@@ -304,6 +305,28 @@ Critérios de desempate (em ordem):
 
 ---
 
+### 6.7 Multi-Game Types
+
+O sistema suporta múltiplos tipos de jogo via `GAME_TYPES` em `js/game-types.js`. Cada tipo define:
+
+| Propriedade | Descrição |
+|---|---|
+| `scoreType` | `'numeric'` (placar numérico) ou `'winner-only'` (apenas vencedor) |
+| `scoring` | Pontos por vitória, empate, derrota |
+| `tiebreakers` | Critérios de desempate (array ordenado). `'admin'` = seleção manual |
+| `requireAllMatches` | Se todos os jogos precisam ser concluídos antes dos playoffs |
+| `hasStatistics` | Se a aba de estatísticas é exibida |
+| `penaltyResolution` | Se empates em playoffs são resolvidos por pênaltis |
+| `columns` | Quais colunas exibir na classificação (empates, GP, GC, SG) |
+
+**Tipos disponíveis:**
+- **`futebol-virtual`** — EA Sports FC: placar numérico, V=3/E=1/D=0, estatísticas completas
+- **`sinuca`** — Sinuca: apenas vencedor, V=2/D=1, sem estatísticas, jogos pendentes permitidos
+
+**Schema do match (universal):** `{ scoreA, scoreB, vencedor }` — `scoreA/scoreB` são `null` para winner-only.
+
+---
+
 ## 7. Arquitetura de Módulos
 
 ### 7.1 Camadas
@@ -480,7 +503,23 @@ Todo formato de playoff é um objeto que implementa:
 
 ### 9.2 Formatos Implementados
 
-#### double-elim-4 (Dupla Eliminação — 4 Times) — PADRÃO
+#### single-elim-4 (Eliminação Simples — 4 Times) — PADRÃO
+
+```
+Classifica: 4 melhores
+Matches: 3
+SF1: 1º vs 4º → SF2: 2º vs 3º → Final
+```
+
+#### single-elim-8 (Eliminação Simples — 8 Times)
+
+```
+Classifica: 8 melhores
+Matches: 7
+QF: 1º×8º, 2º×7º, 3º×6º, 4º×5º → SF: V(QF) → Final
+```
+
+#### double-elim-4 (Dupla Eliminação — 4 Times)
 
 ```
 Classifica: 4 melhores

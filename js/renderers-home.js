@@ -55,7 +55,7 @@ function renderHome() {
             <div class="champion-name">${winner ? UI.escapeHtml(winner.nome) : '?'}</div>
             ${winner && winner.participante ? `<div class="champion-label" style="margin-top:4px;letter-spacing:.12em;font-size:.85rem">${UI.escapeHtml(winner.participante)}</div>` : ''}
             ${winner ? `<div class="champion-avatar-wrapper">${UI.renderAvatar(winner, 80)}</div>` : ''}
-            <div class="champion-score">${gf ? gf.golsA + ' &times; ' + gf.golsB : ''} &mdash; Grande Final</div>
+            <div class="champion-score">${gf ? gf.scoreA + ' &times; ' + gf.scoreB : ''} &mdash; Grande Final</div>
             <div class="champion-badge">${UI.escapeHtml(state.campeonato.nome || 'Campeonato')}</div>
           </div>
         </div>`;
@@ -69,8 +69,8 @@ function renderHome() {
     type: 'group',
     timeA: p.timeA,
     timeB: p.timeB,
-    golsA: p.golsA,
-    golsB: p.golsB,
+    scoreA: p.scoreA,
+    scoreB: p.scoreB,
     id: p.id,
     status: p.status,
     rodada: p.rodada,
@@ -86,8 +86,8 @@ function renderHome() {
           type: 'playoff',
           timeA: m.timeA,
           timeB: m.timeB,
-          golsA: m.golsA,
-          golsB: m.golsB,
+          scoreA: m.scoreA,
+          scoreB: m.scoreB,
           fase: m.fase,
           id: m.id,
           penaltyWinner: m.penaltyWinner || null
@@ -162,12 +162,12 @@ function renderHome() {
         const tB = AppState.getTimeById(state, r.timeB);
         const nameA = tA ? UI.escapeHtml(tA.nome) : '?';
         const nameB = tB ? UI.escapeHtml(tB.nome) : '?';
-        const sc = UI.scoreClass(r.golsA, r.golsB);
+        const sc = UI.scoreClass(r.scoreA, r.scoreB);
         const badge = r.type === 'group' ? 'Rodada ' + r.rodada : (r.fase || '');
         const pA = r.penaltyWinner === r.timeA;
         const pB = r.penaltyWinner === r.timeB;
-        const winA = r.golsA > r.golsB || pA;
-        const winB = r.golsB > r.golsA || pB;
+        const winA = r.scoreA > r.scoreB || pA;
+        const winB = r.scoreB > r.scoreA || pB;
         return `<div class="match-card">
           <div class="match-round-badge" style="font-size:.6rem">${UI.escapeHtml(badge)}</div>
           <div class="match-desktop">
@@ -177,9 +177,9 @@ function renderHome() {
                 ${UI.renderAvatar(tA, 24)}
               </div>
               <div class="match-score ${sc}">
-                ${pA ? '<span class="penalty-tag">P</span>' : ''}<span class="score-val">${r.golsA}</span>
+                ${pA ? '<span class="penalty-tag">P</span>' : ''}<span class="score-val">${r.scoreA}</span>
                 <span class="dash">:</span>
-                <span class="score-val">${r.golsB}</span>${pB ? '<span class="penalty-tag">P</span>' : ''}
+                <span class="score-val">${r.scoreB}</span>${pB ? '<span class="penalty-tag">P</span>' : ''}
               </div>
               <div class="match-team away">
                 ${UI.renderAvatar(tB, 24)}
@@ -192,12 +192,12 @@ function renderHome() {
             <div class="match-mobile-row">
               ${UI.renderAvatar(tA, 28)}
               <span class="match-mobile-name">${nameA}</span>
-              <span class="match-mobile-score ${winA ? 'win' : winB ? 'loss' : ''}">${r.golsA}${pA ? '<span class="penalty-tag">P</span>' : ''}</span>
+              <span class="match-mobile-score ${winA ? 'win' : winB ? 'loss' : ''}">${r.scoreA}${pA ? '<span class="penalty-tag">P</span>' : ''}</span>
             </div>
             <div class="match-mobile-row">
               ${UI.renderAvatar(tB, 28)}
               <span class="match-mobile-name">${nameB}</span>
-              <span class="match-mobile-score ${winB ? 'win' : winA ? 'loss' : ''}">${r.golsB}${pB ? '<span class="penalty-tag">P</span>' : ''}</span>
+              <span class="match-mobile-score ${winB ? 'win' : winA ? 'loss' : ''}">${r.scoreB}${pB ? '<span class="penalty-tag">P</span>' : ''}</span>
             </div>
           </div>
         </div>`;
@@ -229,8 +229,8 @@ function renderHome() {
         const tB = m.timeB ? AppState.getTimeById(state, m.timeB) : null;
         const nameA = tA ? UI.escapeHtml(tA.nome) : 'A definir';
         const nameB = tB ? UI.escapeHtml(tB.nome) : 'A definir';
-        const sA = m.golsA !== null ? m.golsA : '-';
-        const sB = m.golsB !== null ? m.golsB : '-';
+        const sA = m.scoreA !== null ? m.scoreA : '-';
+        const sB = m.scoreB !== null ? m.scoreB : '-';
         const winnerA = m.vencedor === m.timeA;
         const winnerB = m.vencedor === m.timeB;
 
@@ -280,13 +280,13 @@ function renderHome() {
                   const fmtId = typeof getSelectedPlayoffFormatId === 'function' ? getSelectedPlayoffFormatId() : PlayoffFormats.DEFAULT;
                   const fmt = PlayoffFormats.get(fmtId);
                   const tier = fmt.classificationTiers.find(tr => pos >= tr.from && pos <= tr.to);
-                  const sgColor = t.saldoGols > 0 ? 'var(--color-win)' : t.saldoGols < 0 ? 'var(--color-loss)' : 'var(--color-text-muted)';
+                  const sgColor = t.saldoScore > 0 ? 'var(--color-win)' : t.saldoScore < 0 ? 'var(--color-loss)' : 'var(--color-text-muted)';
                   return `<tr class="${tier ? tier.cssClass : ''}">
                     <td ${tier ? 'style="color:' + tier.color + '"' : ''}>${pos}</td>
                     <td><div class="team-cell">${UI.renderAvatar(t, 22)}<span>${UI.escapeHtml(t.nome)}</span></div></td>
                     <td style="color:var(--color-text-muted)">${t.jogos}</td>
                     <td style="color:var(--color-win);font-weight:700">${t.vitorias}</td>
-                    <td style="font-weight:700;color:${sgColor}">${UI.signedNumber(t.saldoGols)}</td>
+                    <td style="font-weight:700;color:${sgColor}">${UI.signedNumber(t.saldoScore)}</td>
                     <td>${t.pontos}</td>
                   </tr>`;
                 }).join('')}

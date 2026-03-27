@@ -9,11 +9,11 @@
 // ------------------------------------------------------------------
 
 function _newMatch(id, fase, label) {
-  return { id, fase, label, timeA: null, timeB: null, golsA: null, golsB: null, vencedor: null, perdedor: null };
+  return { id, fase, label, timeA: null, timeB: null, scoreA: null, scoreB: null, vencedor: null, perdedor: null };
 }
 
 function _clearMatch(m) {
-  m.golsA = null; m.golsB = null; m.vencedor = null; m.perdedor = null;
+  m.scoreA = null; m.scoreB = null; m.vencedor = null; m.perdedor = null;
 }
 
 function _clearMatchFull(m) {
@@ -23,7 +23,7 @@ function _clearMatchFull(m) {
 function _collectConcludedMatches(matches) {
   return Object.values(matches)
     .filter(m => m.vencedor)
-    .map(m => ({ timeA: m.timeA, timeB: m.timeB, golsA: m.golsA, golsB: m.golsB, id: m.id, fase: m.fase }));
+    .map(m => ({ timeA: m.timeA, timeB: m.timeB, scoreA: m.scoreA, scoreB: m.scoreB, id: m.id, fase: m.fase }));
 }
 
 // ------------------------------------------------------------------
@@ -893,16 +893,261 @@ const FORMAT_GAUNTLET_6 = {
 };
 
 // ------------------------------------------------------------------
+// Single Elimination — 4 Times
+// ------------------------------------------------------------------
+
+const FORMAT_SINGLE_ELIM_4 = {
+  id: 'single-elim-4',
+  name: 'Eliminação Simples — 4 Times',
+  classified: 4,
+  minTeams: 4,
+
+  classificationTiers: [
+    { from: 1, to: 2, cssClass: 'tier-upper', label: 'Semifinal (cabeça de chave)', color: '#6c5ce7' },
+    { from: 3, to: 4, cssClass: 'tier-lower', label: 'Semifinal', color: '#e17055' }
+  ],
+
+  defaultMatches() {
+    return {
+      'se-sf1': _newMatch('se-sf1', 'Semifinal 1', '1º vs 4º'),
+      'se-sf2': _newMatch('se-sf2', 'Semifinal 2', '2º vs 3º'),
+      'se-final': _newMatch('se-final', 'Final', 'Vencedor SF1 vs Vencedor SF2')
+    };
+  },
+
+  generateBracket(teams, matches) {
+    matches['se-sf1'].timeA = teams[0].id;
+    matches['se-sf1'].timeB = teams[3].id;
+    matches['se-sf2'].timeA = teams[1].id;
+    matches['se-sf2'].timeB = teams[2].id;
+  },
+
+  propagateResult(matches) {
+    const sf1 = matches['se-sf1'];
+    const sf2 = matches['se-sf2'];
+    const final_ = matches['se-final'];
+    if (sf1.vencedor) final_.timeA = sf1.vencedor;
+    if (sf2.vencedor) final_.timeB = sf2.vencedor;
+  },
+
+  resetDownstream(matches, matchId) {
+    if (matchId === 'se-sf1' || matchId === 'se-sf2') { _clearMatchFull(matches['se-final']); }
+  },
+
+  isGrandFinal(matchId) { return matchId === 'se-final'; },
+  getGrandFinal(matches) { return matches['se-final']; },
+  getAllMatches(matches) { return Object.values(matches); },
+  getRegularMatches(matches) { return [matches['se-sf1'], matches['se-sf2']]; },
+
+  getMatchMeta(matchId) {
+    const map = {
+      'se-sf1': { bracket: 'Semifinal', color: '#6c5ce7' },
+      'se-sf2': { bracket: 'Semifinal', color: '#6c5ce7' },
+      'se-final': { bracket: 'Final', color: '#f9a825' }
+    };
+    return map[matchId] || { bracket: '', color: '#636e72' };
+  },
+
+  matchImportanceOrder: ['se-final', 'se-sf1', 'se-sf2'],
+
+  miniBracketEntries: [
+    { matchId: 'se-sf1', phase: 'SF1', color: '#6c5ce7' },
+    { matchId: 'se-sf2', phase: 'SF2', color: '#6c5ce7' },
+    { matchId: 'se-final', phase: 'Final', color: '#f9a825' }
+  ],
+
+  previewSlots: [
+    { label: '1º', side: 'A', match: 'se-sf1' },
+    { label: '4º', side: 'B', match: 'se-sf1' },
+    { label: '2º', side: 'A', match: 'se-sf2' },
+    { label: '3º', side: 'B', match: 'se-sf2' }
+  ],
+
+  renderBracketHTML(state) {
+    const m = state.playoffs.matches;
+    return `<div class="bracket-horizontal">
+      <div class="bracket-column">
+        ${_phaseHeader('Semifinais')}
+        ${_matchHTML(state, m, 'se-sf1', 'upper', '1º', '4º')}
+        ${_matchHTML(state, m, 'se-sf2', 'upper', '2º', '3º')}
+      </div>
+      ${_connector(60)}
+      <div class="bracket-column">
+        ${_phaseHeader('Final')}
+        ${_matchHTML(state, m, 'se-final', 'gf', 'V SF1', 'V SF2')}
+      </div>
+    </div>`;
+  },
+
+  infoCards: {
+    path: 'Semifinal → Final',
+    mechanics: 'Perdeu, está eliminado. Sem segunda chance.',
+    advantages: '1º e 2º enfrentam adversários mais fracos nas semifinais.'
+  },
+
+  rules: [
+    {
+      title: 'Formato',
+      icon: '📋',
+      items: ['4 classificados da fase de grupos', 'Semifinais + Final', 'Derrota = eliminação imediata']
+    },
+    {
+      title: 'Chaveamento',
+      icon: '🔀',
+      items: ['SF1: 1º vs 4º', 'SF2: 2º vs 3º', 'Final: Vencedores das semifinais']
+    }
+  ]
+};
+
+// ------------------------------------------------------------------
+// Single Elimination — 8 Times
+// ------------------------------------------------------------------
+
+const FORMAT_SINGLE_ELIM_8 = {
+  id: 'single-elim-8',
+  name: 'Eliminação Simples — 8 Times',
+  classified: 8,
+  minTeams: 8,
+
+  classificationTiers: [
+    { from: 1, to: 4, cssClass: 'tier-upper', label: 'Cabeça de chave', color: '#6c5ce7' },
+    { from: 5, to: 8, cssClass: 'tier-lower', label: 'Classificado', color: '#e17055' }
+  ],
+
+  defaultMatches() {
+    return {
+      'se8-qf1': _newMatch('se8-qf1', 'Quartas 1', '1º vs 8º'),
+      'se8-qf2': _newMatch('se8-qf2', 'Quartas 2', '2º vs 7º'),
+      'se8-qf3': _newMatch('se8-qf3', 'Quartas 3', '3º vs 6º'),
+      'se8-qf4': _newMatch('se8-qf4', 'Quartas 4', '4º vs 5º'),
+      'se8-sf1': _newMatch('se8-sf1', 'Semifinal 1', 'V QF1 vs V QF2'),
+      'se8-sf2': _newMatch('se8-sf2', 'Semifinal 2', 'V QF3 vs V QF4'),
+      'se8-final': _newMatch('se8-final', 'Final', 'V SF1 vs V SF2')
+    };
+  },
+
+  generateBracket(teams, matches) {
+    matches['se8-qf1'].timeA = teams[0].id; matches['se8-qf1'].timeB = teams[7].id;
+    matches['se8-qf2'].timeA = teams[1].id; matches['se8-qf2'].timeB = teams[6].id;
+    matches['se8-qf3'].timeA = teams[2].id; matches['se8-qf3'].timeB = teams[5].id;
+    matches['se8-qf4'].timeA = teams[3].id; matches['se8-qf4'].timeB = teams[4].id;
+  },
+
+  propagateResult(matches) {
+    if (matches['se8-qf1'].vencedor) matches['se8-sf1'].timeA = matches['se8-qf1'].vencedor;
+    if (matches['se8-qf2'].vencedor) matches['se8-sf1'].timeB = matches['se8-qf2'].vencedor;
+    if (matches['se8-qf3'].vencedor) matches['se8-sf2'].timeA = matches['se8-qf3'].vencedor;
+    if (matches['se8-qf4'].vencedor) matches['se8-sf2'].timeB = matches['se8-qf4'].vencedor;
+    if (matches['se8-sf1'].vencedor) matches['se8-final'].timeA = matches['se8-sf1'].vencedor;
+    if (matches['se8-sf2'].vencedor) matches['se8-final'].timeB = matches['se8-sf2'].vencedor;
+  },
+
+  resetDownstream(matches, matchId) {
+    const deps = {
+      'se8-qf1': ['se8-sf1', 'se8-final'],
+      'se8-qf2': ['se8-sf1', 'se8-final'],
+      'se8-qf3': ['se8-sf2', 'se8-final'],
+      'se8-qf4': ['se8-sf2', 'se8-final'],
+      'se8-sf1': ['se8-final'],
+      'se8-sf2': ['se8-final']
+    };
+    (deps[matchId] || []).forEach(id => _clearMatchFull(matches[id]));
+  },
+
+  isGrandFinal(matchId) { return matchId === 'se8-final'; },
+  getGrandFinal(matches) { return matches['se8-final']; },
+  getAllMatches(matches) { return Object.values(matches); },
+  getRegularMatches(matches) {
+    return ['se8-qf1','se8-qf2','se8-qf3','se8-qf4','se8-sf1','se8-sf2'].map(id => matches[id]);
+  },
+
+  getMatchMeta(matchId) {
+    const map = {
+      'se8-qf1': { bracket: 'Quartas', color: '#00b894' },
+      'se8-qf2': { bracket: 'Quartas', color: '#00b894' },
+      'se8-qf3': { bracket: 'Quartas', color: '#00b894' },
+      'se8-qf4': { bracket: 'Quartas', color: '#00b894' },
+      'se8-sf1': { bracket: 'Semifinal', color: '#6c5ce7' },
+      'se8-sf2': { bracket: 'Semifinal', color: '#6c5ce7' },
+      'se8-final': { bracket: 'Final', color: '#f9a825' }
+    };
+    return map[matchId] || { bracket: '', color: '#636e72' };
+  },
+
+  matchImportanceOrder: ['se8-final', 'se8-sf1', 'se8-sf2', 'se8-qf1', 'se8-qf2', 'se8-qf3', 'se8-qf4'],
+
+  miniBracketEntries: [
+    { matchId: 'se8-qf1', phase: 'QF1', color: '#00b894' },
+    { matchId: 'se8-qf2', phase: 'QF2', color: '#00b894' },
+    { matchId: 'se8-sf1', phase: 'SF1', color: '#6c5ce7' },
+    { matchId: 'se8-sf2', phase: 'SF2', color: '#6c5ce7' },
+    { matchId: 'se8-final', phase: 'Final', color: '#f9a825' }
+  ],
+
+  previewSlots: [
+    { label: '1º', side: 'A', match: 'se8-qf1' }, { label: '8º', side: 'B', match: 'se8-qf1' },
+    { label: '2º', side: 'A', match: 'se8-qf2' }, { label: '7º', side: 'B', match: 'se8-qf2' },
+    { label: '3º', side: 'A', match: 'se8-qf3' }, { label: '6º', side: 'B', match: 'se8-qf3' },
+    { label: '4º', side: 'A', match: 'se8-qf4' }, { label: '5º', side: 'B', match: 'se8-qf4' }
+  ],
+
+  renderBracketHTML(state) {
+    const m = state.playoffs.matches;
+    return `<div class="bracket-horizontal">
+      <div class="bracket-column">
+        ${_phaseHeader('Quartas de Final')}
+        ${_matchHTML(state, m, 'se8-qf1', 'upper', '1º', '8º')}
+        ${_matchHTML(state, m, 'se8-qf2', 'upper', '2º', '7º')}
+        ${_matchHTML(state, m, 'se8-qf3', 'lower', '3º', '6º')}
+        ${_matchHTML(state, m, 'se8-qf4', 'lower', '4º', '5º')}
+      </div>
+      ${_connector(80)}
+      <div class="bracket-column">
+        ${_phaseHeader('Semifinais')}
+        ${_matchHTML(state, m, 'se8-sf1', 'upper', 'V QF1', 'V QF2')}
+        ${_matchHTML(state, m, 'se8-sf2', 'lower', 'V QF3', 'V QF4')}
+      </div>
+      ${_connector(60)}
+      <div class="bracket-column">
+        ${_phaseHeader('Final')}
+        ${_matchHTML(state, m, 'se8-final', 'gf', 'V SF1', 'V SF2')}
+      </div>
+    </div>`;
+  },
+
+  infoCards: {
+    path: 'Quartas → Semifinal → Final',
+    mechanics: 'Perdeu, está eliminado. Sem segunda chance.',
+    advantages: '1º a 4º enfrentam adversários piores no chaveamento.'
+  },
+
+  rules: [
+    {
+      title: 'Formato',
+      icon: '📋',
+      items: ['8 classificados da fase de grupos', 'Quartas + Semifinais + Final', 'Derrota = eliminação imediata']
+    },
+    {
+      title: 'Chaveamento',
+      icon: '🔀',
+      items: ['QF: 1º vs 8º, 2º vs 7º, 3º vs 6º, 4º vs 5º', 'SF: Vencedores se cruzam', 'Final: Vencedores das semifinais']
+    }
+  ]
+};
+
+// ------------------------------------------------------------------
 // Registry
 // ------------------------------------------------------------------
 
 const PLAYOFF_FORMATS = {
+  'single-elim-4': FORMAT_SINGLE_ELIM_4,
+  'single-elim-8': FORMAT_SINGLE_ELIM_8,
   'double-elim-4': FORMAT_DOUBLE_ELIM_4,
   'play-in-6': FORMAT_PLAY_IN_6,
   'gauntlet-6': FORMAT_GAUNTLET_6
 };
 
-const DEFAULT_PLAYOFF_FORMAT = 'double-elim-4';
+const DEFAULT_PLAYOFF_FORMAT = 'single-elim-4';
 
 function getPlayoffFormat(formatId) {
   return PLAYOFF_FORMATS[formatId] || PLAYOFF_FORMATS[DEFAULT_PLAYOFF_FORMAT];
