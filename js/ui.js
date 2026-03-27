@@ -206,6 +206,8 @@ function checkAdmin() {
  */
 function penaltyTag(match, side) {
   if (!match || !match.penaltyWinner) return '';
+  // Only show penalty tag for game types that support it
+  if (window.getActiveGameType && !getActiveGameType().penaltyResolution) return '';
   const teamId = match['time' + side];
   if (match.penaltyWinner === teamId) return '<span class="penalty-tag">P</span>';
   return '';

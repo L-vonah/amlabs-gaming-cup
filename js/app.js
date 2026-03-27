@@ -571,7 +571,20 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
-  initTournament();
+  initTournament().then(() => {
+    // Conditional nav based on game type
+    const gt = getActiveGameType();
+    if (!gt.hasStatistics) {
+      // Hide stats nav link (desktop)
+      document.querySelectorAll('[data-nav="estatisticas"]').forEach(el => el.style.display = 'none');
+      // Hide stats in mobile bottom bar
+      document.querySelectorAll('.mobile-bottom-bar [data-nav="estatisticas"]').forEach(el => el.style.display = 'none');
+    }
+    if (!gt.penaltyResolution) {
+      const hint = document.getElementById('modalScoreHint');
+      if (hint) hint.style.display = 'none';
+    }
+  });
 });
 
 window.addEventListener('hashchange', () => {
