@@ -776,6 +776,25 @@
   </div>
 </div>
 
+<!-- ===============================================================
+     MODAL: TIEBREAKER RESOLUTION
+     =============================================================== -->
+<div class="modal-overlay" id="modalTiebreaker">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header">
+      <span class="modal-title">Resolver Empates</span>
+      <button class="btn-icon" onclick="UI.closeModal('modalTiebreaker')">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="tiebreakerBody">
+      <!-- Populated dynamically -->
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="UI.closeModal('modalTiebreaker')">Cancelar</button>
+      <button class="btn btn-primary" id="btnConfirmTiebreaker" onclick="confirmTiebreaker()" disabled>Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalResetPlayoffs">
   <div class="modal">
     <div class="modal-header">
