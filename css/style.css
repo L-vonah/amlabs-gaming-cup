@@ -2777,6 +2777,8 @@ body {
 .classified-blue-light { background: rgba(116,185,255,.08); border-left: 3px solid #74b9ff; }
 .classified-yellow-light { background: rgba(220,190,80,.06); border-left: 3px solid #dcbe50; }
 .classified-green { background: rgba(0,184,148,.07); border-left: 3px solid var(--color-win); }
+.tier-upper { background: rgba(108,92,231,.08); border-left: 3px solid #6c5ce7; }
+.tier-lower { background: rgba(225,112,85,.08); border-left: 3px solid #e17055; }
 
 .classification-tier-legend {
   display: flex;

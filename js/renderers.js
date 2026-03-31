@@ -281,7 +281,173 @@ function renderEstatisticas() {
 // ------------------------------------------------------------------
 
 function renderRegras() {
-  // Rules page is mostly static HTML. Playoff rules are now on the bracket page.
+  const container = document.getElementById('rulesGridContainer');
+  if (!container) return;
+
+  const state = AppState.loadReadOnly();
+  const gt = getGameType(state.campeonato.gameType);
+  const scoring = gt.scoring;
+
+  let html = '';
+
+  // Fase de Grupos — universal but scoring adapted
+  const scoringDesc = gt.drawAllowed
+    ? 'Vit\u00f3ria vale <strong>' + scoring.vitoria + ' pontos</strong>, empate vale <strong>' + scoring.empate + ' ponto</strong> para cada time, derrota vale <strong>' + scoring.derrota + ' pontos</strong>.'
+    : 'Vit\u00f3ria vale <strong>' + scoring.vitoria + ' pontos</strong>, derrota vale <strong>' + scoring.derrota + ' ponto(s)</strong>. N\u00e3o h\u00e1 empate.';
+
+  html += `<div class="rule-card">
+    <div class="rule-card-header">
+      <div class="rule-icon icon-bg-blue" style="width:40px;height:40px;border-radius:var(--radius)">&#9917;</div>
+      <h3 class="rule-card-title">Fase de Grupos</h3>
+    </div>
+    <ul class="rule-list">
+      <li>Todos os times participam em um \u00fanico grupo, jogando em sistema todos contra todos (round-robin).</li>
+      <li>Turno \u00fanico: cada par de times se enfrenta uma vez.</li>
+      <li>${scoringDesc}</li>
+      <li>Os melhores colocados se classificam para os Playoffs (quantidade depende do formato escolhido).</li>
+    </ul>
+  </div>`;
+
+  // Criterios de desempate — adapted per game type
+  html += `<div class="rule-card">
+    <div class="rule-card-header">
+      <div class="rule-icon icon-bg-yellow" style="width:40px;height:40px;border-radius:var(--radius)">&#9878;</div>
+      <h3 class="rule-card-title">Crit\u00e9rios de Desempate</h3>
+    </div>
+    <ul class="rule-list">
+      ${gt.tiebreakerLabels.map((label, i) => '<li>' + (i + 1) + '\u00ba crit\u00e9rio: <strong>' + UI.escapeHtml(label) + '</strong></li>').join('')}
+    </ul>
+  </div>`;
+
+  // Formato dos Playoffs — universal
+  const playoffTieDesc = gt.penaltyResolution
+    ? '<strong>Empates n\u00e3o s\u00e3o permitidos</strong>. Em caso de empate, utiliza-se prorroga\u00e7\u00e3o e/ou p\u00eanaltis.'
+    : 'Cada partida tem um vencedor. N\u00e3o h\u00e1 empate nos playoffs.';
+
+  html += `<div class="rule-card">
+    <div class="rule-card-header">
+      <div class="rule-icon icon-bg-green" style="width:40px;height:40px;border-radius:var(--radius)">&#128204;</div>
+      <h3 class="rule-card-title">Formato dos Playoffs</h3>
+    </div>
+    <ul class="rule-list">
+      <li>Todos os jogos dos playoffs s\u00e3o decididos em jogo \u00fanico.</li>
+      <li>${playoffTieDesc}</li>
+      <li>O formato e as regras das chaves est\u00e3o detalhados na <strong>tela de Chaveamento</strong>.</li>
+    </ul>
+  </div>`;
+
+  // Game-specific rules
+  if (gt.id === 'futebol-virtual') {
+    // Grande Final & Vantagem
+    html += `<div class="rule-card">
+      <div class="rule-card-header">
+        <div class="rule-icon icon-bg-yellow" style="width:40px;height:40px;border-radius:var(--radius)">&#127942;</div>
+        <h3 class="rule-card-title">Grande Final &amp; Vantagem</h3>
+      </div>
+      <ul class="rule-list">
+        <li>Disputa entre o vencedor da <strong>Chave Superior</strong> e o vencedor da <strong>Chave Inferior</strong>.</li>
+        <li>Jogo \u00fanico, sem empate (prorroga\u00e7\u00e3o/p\u00eanaltis se necess\u00e1rio).</li>
+        <li>O jogador da <strong>Chave Superior</strong> (sem derrota) escolhe qual vantagem de ban aplicar.</li>
+      </ul>
+      <div class="highlight-box" style="margin-top:12px">
+        <span>&#9733;</span>
+        <span><strong>Exemplos de vantagem:</strong> advers\u00e1rio s\u00f3 pode usar times de 4&#9733; ou menos, ban de 3 jogadores do time advers\u00e1rio, entre outras op\u00e7\u00f5es customiz\u00e1veis.</span>
+      </div>
+      <div class="highlight-box" style="margin-top:8px">
+        <span>!</span>
+        <span>Esta regra pode ser alterada durante o campeonato, mediante <strong>consenso dos participantes</strong>.</span>
+      </div>
+    </div>`;
+
+    // Configuracao de Jogo
+    html += `<div class="rule-card">
+      <div class="rule-card-header">
+        <div class="rule-icon icon-bg-purple" style="width:40px;height:40px;border-radius:var(--radius)">&#127918;</div>
+        <h3 class="rule-card-title">Configura\u00e7\u00e3o de Jogo</h3>
+      </div>
+      <ul class="rule-list">
+        <li>Dura\u00e7\u00e3o: <strong>6 minutos por tempo</strong>.</li>
+        <li>Sele\u00e7\u00e3o de times: <strong>livre em todas as fases</strong>. Cada jogador pode escolher qualquer time a cada partida, inclusive repetir.</li>
+      </ul>
+    </div>`;
+
+    // Problema Tecnico
+    html += `<div class="rule-card">
+      <div class="rule-card-header">
+        <div class="rule-icon icon-bg-orange" style="width:40px;height:40px;border-radius:var(--radius)">&#9888;</div>
+        <h3 class="rule-card-title">Problema T\u00e9cnico / Desconex\u00e3o</h3>
+      </div>
+      <ul class="rule-list">
+        <li><strong>1\u00ba tempo + diferen\u00e7a menor que 3 gols:</strong> partida recome\u00e7a do zero.</li>
+        <li><strong>1\u00ba tempo + diferen\u00e7a de 3 gols ou mais:</strong> vale o placar parcial, jogo encerrado.</li>
+        <li><strong>2\u00ba tempo:</strong> vale o placar parcial, jogo encerrado.</li>
+        <li><strong>Desconex\u00e3o intencional:</strong> derrota por WO (3\u00d70).</li>
+      </ul>
+    </div>`;
+
+    // Desistencia
+    html += `<div class="rule-card">
+      <div class="rule-card-header">
+        <div class="rule-icon icon-bg-orange" style="width:40px;height:40px;border-radius:var(--radius)">&#128683;</div>
+        <h3 class="rule-card-title">Desist\u00eancia</h3>
+      </div>
+      <ul class="rule-list">
+        <li>Partidas <strong>j\u00e1 jogadas</strong>: se o advers\u00e1rio venceu com placar melhor que 3\u00d70, mant\u00e9m. Caso contr\u00e1rio, o resultado \u00e9 alterado para <strong>3\u00d70</strong> a favor do advers\u00e1rio.</li>
+        <li>Partidas <strong>pendentes</strong>: WO de 3\u00d70 para o advers\u00e1rio.</li>
+      </ul>
+    </div>`;
+  } else if (gt.id === 'sinuca') {
+    // Sinuca-specific rules
+    html += `<div class="rule-card">
+      <div class="rule-card-header">
+        <div class="rule-icon icon-bg-purple" style="width:40px;height:40px;border-radius:var(--radius)">&#127921;</div>
+        <h3 class="rule-card-title">Regras de Jogo</h3>
+      </div>
+      <ul class="rule-list">
+        <li>Cada partida \u00e9 decidida em uma \u00fanica partida de sinuca.</li>
+        <li>O vencedor \u00e9 quem acertar a bola 8 no bolso correto.</li>
+        <li>N\u00e3o h\u00e1 placar num\u00e9rico \u2014 apenas vit\u00f3ria ou derrota.</li>
+      </ul>
+    </div>`;
+
+    // Desistencia Sinuca
+    html += `<div class="rule-card">
+      <div class="rule-card-header">
+        <div class="rule-icon icon-bg-orange" style="width:40px;height:40px;border-radius:var(--radius)">&#128683;</div>
+        <h3 class="rule-card-title">Desist\u00eancia / WO</h3>
+      </div>
+      <ul class="rule-list">
+        <li>Partidas <strong>pendentes</strong>: WO para o advers\u00e1rio.</li>
+        <li>Caso o jogador n\u00e3o apare\u00e7a, o admin registra vit\u00f3ria do advers\u00e1rio.</li>
+      </ul>
+    </div>`;
+  }
+
+  // Prazo e Organizacao — universal
+  html += `<div class="rule-card">
+    <div class="rule-card-header">
+      <div class="rule-icon icon-bg-blue" style="width:40px;height:40px;border-radius:var(--radius)">&#128197;</div>
+      <h3 class="rule-card-title">Prazo e Organiza\u00e7\u00e3o</h3>
+    </div>
+    <ul class="rule-list">
+      <li>Os jogadores se organizam livremente para jogar suas partidas, em qualquer ordem de rodada.</li>
+      <li>N\u00e3o h\u00e1 prazo fixo por rodada. O admin decide caso a caso se necess\u00e1rio aplicar WO.</li>
+    </ul>
+  </div>`;
+
+  // Registro de Resultado — universal
+  html += `<div class="rule-card">
+    <div class="rule-card-header">
+      <div class="rule-icon icon-bg-green" style="width:40px;height:40px;border-radius:var(--radius)">&#128172;</div>
+      <h3 class="rule-card-title">Registro de Resultado</h3>
+    </div>
+    <ul class="rule-list">
+      <li>Ap\u00f3s cada partida, os jogadores informam o resultado via <strong>Microsoft Teams</strong>.</li>
+      <li>O admin registra o placar no sistema com base nas informa\u00e7\u00f5es dos jogadores.</li>
+    </ul>
+  </div>`;
+
+  container.innerHTML = html;
 }
 
 // ------------------------------------------------------------------

@@ -91,9 +91,7 @@ function openScoreModal(matchId, teamA, teamB, isGrandFinal) {
     _updatePenaltyVisibility();
   }
 
-  // Hide save button for winner-only mode (auto-submit on click)
-  const saveBtn = document.getElementById('modalScoreSaveBtn');
-  if (saveBtn) saveBtn.style.display = isNumeric ? '' : 'none';
+  // Save button is always visible — user clicks winner then clicks Save
 
   UI.openModal('modalScore');
   if (isNumeric) {
@@ -106,8 +104,6 @@ function selectWinner(side) {
   document.getElementById('modalScoreWinnerSide').value = side;
   document.getElementById('winnerBtnA').classList.toggle('selected', side === 'A');
   document.getElementById('winnerBtnB').classList.toggle('selected', side === 'B');
-  // Auto-submit after a brief visual highlight
-  setTimeout(() => submitScoreModal(), 200);
 }
 window.selectWinner = selectWinner;
 
@@ -518,7 +514,7 @@ async function openTournamentDropdown() {
          onclick="enterTournament('${UI.escapeHtml(t.id)}')">
       <div class="dropdown-item-info">
         <span class="dropdown-item-name">${UI.escapeHtml(t.nome)}</span>
-        <span class="dropdown-item-meta">${UI.escapeHtml(t.jogo)}${t.criadoEm ? ' · ' + new Date(t.criadoEm).toLocaleDateString('pt-BR') : ''}</span>
+        <span class="dropdown-item-meta">${(() => { const gt = getGameType(t.gameType); return gt.icon + ' ' + gt.name; })()}${t.criadoEm ? ' · ' + new Date(t.criadoEm).toLocaleDateString('pt-BR') : ''}</span>
       </div>
       <span class="dropdown-item-badge ${statusClass[t.status] || ''}">${statusLabel[t.status] || t.status}</span>
     </div>

@@ -34,7 +34,7 @@ function _slotHTML(state, matches, matchId, slot, previewLabel) {
   // slot = 'A' or 'B'
   const m = matches ? matches[matchId] : null;
   const teamId = m ? m['time' + slot] : null;
-  const gols = m ? m['gols' + slot] : null;
+  const score = m ? m['score' + slot] : null;
   const isWinner = m && m.vencedor && m.vencedor === teamId;
 
   if (!matches || !m || !teamId) {
@@ -45,10 +45,20 @@ function _slotHTML(state, matches, matchId, slot, previewLabel) {
   const time = state ? AppState.getTimeById(state, teamId) : null;
   if (!time) return `<div class="bracket-slot tbd"><span>A definir</span></div>`;
 
+  // For winner-only games, show checkmark instead of numeric score
+  const gt = (state && state.campeonato) ? getGameType(state.campeonato.gameType) : null;
+  const isWinnerOnly = gt && gt.scoreType !== 'numeric';
+  let scoreDisplay = '';
+  if (isWinnerOnly) {
+    scoreDisplay = isWinner ? '✓' : '';
+  } else {
+    scoreDisplay = score !== null ? score : '';
+  }
+
   return `<div class="bracket-slot ${isWinner ? 'winner' : ''}">
     ${UI.renderAvatar(time, 22, 'bracket-slot-avatar')}
     <span class="bracket-slot-name">${UI.escapeHtml(time.nome)}</span>
-    <span class="bracket-slot-score">${gols !== null ? gols : ''}</span>
+    <span class="bracket-slot-score">${scoreDisplay}</span>
   </div>`;
 }
 
@@ -72,7 +82,7 @@ function _connector(height) {
 function _gfSlotHTML(state, matches, matchId, slot, badge, badgeBg, badgeColor, previewLabel) {
   const m = matches ? matches[matchId] : null;
   const teamId = m ? m['time' + slot] : null;
-  const gols = m ? m['gols' + slot] : null;
+  const score = m ? m['score' + slot] : null;
   const isWinner = m && m.vencedor && m.vencedor === teamId;
 
   if (!matches || !m || !teamId) {
@@ -82,11 +92,21 @@ function _gfSlotHTML(state, matches, matchId, slot, badge, badgeBg, badgeColor, 
   const time = state ? AppState.getTimeById(state, teamId) : null;
   if (!time) return `<div class="bracket-slot tbd"><span>A definir</span></div>`;
 
+  // For winner-only games, show checkmark instead of numeric score
+  const gt = (state && state.campeonato) ? getGameType(state.campeonato.gameType) : null;
+  const isWinnerOnly = gt && gt.scoreType !== 'numeric';
+  let scoreDisplay = '';
+  if (isWinnerOnly) {
+    scoreDisplay = isWinner ? '✓' : '';
+  } else {
+    scoreDisplay = score !== null ? score : '';
+  }
+
   return `<div class="bracket-slot ${isWinner ? 'winner' : ''}">
     ${UI.renderAvatar(time, 22, 'bracket-slot-avatar')}
     <span class="bracket-slot-name">${UI.escapeHtml(time.nome)}</span>
     <span style="font-size:.6rem;background:${badgeBg};color:${badgeColor};padding:1px 5px;border-radius:8px;font-weight:700;margin-right:4px">${badge}</span>
-    <span class="bracket-slot-score">${gols !== null ? gols : ''}</span>
+    <span class="bracket-slot-score">${scoreDisplay}</span>
   </div>`;
 }
 
@@ -957,44 +977,64 @@ const FORMAT_SINGLE_ELIM_4 = {
   ],
 
   previewSlots: [
-    { label: '1º', side: 'A', match: 'se-sf1' },
-    { label: '4º', side: 'B', match: 'se-sf1' },
-    { label: '2º', side: 'A', match: 'se-sf2' },
-    { label: '3º', side: 'B', match: 'se-sf2' }
+    { section: 'upper', title: 'Semifinais', phases: [
+      { name: 'Semifinais', matches: [
+        { slotA: '1º Colocado', slotB: '4º Colocado' },
+        { slotA: '2º Colocado', slotB: '3º Colocado' }
+      ]}
+    ]},
+    { section: 'grand', title: 'Final', phases: [
+      { name: 'Final', matches: [
+        { slotA: 'Vencedor SF1', slotB: 'Vencedor SF2' }
+      ]}
+    ]}
   ],
 
   renderBracketHTML(state) {
-    const m = state.playoffs.matches;
-    return `<div class="bracket-horizontal">
-      <div class="bracket-column">
-        ${_phaseHeader('Semifinais')}
-        ${_matchHTML(state, m, 'se-sf1', 'upper', '1º', '4º')}
-        ${_matchHTML(state, m, 'se-sf2', 'upper', '2º', '3º')}
-      </div>
-      ${_connector(60)}
-      <div class="bracket-column">
-        ${_phaseHeader('Final')}
-        ${_matchHTML(state, m, 'se-final', 'gf', 'V SF1', 'V SF2')}
+    const m = state ? state.playoffs.matches : null;
+    return `<div class="bracket-container">
+      <div style="display:grid;grid-template-columns:1fr 48px 1fr;gap:0;align-items:center;min-width:600px">
+        <div style="display:flex;flex-direction:column;gap:16px">
+          ${_phaseHeader('Semifinais')}
+          ${_matchHTML(state, m, 'se-sf1', 'upper', '1º Colocado', '4º Colocado')}
+          ${_matchHTML(state, m, 'se-sf2', 'upper', '2º Colocado', '3º Colocado')}
+        </div>
+        ${_connector(60)}
+        <div style="display:flex;flex-direction:column;justify-content:center">
+          <div style="margin-bottom:48px"><div class="phase-label" style="color:var(--color-champion);border-bottom-color:rgba(249,168,37,.3)">Final</div></div>
+          ${_matchHTML(state, m, 'se-final', 'grand', 'Vencedor SF1', 'Vencedor SF2')}
+        </div>
       </div>
     </div>`;
   },
 
   infoCards: {
-    path: 'Semifinal → Final',
-    mechanics: 'Perdeu, está eliminado. Sem segunda chance.',
-    advantages: '1º e 2º enfrentam adversários mais fracos nas semifinais.'
+    path: [
+      { seed: '1º-2º', desc: 'Semifinal → Final', games: '2 jogos mín' },
+      { seed: '3º-4º', desc: 'Semifinal → Final', games: '2 jogos mín' }
+    ],
+    mechanics: [
+      'Semifinal: 1º vs 4º e 2º vs 3º',
+      'Vencedores disputam a Final',
+      'Perdeu, está eliminado — sem segunda chance'
+    ],
+    advantages: [
+      '1º e 2º — Enfrentam adversários mais fracos nas semifinais'
+    ]
   },
 
   rules: [
     {
-      title: 'Formato',
+      title: 'Eliminação Simples',
       icon: '📋',
-      items: ['4 classificados da fase de grupos', 'Semifinais + Final', 'Derrota = eliminação imediata']
-    },
-    {
-      title: 'Chaveamento',
-      icon: '🔀',
-      items: ['SF1: 1º vs 4º', 'SF2: 2º vs 3º', 'Final: Vencedores das semifinais']
+      iconBg: 'icon-bg-purple',
+      items: [
+        'Os 4 classificados da fase de grupos disputam as <strong>Semifinais</strong>.',
+        '<strong>Semifinal 1:</strong> 1º colocado vs 4º colocado.',
+        '<strong>Semifinal 2:</strong> 2º colocado vs 3º colocado.',
+        'Vencedores das Semifinais disputam a <strong>Final</strong>.',
+        'Derrota = eliminação imediata. Sem segunda chance.'
+      ]
     }
   ]
 };
@@ -1085,52 +1125,80 @@ const FORMAT_SINGLE_ELIM_8 = {
   ],
 
   previewSlots: [
-    { label: '1º', side: 'A', match: 'se8-qf1' }, { label: '8º', side: 'B', match: 'se8-qf1' },
-    { label: '2º', side: 'A', match: 'se8-qf2' }, { label: '7º', side: 'B', match: 'se8-qf2' },
-    { label: '3º', side: 'A', match: 'se8-qf3' }, { label: '6º', side: 'B', match: 'se8-qf3' },
-    { label: '4º', side: 'A', match: 'se8-qf4' }, { label: '5º', side: 'B', match: 'se8-qf4' }
+    { section: 'upper', title: 'Quartas de Final', phases: [
+      { name: 'Quartas de Final', matches: [
+        { slotA: '1º Colocado', slotB: '8º Colocado' },
+        { slotA: '2º Colocado', slotB: '7º Colocado' },
+        { slotA: '3º Colocado', slotB: '6º Colocado' },
+        { slotA: '4º Colocado', slotB: '5º Colocado' }
+      ]}
+    ]},
+    { section: 'upper', title: 'Semifinais', phases: [
+      { name: 'Semifinais', matches: [
+        { slotA: 'Vencedor QF1', slotB: 'Vencedor QF2' },
+        { slotA: 'Vencedor QF3', slotB: 'Vencedor QF4' }
+      ]}
+    ]},
+    { section: 'grand', title: 'Final', phases: [
+      { name: 'Final', matches: [
+        { slotA: 'Vencedor SF1', slotB: 'Vencedor SF2' }
+      ]}
+    ]}
   ],
 
   renderBracketHTML(state) {
-    const m = state.playoffs.matches;
-    return `<div class="bracket-horizontal">
-      <div class="bracket-column">
-        ${_phaseHeader('Quartas de Final')}
-        ${_matchHTML(state, m, 'se8-qf1', 'upper', '1º', '8º')}
-        ${_matchHTML(state, m, 'se8-qf2', 'upper', '2º', '7º')}
-        ${_matchHTML(state, m, 'se8-qf3', 'lower', '3º', '6º')}
-        ${_matchHTML(state, m, 'se8-qf4', 'lower', '4º', '5º')}
-      </div>
-      ${_connector(80)}
-      <div class="bracket-column">
-        ${_phaseHeader('Semifinais')}
-        ${_matchHTML(state, m, 'se8-sf1', 'upper', 'V QF1', 'V QF2')}
-        ${_matchHTML(state, m, 'se8-sf2', 'lower', 'V QF3', 'V QF4')}
-      </div>
-      ${_connector(60)}
-      <div class="bracket-column">
-        ${_phaseHeader('Final')}
-        ${_matchHTML(state, m, 'se8-final', 'gf', 'V SF1', 'V SF2')}
+    const m = state ? state.playoffs.matches : null;
+    return `<div class="bracket-container">
+      <div style="display:grid;grid-template-columns:1fr 48px 1fr 48px 1fr;gap:0;align-items:center;min-width:800px">
+        <div style="display:flex;flex-direction:column;gap:16px">
+          ${_phaseHeader('Quartas de Final')}
+          ${_matchHTML(state, m, 'se8-qf1', 'upper', '1º Colocado', '8º Colocado')}
+          ${_matchHTML(state, m, 'se8-qf2', 'upper', '2º Colocado', '7º Colocado')}
+          ${_matchHTML(state, m, 'se8-qf3', 'upper', '3º Colocado', '6º Colocado')}
+          ${_matchHTML(state, m, 'se8-qf4', 'upper', '4º Colocado', '5º Colocado')}
+        </div>
+        ${_connector(80)}
+        <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
+          ${_phaseHeader('Semifinais')}
+          ${_matchHTML(state, m, 'se8-sf1', 'upper', 'V QF1', 'V QF2')}
+          ${_matchHTML(state, m, 'se8-sf2', 'upper', 'V QF3', 'V QF4')}
+        </div>
+        ${_connector(60)}
+        <div style="display:flex;flex-direction:column;justify-content:center">
+          <div style="margin-bottom:48px"><div class="phase-label" style="color:var(--color-champion);border-bottom-color:rgba(249,168,37,.3)">Final</div></div>
+          ${_matchHTML(state, m, 'se8-final', 'grand', 'Vencedor SF1', 'Vencedor SF2')}
+        </div>
       </div>
     </div>`;
   },
 
   infoCards: {
-    path: 'Quartas → Semifinal → Final',
-    mechanics: 'Perdeu, está eliminado. Sem segunda chance.',
-    advantages: '1º a 4º enfrentam adversários piores no chaveamento.'
+    path: [
+      { seed: '1º-4º', desc: 'Quartas → Semifinal → Final', games: '3 jogos mín' },
+      { seed: '5º-8º', desc: 'Quartas → Semifinal → Final', games: '3 jogos mín' }
+    ],
+    mechanics: [
+      'Quartas: 1º vs 8º, 2º vs 7º, 3º vs 6º, 4º vs 5º',
+      'Semifinal: Vencedores se cruzam',
+      'Perdeu, está eliminado — sem segunda chance'
+    ],
+    advantages: [
+      '1º a 4º — Enfrentam adversários piores no chaveamento (cabeça de chave)'
+    ]
   },
 
   rules: [
     {
-      title: 'Formato',
+      title: 'Eliminação Simples',
       icon: '📋',
-      items: ['8 classificados da fase de grupos', 'Quartas + Semifinais + Final', 'Derrota = eliminação imediata']
-    },
-    {
-      title: 'Chaveamento',
-      icon: '🔀',
-      items: ['QF: 1º vs 8º, 2º vs 7º, 3º vs 6º, 4º vs 5º', 'SF: Vencedores se cruzam', 'Final: Vencedores das semifinais']
+      iconBg: 'icon-bg-purple',
+      items: [
+        'Os 8 classificados da fase de grupos disputam as <strong>Quartas de Final</strong>.',
+        '<strong>QF:</strong> 1º vs 8º, 2º vs 7º, 3º vs 6º, 4º vs 5º.',
+        'Vencedores das Quartas disputam as <strong>Semifinais</strong>.',
+        'Vencedores das Semifinais disputam a <strong>Final</strong>.',
+        'Derrota = eliminação imediata. Sem segunda chance.'
+      ]
     }
   ]
 };

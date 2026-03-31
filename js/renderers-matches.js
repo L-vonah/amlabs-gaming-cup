@@ -144,7 +144,9 @@ function renderPartidasPlayoffs(state, admin) {
     const concluded = entry.concluded;
     const nameA = tA ? UI.escapeHtml(tA.nome) : '?';
     const nameB = tB ? UI.escapeHtml(tB.nome) : '?';
-    const sc = concluded ? UI.scoreClass(m.scoreA, m.scoreB) : '';
+    const gt = getActiveGameType();
+    const isWinnerOnly = gt.scoreType !== 'numeric';
+    const sc = concluded && !isWinnerOnly ? UI.scoreClass(m.scoreA, m.scoreB) : '';
     const gfAttr = entry.isGF ? '1' : '0';
 
     let desktopBtn = '';
@@ -159,6 +161,20 @@ function renderPartidasPlayoffs(state, admin) {
 
     const partA = tA && tA.participante ? `<span class="team-participant">${UI.escapeHtml(tA.participante)}</span>` : '';
     const partB = tB && tB.participante ? `<span class="team-participant">${UI.escapeHtml(tB.participante)}</span>` : '';
+
+    // Winner-only score display
+    const winA = concluded && m.vencedor === m.timeA;
+    const winB = concluded && m.vencedor === m.timeB;
+    let desktopScoreHTML, mobileScoreA, mobileScoreB;
+    if (isWinnerOnly && concluded) {
+      desktopScoreHTML = `<span class="score-val">${winA ? '✓' : ''}</span><span class="dash">vs</span><span class="score-val">${winB ? '✓' : ''}</span>`;
+      mobileScoreA = winA ? '✓' : '';
+      mobileScoreB = winB ? '✓' : '';
+    } else {
+      desktopScoreHTML = `${concluded ? UI.penaltyTag(m, 'A') : ''}<span class="score-val">${concluded ? m.scoreA : '-'}</span><span class="dash">:</span><span class="score-val">${concluded ? m.scoreB : '-'}</span>${concluded ? UI.penaltyTag(m, 'B') : ''}`;
+      mobileScoreA = (concluded ? m.scoreA : '-') + (concluded ? UI.penaltyTag(m, 'A') : '');
+      mobileScoreB = (concluded ? m.scoreB : '-') + (concluded ? UI.penaltyTag(m, 'B') : '');
+    }
 
     // Grand final header
     if (entry.isGF) {
@@ -175,9 +191,7 @@ function renderPartidasPlayoffs(state, admin) {
             ${UI.renderAvatar(tA, 24)}
           </div>
           <div class="match-score ${sc}">
-            ${concluded ? UI.penaltyTag(m, 'A') : ''}<span class="score-val">${concluded ? m.scoreA : '-'}</span>
-            <span class="dash">:</span>
-            <span class="score-val">${concluded ? m.scoreB : '-'}</span>${concluded ? UI.penaltyTag(m, 'B') : ''}
+            ${desktopScoreHTML}
           </div>
           <div class="match-team away">
             ${UI.renderAvatar(tB, 24)}
@@ -190,12 +204,12 @@ function renderPartidasPlayoffs(state, admin) {
         <div class="match-mobile-row">
           ${UI.renderAvatar(tA, 28)}
           <span class="match-mobile-name">${nameA}</span>
-          <span class="match-mobile-score ${concluded && (m.scoreA > m.scoreB || m.penaltyWinner === m.timeA) ? 'win' : concluded && (m.scoreA < m.scoreB || m.penaltyWinner === m.timeB) ? 'loss' : ''}">${concluded ? m.scoreA : '-'}${concluded ? UI.penaltyTag(m, 'A') : ''}</span>
+          <span class="match-mobile-score ${winA ? 'win' : winB ? 'loss' : ''}">${mobileScoreA}</span>
         </div>
         <div class="match-mobile-row">
           ${UI.renderAvatar(tB, 28)}
           <span class="match-mobile-name">${nameB}</span>
-          <span class="match-mobile-score ${concluded && (m.scoreB > m.scoreA || m.penaltyWinner === m.timeB) ? 'win' : concluded && (m.scoreB < m.scoreA || m.penaltyWinner === m.timeA) ? 'loss' : ''}">${concluded ? m.scoreB : '-'}${concluded ? UI.penaltyTag(m, 'B') : ''}</span>
+          <span class="match-mobile-score ${winB ? 'win' : winA ? 'loss' : ''}">${mobileScoreB}</span>
         </div>
         ${mobileBtn ? '<div class="match-mobile-action">' + mobileBtn + '</div>' : ''}
       </div>
@@ -213,7 +227,9 @@ function renderMatchCardWithAction(p, state, admin) {
   const nameA = tA ? UI.escapeHtml(tA.nome) : 'Time A';
   const nameB = tB ? UI.escapeHtml(tB.nome) : 'Time B';
   const concluded = p.status === 'concluida';
-  const sc = concluded ? UI.scoreClass(p.scoreA, p.scoreB) : '';
+  const gt = getGameType(state.campeonato.gameType);
+  const isWinnerOnly = gt.scoreType !== 'numeric';
+  const sc = concluded && !isWinnerOnly ? UI.scoreClass(p.scoreA, p.scoreB) : '';
 
   const partA = tA && tA.participante ? `<span class="team-participant">${UI.escapeHtml(tA.participante)}</span>` : '';
   const partB = tB && tB.participante ? `<span class="team-participant">${UI.escapeHtml(tB.participante)}</span>` : '';
@@ -228,6 +244,22 @@ function renderMatchCardWithAction(p, state, admin) {
     mobileBtn = desktopBtn;
   }
 
+  // Winner-only score display
+  const pWinA = concluded && p.vencedor === p.timeA;
+  const pWinB = concluded && p.vencedor === p.timeB;
+  let dScoreA, dScoreB, mScoreA, mScoreB;
+  if (isWinnerOnly && concluded) {
+    dScoreA = pWinA ? '✓' : '';
+    dScoreB = pWinB ? '✓' : '';
+    mScoreA = pWinA ? '✓' : '';
+    mScoreB = pWinB ? '✓' : '';
+  } else {
+    dScoreA = concluded ? p.scoreA : '-';
+    dScoreB = concluded ? p.scoreB : '-';
+    mScoreA = concluded ? p.scoreA : '-';
+    mScoreB = concluded ? p.scoreB : '-';
+  }
+
   return `
     <div class="match-card">
       <div class="match-desktop">
@@ -237,9 +269,9 @@ function renderMatchCardWithAction(p, state, admin) {
             ${UI.renderAvatar(tA, 24)}
           </div>
           <div class="match-score ${sc}">
-            <span class="score-val">${concluded ? p.scoreA : '-'}</span>
-            <span class="dash">:</span>
-            <span class="score-val">${concluded ? p.scoreB : '-'}</span>
+            <span class="score-val">${dScoreA}</span>
+            <span class="dash">${isWinnerOnly ? 'vs' : ':'}</span>
+            <span class="score-val">${dScoreB}</span>
           </div>
           <div class="match-team away">
             ${UI.renderAvatar(tB, 24)}
@@ -252,12 +284,12 @@ function renderMatchCardWithAction(p, state, admin) {
         <div class="match-mobile-row">
           ${UI.renderAvatar(tA, 28)}
           <span class="match-mobile-name">${nameA}${partA ? ' <span class="team-participant">' + UI.escapeHtml(tA.participante) + '</span>' : ''}</span>
-          <span class="match-mobile-score ${concluded && p.scoreA > p.scoreB ? 'win' : concluded && p.scoreA < p.scoreB ? 'loss' : ''}">${concluded ? p.scoreA : '-'}</span>
+          <span class="match-mobile-score ${pWinA ? 'win' : pWinB ? 'loss' : ''}">${mScoreA}</span>
         </div>
         <div class="match-mobile-row">
           ${UI.renderAvatar(tB, 28)}
           <span class="match-mobile-name">${nameB}${partB ? ' <span class="team-participant">' + UI.escapeHtml(tB.participante) + '</span>' : ''}</span>
-          <span class="match-mobile-score ${concluded && p.scoreB > p.scoreA ? 'win' : concluded && p.scoreB < p.scoreA ? 'loss' : ''}">${concluded ? p.scoreB : '-'}</span>
+          <span class="match-mobile-score ${pWinB ? 'win' : pWinA ? 'loss' : ''}">${mScoreB}</span>
         </div>
         ${mobileBtn ? '<div class="match-mobile-action">' + mobileBtn + '</div>' : ''}
       </div>
@@ -462,7 +494,11 @@ function _renderLiveBracketMobile(state, format) {
     });
 
     if (section.section === 'grand') {
-      html += '<div style="font-size:.7rem;color:var(--color-champion);margin-top:8px">&#9733; Chave Superior tem vantagem de ban</div>';
+      const hasLowerBracket = format.previewSlots.some(s => s.section === 'lower');
+      const gt = window.getActiveGameType ? getActiveGameType() : null;
+      if (hasLowerBracket && gt && gt.penaltyResolution) {
+        html += '<div style="font-size:.7rem;color:var(--color-champion);margin-top:8px">&#9733; Chave Superior tem vantagem de ban</div>';
+      }
     }
 
     html += '</div>';
@@ -510,15 +546,18 @@ function _renderBracketMatch(m, state, tipo) {
     </div>`;
 }
 
-function _renderBracketSlot(time, gols, isWinner) {
+function _renderBracketSlot(time, score, isWinner) {
   if (!time) {
     return '<div class="bracket-slot tbd"><span>A definir</span></div>';
   }
+  const gt = window.getActiveGameType ? getActiveGameType() : null;
+  const isWinnerOnly = gt && gt.scoreType !== 'numeric';
+  const scoreDisplay = isWinnerOnly ? (isWinner ? '✓' : '') : (score !== null ? score : '');
   return `
     <div class="bracket-slot ${isWinner ? 'winner' : ''}">
       ${UI.renderAvatar(time, 22, 'bracket-slot-avatar')}
       <span class="bracket-slot-name">${UI.escapeHtml(time.nome)}</span>
-      <span class="bracket-slot-score">${gols !== null ? gols : ''}</span>
+      <span class="bracket-slot-score">${scoreDisplay}</span>
     </div>`;
 }
 
@@ -546,15 +585,18 @@ function _renderInfoCards(format) {
       </div>`;
     });
 
-    // Grand Final advantage card (shared)
-    html += `<div class="info-card" style="border-left:3px solid var(--color-champion)">
-      <div class="info-card-title" style="color:var(--color-champion)">&#127942; Grande Final</div>
-      <ul style="list-style:none;padding:0;margin:0">
-        <li class="info-card-line" style="padding:2px 0">Vencedor da <strong>Chave Superior</strong> vs Vencedor da <strong>Chave Inferior</strong>.</li>
-        <li class="info-card-line" style="padding:2px 0">Jogo &uacute;nico, sem empate (prorroga&ccedil;&atilde;o/p&ecirc;naltis se necess&aacute;rio).</li>
-        <li class="info-card-line" style="padding:2px 0">O time da <strong>Chave Superior</strong> tem <strong>vantagem de ban</strong>.</li>
-      </ul>
-    </div>`;
+    // Grand Final advantage card — only for double-elimination formats that have upper/lower brackets
+    const hasLowerBracket = rules.some(r => r.title.toLowerCase().includes('inferior'));
+    if (hasLowerBracket) {
+      html += `<div class="info-card" style="border-left:3px solid var(--color-champion)">
+        <div class="info-card-title" style="color:var(--color-champion)">&#127942; Grande Final</div>
+        <ul style="list-style:none;padding:0;margin:0">
+          <li class="info-card-line" style="padding:2px 0">Vencedor da <strong>Chave Superior</strong> vs Vencedor da <strong>Chave Inferior</strong>.</li>
+          <li class="info-card-line" style="padding:2px 0">Jogo &uacute;nico, sem empate (prorroga&ccedil;&atilde;o/p&ecirc;naltis se necess&aacute;rio).</li>
+          <li class="info-card-line" style="padding:2px 0">O time da <strong>Chave Superior</strong> tem <strong>vantagem de ban</strong>.</li>
+        </ul>
+      </div>`;
+    }
     html += '</div>';
   }
 

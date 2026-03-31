@@ -33,6 +33,10 @@ const DEFAULT_STATE = {
 // In-memory cache to avoid repeated JSON.parse on every render
 let _stateCache = null;
 
+// Guard to prevent Firestore listener from overwriting local state during a save
+let _savePending = false;
+let _savePendingTimer = null;
+
 function invalidateCache() {
   _stateCache = null;
   _classificacaoCache = null;
@@ -107,6 +111,8 @@ function _ensureCache() {
  */
 function feedFromFirestore(firestoreData) {
   if (!firestoreData) return;
+  // Don't overwrite local state while a save is in-flight
+  if (_savePending) return;
   const legacyState = convertFirestoreToState(firestoreData);
   if (legacyState) {
     _stateCache = migrateState(legacyState);
@@ -136,8 +142,14 @@ function saveState(state) {
 
     // Save to Firestore (single source of truth)
     if (typeof FirestoreService !== 'undefined' && FirestoreService.isActive() && UI.checkAdmin()) {
+      // Guard: prevent Firestore listener from overwriting our local state
+      // while the save is in-flight (fixes rapid sequential saves losing data)
+      _savePending = true;
+      clearTimeout(_savePendingTimer);
       const firestoreData = convertStateToFirestore(state);
       FirestoreService.saveTournament(firestoreData).then(ok => {
+        // Release guard after a short delay to let the echo snapshot pass
+        _savePendingTimer = setTimeout(() => { _savePending = false; }, 1500);
         if (!ok && typeof UI !== 'undefined') {
           UI.showToast('Erro ao salvar no servidor. Tente novamente.', 'error');
         }
