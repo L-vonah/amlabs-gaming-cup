@@ -397,28 +397,56 @@ function renderRegras() {
       </ul>
     </div>`;
   } else if (gt.id === 'sinuca') {
-    // Sinuca-specific rules
+    // Regras de Jogo — Sinuca
     html += `<div class="rule-card">
       <div class="rule-card-header">
         <div class="rule-icon icon-bg-purple" style="width:40px;height:40px;border-radius:var(--radius)">&#127921;</div>
         <h3 class="rule-card-title">Regras de Jogo</h3>
       </div>
       <ul class="rule-list">
-        <li>Cada partida \u00e9 decidida em uma \u00fanica partida de sinuca.</li>
-        <li>O vencedor \u00e9 quem acertar a bola 8 no bolso correto.</li>
+        <li>Cada dupla deve jogar contra todas as outras duplas (todos contra todos).</li>
+        <li>A cada jogo realizado a dupla ganha <strong>1 ponto</strong>. Em caso de vit\u00f3ria, ganha <strong>mais 1 ponto</strong> (total 2).</li>
+        <li>Modalidade: <strong>bola 1</strong> \u2014 cada time \u00e9 par ou \u00edmpar, devendo matar a bola 1 por \u00faltimo para vencer.</li>
         <li>N\u00e3o h\u00e1 placar num\u00e9rico \u2014 apenas vit\u00f3ria ou derrota.</li>
       </ul>
     </div>`;
 
-    // Desistencia Sinuca
+    // Bola Branca e Mesa
     html += `<div class="rule-card">
       <div class="rule-card-header">
-        <div class="rule-icon icon-bg-orange" style="width:40px;height:40px;border-radius:var(--radius)">&#128683;</div>
-        <h3 class="rule-card-title">Desist\u00eancia / WO</h3>
+        <div class="rule-icon icon-bg-blue" style="width:40px;height:40px;border-radius:var(--radius)">&#9898;</div>
+        <h3 class="rule-card-title">Bola Branca e Mesa</h3>
       </div>
       <ul class="rule-list">
-        <li>Partidas <strong>pendentes</strong>: WO para o advers\u00e1rio.</li>
-        <li>Caso o jogador n\u00e3o apare\u00e7a, o admin registra vit\u00f3ria do advers\u00e1rio.</li>
+        <li>A bola branca sempre come\u00e7a no <strong>centro da marca desenhada na mesa</strong> e retorna para l\u00e1 caso seja morta ou derrubada.</li>
+        <li>Se a bola branca cair fora da mesa, o time que a derrubou \u00e9 penalizado como se tivesse matado a bola branca.</li>
+        <li>Se uma bola (exceto a branca) cair fora da mesa, <strong>n\u00e3o h\u00e1 penalidade</strong>. A bola deve ser colocada de volta na mesa, encostada na tabela do lado oposto \u00e0 onde a bola 1 iniciou.</li>
+      </ul>
+    </div>`;
+
+    // Regra da Última Chance
+    html += `<div class="rule-card">
+      <div class="rule-card-header">
+        <div class="rule-icon icon-bg-yellow" style="width:40px;height:40px;border-radius:var(--radius)">&#9888;</div>
+        <h3 class="rule-card-title">\u00daltima Chance</h3>
+      </div>
+      <ul class="rule-list">
+        <li>Se um time est\u00e1 prestes a vencer e acidentalmente mata a bola 1 cometendo uma <strong>falta</strong> (ex: matar a bola branca, matar bola do advers\u00e1rio), o time advers\u00e1rio ganha uma <strong>\u00faltima chance</strong>.</li>
+        <li>Se o advers\u00e1rio conseguir matar todas as bolas restantes na mesa, ele vence.</li>
+        <li>O time que cometeu a falta ainda \u00e9 penalizado normalmente pela falta cometida.</li>
+      </ul>
+    </div>`;
+
+    // Partidas Pendentes
+    html += `<div class="rule-card">
+      <div class="rule-card-header">
+        <div class="rule-icon icon-bg-green" style="width:40px;height:40px;border-radius:var(--radius)">&#128197;</div>
+        <h3 class="rule-card-title">Partidas Pendentes</h3>
+      </div>
+      <ul class="rule-list">
+        <li>Partidas n\u00e3o realizadas dentro do prazo s\u00e3o <strong>ignoradas</strong> \u2014 ningu\u00e9m ganha ponto.</li>
+        <li>Os playoffs podem ser iniciados mesmo com jogos pendentes.</li>
+        <li>As rodadas finais ser\u00e3o realizadas durante a <strong>confraterniza\u00e7\u00e3o anual da empresa</strong>.</li>
       </ul>
     </div>`;
   }
