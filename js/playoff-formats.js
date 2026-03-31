@@ -923,7 +923,7 @@ const FORMAT_SINGLE_ELIM_4 = {
   minTeams: 4,
 
   classificationTiers: [
-    { from: 1, to: 4, cssClass: 'tier-qualified', label: 'Classificado', color: '#00b894' }
+    { from: 1, to: 4, cssClass: 'tier-qualified', label: 'Semifinal', color: '#00b894' }
   ],
 
   defaultMatches() {
@@ -1049,7 +1049,7 @@ const FORMAT_SINGLE_ELIM_8 = {
   minTeams: 8,
 
   classificationTiers: [
-    { from: 1, to: 8, cssClass: 'tier-qualified', label: 'Classificado', color: '#00b894' }
+    { from: 1, to: 8, cssClass: 'tier-qualified', label: 'Quartas de Final', color: '#00b894' }
   ],
 
   defaultMatches() {
