@@ -50,7 +50,7 @@ function _slotHTML(state, matches, matchId, slot, previewLabel) {
   const isWinnerOnly = gt && gt.scoreType !== 'numeric';
   let scoreDisplay = '';
   if (isWinnerOnly) {
-    scoreDisplay = isWinner ? '✓' : '';
+    scoreDisplay = isWinner ? '<span class="winner-check">✓</span>' : '';
   } else {
     scoreDisplay = score !== null ? score : '';
   }
@@ -97,7 +97,7 @@ function _gfSlotHTML(state, matches, matchId, slot, badge, badgeBg, badgeColor, 
   const isWinnerOnly = gt && gt.scoreType !== 'numeric';
   let scoreDisplay = '';
   if (isWinnerOnly) {
-    scoreDisplay = isWinner ? '✓' : '';
+    scoreDisplay = isWinner ? '<span class="winner-check">✓</span>' : '';
   } else {
     scoreDisplay = score !== null ? score : '';
   }
@@ -923,8 +923,7 @@ const FORMAT_SINGLE_ELIM_4 = {
   minTeams: 4,
 
   classificationTiers: [
-    { from: 1, to: 2, cssClass: 'tier-upper', label: 'Semifinal (cabeça de chave)', color: '#6c5ce7' },
-    { from: 3, to: 4, cssClass: 'tier-lower', label: 'Semifinal', color: '#e17055' }
+    { from: 1, to: 4, cssClass: 'tier-qualified', label: 'Classificado', color: '#00b894' }
   ],
 
   defaultMatches() {
@@ -1050,8 +1049,7 @@ const FORMAT_SINGLE_ELIM_8 = {
   minTeams: 8,
 
   classificationTiers: [
-    { from: 1, to: 4, cssClass: 'tier-upper', label: 'Cabeça de chave', color: '#6c5ce7' },
-    { from: 5, to: 8, cssClass: 'tier-lower', label: 'Classificado', color: '#e17055' }
+    { from: 1, to: 8, cssClass: 'tier-qualified', label: 'Classificado', color: '#00b894' }
   ],
 
   defaultMatches() {
@@ -1208,14 +1206,14 @@ const FORMAT_SINGLE_ELIM_8 = {
 // ------------------------------------------------------------------
 
 const PLAYOFF_FORMATS = {
-  'single-elim-4': FORMAT_SINGLE_ELIM_4,
-  'single-elim-8': FORMAT_SINGLE_ELIM_8,
   'double-elim-4': FORMAT_DOUBLE_ELIM_4,
   'play-in-6': FORMAT_PLAY_IN_6,
-  'gauntlet-6': FORMAT_GAUNTLET_6
+  'gauntlet-6': FORMAT_GAUNTLET_6,
+  'single-elim-4': FORMAT_SINGLE_ELIM_4,
+  'single-elim-8': FORMAT_SINGLE_ELIM_8
 };
 
-const DEFAULT_PLAYOFF_FORMAT = 'single-elim-4';
+const DEFAULT_PLAYOFF_FORMAT = 'double-elim-4';
 
 function getPlayoffFormat(formatId) {
   return PLAYOFF_FORMATS[formatId] || PLAYOFF_FORMATS[DEFAULT_PLAYOFF_FORMAT];

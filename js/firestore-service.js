@@ -244,7 +244,7 @@ const FirestoreService = {
       },
       times: [],
       faseGrupos: { status: 'aguardando', partidas: [] },
-      playoffs: { formato: 'single-elim-4', status: 'aguardando', matches: {} },
+      playoffs: { formato: 'double-elim-4', status: 'aguardando', matches: {} },
       campeao: null
     };
 

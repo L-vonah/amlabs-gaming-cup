@@ -2779,6 +2779,10 @@ body {
 .classified-green { background: rgba(0,184,148,.07); border-left: 3px solid var(--color-win); }
 .tier-upper { background: rgba(108,92,231,.08); border-left: 3px solid #6c5ce7; }
 .tier-lower { background: rgba(225,112,85,.08); border-left: 3px solid #e17055; }
+.tier-qualified { background: rgba(0,184,148,.07); border-left: 3px solid #00b894; }
+
+/* Winner checkmark for winner-only games */
+.winner-check { color: var(--color-win); font-weight: 800; font-size: 1em; }
 
 .classification-tier-legend {
   display: flex;

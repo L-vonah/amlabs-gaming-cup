@@ -51,7 +51,7 @@ function renderHome() {
             <div class="champion-name">${winner ? UI.escapeHtml(winner.nome) : '?'}</div>
             ${winner && winner.participante ? `<div class="champion-label" style="margin-top:4px;letter-spacing:.12em;font-size:.85rem">${UI.escapeHtml(winner.participante)}</div>` : ''}
             ${winner ? `<div class="champion-avatar-wrapper">${UI.renderAvatar(winner, 80)}</div>` : ''}
-            <div class="champion-score">${gf ? (gf.scoreA !== null && gf.scoreB !== null ? gf.scoreA + ' &times; ' + gf.scoreB : '✓') : ''} &mdash; ${UI.escapeHtml(gf ? gf.fase || 'Final' : 'Final')}</div>
+            <div class="champion-score">${gf ? (gf.scoreA !== null && gf.scoreB !== null ? gf.scoreA + ' &times; ' + gf.scoreB : '<span class="winner-check">✓</span>') : ''} &mdash; ${UI.escapeHtml(gf ? gf.fase || 'Final' : 'Final')}</div>
             <div class="champion-badge">${UI.escapeHtml(state.campeonato.nome || 'Campeonato')}</div>
           </div>
         </div>`;
@@ -86,7 +86,9 @@ function renderHome() {
           scoreB: m.scoreB,
           fase: m.fase,
           id: m.id,
-          penaltyWinner: m.penaltyWinner || null
+          penaltyWinner: m.penaltyWinner || null,
+          vencedor: m.vencedor,
+          original: m
         });
       }
     });
@@ -171,10 +173,10 @@ function renderHome() {
         // Score display
         let rdScoreA, rdScoreB, rmScoreA, rmScoreB;
         if (rWinnerOnly) {
-          rdScoreA = rWinA ? '✓' : '';
-          rdScoreB = rWinB ? '✓' : '';
-          rmScoreA = rWinA ? '✓' : '';
-          rmScoreB = rWinB ? '✓' : '';
+          rdScoreA = rWinA ? '<span class="winner-check">✓</span>' : '';
+          rdScoreB = rWinB ? '<span class="winner-check">✓</span>' : '';
+          rmScoreA = rWinA ? '<span class="winner-check">✓</span>' : '';
+          rmScoreB = rWinB ? '<span class="winner-check">✓</span>' : '';
         } else {
           rdScoreA = (pA ? '<span class="penalty-tag">P</span>' : '') + r.scoreA;
           rdScoreB = r.scoreB + (pB ? '<span class="penalty-tag">P</span>' : '');
@@ -248,8 +250,8 @@ function renderHome() {
         const pB = m.penaltyWinner === m.timeB;
         const gtMini = getGameType(state.campeonato.gameType);
         const isWO = gtMini.scoreType !== 'numeric';
-        const sA = isWO ? (winnerA ? '✓' : (m.vencedor ? '' : '-')) : (m.scoreA !== null ? m.scoreA : '-');
-        const sB = isWO ? (winnerB ? '✓' : (m.vencedor ? '' : '-')) : (m.scoreB !== null ? m.scoreB : '-');
+        const sA = isWO ? (winnerA ? '<span class="winner-check">✓</span>' : (m.vencedor ? '' : '-')) : (m.scoreA !== null ? m.scoreA : '-');
+        const sB = isWO ? (winnerB ? '<span class="winner-check">✓</span>' : (m.vencedor ? '' : '-')) : (m.scoreB !== null ? m.scoreB : '-');
 
         matchLines += `<div class="bracket-mini-row" style="border-left:3px solid ${entry.color}">
           <span class="bracket-mini-phase">${entry.phase}</span>

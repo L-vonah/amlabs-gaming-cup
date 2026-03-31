@@ -167,9 +167,9 @@ function renderPartidasPlayoffs(state, admin) {
     const winB = concluded && m.vencedor === m.timeB;
     let desktopScoreHTML, mobileScoreA, mobileScoreB;
     if (isWinnerOnly && concluded) {
-      desktopScoreHTML = `<span class="score-val">${winA ? '✓' : ''}</span><span class="dash">vs</span><span class="score-val">${winB ? '✓' : ''}</span>`;
-      mobileScoreA = winA ? '✓' : '';
-      mobileScoreB = winB ? '✓' : '';
+      desktopScoreHTML = `<span class="score-val">${winA ? '<span class="winner-check">✓</span>' : ''}</span><span class="dash">vs</span><span class="score-val">${winB ? '<span class="winner-check">✓</span>' : ''}</span>`;
+      mobileScoreA = winA ? '<span class="winner-check">✓</span>' : '';
+      mobileScoreB = winB ? '<span class="winner-check">✓</span>' : '';
     } else {
       desktopScoreHTML = `${concluded ? UI.penaltyTag(m, 'A') : ''}<span class="score-val">${concluded ? m.scoreA : '-'}</span><span class="dash">:</span><span class="score-val">${concluded ? m.scoreB : '-'}</span>${concluded ? UI.penaltyTag(m, 'B') : ''}`;
       mobileScoreA = (concluded ? m.scoreA : '-') + (concluded ? UI.penaltyTag(m, 'A') : '');
@@ -249,10 +249,10 @@ function renderMatchCardWithAction(p, state, admin) {
   const pWinB = concluded && p.vencedor === p.timeB;
   let dScoreA, dScoreB, mScoreA, mScoreB;
   if (isWinnerOnly && concluded) {
-    dScoreA = pWinA ? '✓' : '';
-    dScoreB = pWinB ? '✓' : '';
-    mScoreA = pWinA ? '✓' : '';
-    mScoreB = pWinB ? '✓' : '';
+    dScoreA = pWinA ? '<span class="winner-check">✓</span>' : '';
+    dScoreB = pWinB ? '<span class="winner-check">✓</span>' : '';
+    mScoreA = pWinA ? '<span class="winner-check">✓</span>' : '';
+    mScoreB = pWinB ? '<span class="winner-check">✓</span>' : '';
   } else {
     dScoreA = concluded ? p.scoreA : '-';
     dScoreB = concluded ? p.scoreB : '-';
@@ -552,7 +552,7 @@ function _renderBracketSlot(time, score, isWinner) {
   }
   const gt = window.getActiveGameType ? getActiveGameType() : null;
   const isWinnerOnly = gt && gt.scoreType !== 'numeric';
-  const scoreDisplay = isWinnerOnly ? (isWinner ? '✓' : '') : (score !== null ? score : '');
+  const scoreDisplay = isWinnerOnly ? (isWinner ? '<span class="winner-check">✓</span>' : '') : (score !== null ? score : '');
   return `
     <div class="bracket-slot ${isWinner ? 'winner' : ''}">
       ${UI.renderAvatar(time, 22, 'bracket-slot-avatar')}
@@ -568,26 +568,66 @@ function _renderBracketSlot(time, score, isWinner) {
 function _renderInfoCards(format) {
   const cards = format.infoCards;
   const rules = format.rules;
+  const hasLowerBracket = rules && rules.some(r => r.title.toLowerCase().includes('inferior'));
+  const isSingleElim = !hasLowerBracket;
 
-  // Rules cards (Chave Superior, Chave Inferior) + info cards
   let html = '';
 
-  // Rules from format (rendered as rule-cards matching the regras page style)
-  if (rules && rules.length > 0) {
-    html += '<div class="bracket-rules-section">';
-    rules.forEach(rule => {
-      const borderColor = rule.iconBg === 'icon-bg-purple' ? 'var(--color-upper)' : rule.iconBg === 'icon-bg-orange' ? 'var(--color-lower)' : 'var(--color-text-dim)';
-      html += `<div class="info-card" style="border-left:3px solid ${borderColor}">
-        <div class="info-card-title" style="color:${borderColor}">${rule.icon} ${rule.title}</div>
+  if (isSingleElim) {
+    // Single elimination: unified 2-column grid with all cards together
+    html += '<div class="bracket-info-cards" style="grid-template-columns:repeat(2,1fr)">';
+
+    // Rules card (single card spanning format rules)
+    if (rules && rules.length > 0) {
+      const rule = rules[0];
+      html += `<div class="info-card" style="border-left:3px solid var(--color-win)">
+        <div class="info-card-title" style="color:var(--color-win)">${rule.icon} ${rule.title}</div>
         <ul style="list-style:none;padding:0;margin:0">
           ${rule.items.map(item => '<li class="info-card-line" style="padding:2px 0">' + item + '</li>').join('')}
         </ul>
       </div>`;
-    });
+    }
 
-    // Grand Final advantage card — only for double-elimination formats that have upper/lower brackets
-    const hasLowerBracket = rules.some(r => r.title.toLowerCase().includes('inferior'));
-    if (hasLowerBracket) {
+    // Path card
+    html += `<div class="info-card">
+      <div class="info-card-title" style="color:var(--color-champion)">Caminho at&eacute; o t&iacute;tulo</div>`;
+    cards.path.forEach(p => {
+      html += `<div class="info-card-line"><span class="seed">${UI.escapeHtml(p.seed)}</span> &mdash; ${UI.escapeHtml(p.desc)} <span class="games">(${UI.escapeHtml(p.games)})</span></div>`;
+    });
+    html += '</div>';
+
+    // Mechanics card
+    html += `<div class="info-card">
+      <div class="info-card-title" style="color:var(--color-upper)">Mec&acirc;nica</div>`;
+    cards.mechanics.forEach(m => {
+      html += `<div class="info-card-line">${UI.escapeHtml(m)}</div>`;
+    });
+    html += '</div>';
+
+    // Advantages card
+    html += `<div class="info-card">
+      <div class="info-card-title" style="color:var(--color-win)">Vantagens</div>`;
+    cards.advantages.forEach(a => {
+      html += `<div class="info-card-line">${UI.escapeHtml(a)}</div>`;
+    });
+    html += '</div>';
+
+    html += '</div>';
+  } else {
+    // Double elimination / Play-In: rules section + info cards section
+    if (rules && rules.length > 0) {
+      html += '<div class="bracket-rules-section">';
+      rules.forEach(rule => {
+        const borderColor = rule.iconBg === 'icon-bg-purple' ? 'var(--color-upper)' : rule.iconBg === 'icon-bg-orange' ? 'var(--color-lower)' : 'var(--color-text-dim)';
+        html += `<div class="info-card" style="border-left:3px solid ${borderColor}">
+          <div class="info-card-title" style="color:${borderColor}">${rule.icon} ${rule.title}</div>
+          <ul style="list-style:none;padding:0;margin:0">
+            ${rule.items.map(item => '<li class="info-card-line" style="padding:2px 0">' + item + '</li>').join('')}
+          </ul>
+        </div>`;
+      });
+
+      // Grand Final advantage card
       html += `<div class="info-card" style="border-left:3px solid var(--color-champion)">
         <div class="info-card-title" style="color:var(--color-champion)">&#127942; Grande Final</div>
         <ul style="list-style:none;padding:0;margin:0">
@@ -596,38 +636,39 @@ function _renderInfoCards(format) {
           <li class="info-card-line" style="padding:2px 0">O time da <strong>Chave Superior</strong> tem <strong>vantagem de ban</strong>.</li>
         </ul>
       </div>`;
+      html += '</div>';
     }
+
+    // Info cards (path, mechanics, advantages)
+    html += '<div class="bracket-info-cards">';
+
+    // Path card
+    html += `<div class="info-card">
+      <div class="info-card-title" style="color:var(--color-champion)">Caminho at&eacute; o t&iacute;tulo</div>`;
+    cards.path.forEach(p => {
+      html += `<div class="info-card-line"><span class="seed">${UI.escapeHtml(p.seed)}</span> &mdash; ${UI.escapeHtml(p.desc)} <span class="games">(${UI.escapeHtml(p.games)})</span></div>`;
+    });
+    html += '</div>';
+
+    // Mechanics card
+    html += `<div class="info-card">
+      <div class="info-card-title" style="color:var(--color-upper)">Mec&acirc;nica</div>`;
+    cards.mechanics.forEach(m => {
+      html += `<div class="info-card-line">${UI.escapeHtml(m)}</div>`;
+    });
+    html += '</div>';
+
+    // Advantages card
+    html += `<div class="info-card">
+      <div class="info-card-title" style="color:var(--color-win)">Vantagens</div>`;
+    cards.advantages.forEach(a => {
+      html += `<div class="info-card-line">${UI.escapeHtml(a)}</div>`;
+    });
+    html += '</div>';
+
     html += '</div>';
   }
 
-  // Info cards (path, mechanics, advantages)
-  html += '<div class="bracket-info-cards">';
-
-  // Path card
-  html += `<div class="info-card">
-    <div class="info-card-title" style="color:var(--color-champion)">Caminho at&eacute; o t&iacute;tulo</div>`;
-  cards.path.forEach(p => {
-    html += `<div class="info-card-line"><span class="seed">${UI.escapeHtml(p.seed)}</span> &mdash; ${UI.escapeHtml(p.desc)} <span class="games">(${UI.escapeHtml(p.games)})</span></div>`;
-  });
-  html += '</div>';
-
-  // Mechanics card
-  html += `<div class="info-card">
-    <div class="info-card-title" style="color:var(--color-upper)">Mec&acirc;nica</div>`;
-  cards.mechanics.forEach(m => {
-    html += `<div class="info-card-line">${UI.escapeHtml(m)}</div>`;
-  });
-  html += '</div>';
-
-  // Advantages card
-  html += `<div class="info-card">
-    <div class="info-card-title" style="color:var(--color-win)">Vantagens</div>`;
-  cards.advantages.forEach(a => {
-    html += `<div class="info-card-line">${UI.escapeHtml(a)}</div>`;
-  });
-  html += '</div>';
-
-  html += '</div>';
   return html;
 }
 

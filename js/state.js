@@ -20,7 +20,7 @@ const DEFAULT_STATE = {
     partidas: []
   },
   playoffs: {
-    formato: 'single-elim-4',
+    formato: 'double-elim-4',
     status: 'aguardando', // aguardando | andamento | concluido
     matches: {}
   }
