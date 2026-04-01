@@ -1055,9 +1055,9 @@ const FORMAT_SINGLE_ELIM_8 = {
   defaultMatches() {
     return {
       'se8-qf1': _newMatch('se8-qf1', 'Quartas 1', '1º vs 8º'),
-      'se8-qf2': _newMatch('se8-qf2', 'Quartas 2', '2º vs 7º'),
+      'se8-qf2': _newMatch('se8-qf2', 'Quartas 2', '4º vs 5º'),
       'se8-qf3': _newMatch('se8-qf3', 'Quartas 3', '3º vs 6º'),
-      'se8-qf4': _newMatch('se8-qf4', 'Quartas 4', '4º vs 5º'),
+      'se8-qf4': _newMatch('se8-qf4', 'Quartas 4', '2º vs 7º'),
       'se8-sf1': _newMatch('se8-sf1', 'Semifinal 1', 'V QF1 vs V QF2'),
       'se8-sf2': _newMatch('se8-sf2', 'Semifinal 2', 'V QF3 vs V QF4'),
       'se8-final': _newMatch('se8-final', 'Final', 'V SF1 vs V SF2')
@@ -1065,10 +1065,10 @@ const FORMAT_SINGLE_ELIM_8 = {
   },
 
   generateBracket(teams, matches) {
-    matches['se8-qf1'].timeA = teams[0].id; matches['se8-qf1'].timeB = teams[7].id;
-    matches['se8-qf2'].timeA = teams[1].id; matches['se8-qf2'].timeB = teams[6].id;
-    matches['se8-qf3'].timeA = teams[2].id; matches['se8-qf3'].timeB = teams[5].id;
-    matches['se8-qf4'].timeA = teams[3].id; matches['se8-qf4'].timeB = teams[4].id;
+    matches['se8-qf1'].timeA = teams[0].id; matches['se8-qf1'].timeB = teams[7].id; // 1º vs 8º
+    matches['se8-qf2'].timeA = teams[3].id; matches['se8-qf2'].timeB = teams[4].id; // 4º vs 5º
+    matches['se8-qf3'].timeA = teams[2].id; matches['se8-qf3'].timeB = teams[5].id; // 3º vs 6º
+    matches['se8-qf4'].timeA = teams[1].id; matches['se8-qf4'].timeB = teams[6].id; // 2º vs 7º
   },
 
   propagateResult(matches) {
@@ -1126,9 +1126,9 @@ const FORMAT_SINGLE_ELIM_8 = {
     { section: 'upper', title: 'Quartas de Final', phases: [
       { name: 'Quartas de Final', matches: [
         { slotA: '1º Colocado', slotB: '8º Colocado' },
-        { slotA: '2º Colocado', slotB: '7º Colocado' },
+        { slotA: '4º Colocado', slotB: '5º Colocado' },
         { slotA: '3º Colocado', slotB: '6º Colocado' },
-        { slotA: '4º Colocado', slotB: '5º Colocado' }
+        { slotA: '2º Colocado', slotB: '7º Colocado' }
       ]}
     ]},
     { section: 'upper', title: 'Semifinais', phases: [
@@ -1151,9 +1151,9 @@ const FORMAT_SINGLE_ELIM_8 = {
         <div style="display:flex;flex-direction:column;gap:16px">
           ${_phaseHeader('Quartas de Final')}
           ${_matchHTML(state, m, 'se8-qf1', 'upper', '1º Colocado', '8º Colocado')}
-          ${_matchHTML(state, m, 'se8-qf2', 'upper', '2º Colocado', '7º Colocado')}
+          ${_matchHTML(state, m, 'se8-qf2', 'upper', '4º Colocado', '5º Colocado')}
           ${_matchHTML(state, m, 'se8-qf3', 'upper', '3º Colocado', '6º Colocado')}
-          ${_matchHTML(state, m, 'se8-qf4', 'upper', '4º Colocado', '5º Colocado')}
+          ${_matchHTML(state, m, 'se8-qf4', 'upper', '2º Colocado', '7º Colocado')}
         </div>
         ${_connector(80)}
         <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
@@ -1172,16 +1172,15 @@ const FORMAT_SINGLE_ELIM_8 = {
 
   infoCards: {
     path: [
-      { seed: '1º-4º', desc: 'Quartas → Semifinal → Final', games: '3 jogos mín' },
-      { seed: '5º-8º', desc: 'Quartas → Semifinal → Final', games: '3 jogos mín' }
+      { seed: '1º-8º', desc: 'Quartas → Semifinal → Final', games: '3 jogos mín' }
     ],
     mechanics: [
-      'Quartas: 1º vs 8º, 2º vs 7º, 3º vs 6º, 4º vs 5º',
-      'Semifinal: Vencedores se cruzam',
+      'Quartas: 1º vs 8º, 4º vs 5º, 3º vs 6º, 2º vs 7º',
+      'Semifinal: Vencedores do mesmo lado se cruzam',
       'Perdeu, está eliminado — sem segunda chance'
     ],
     advantages: [
-      '1º a 4º — Enfrentam adversários piores no chaveamento (cabeça de chave)'
+      'Melhores colocados enfrentam adversários piores nas quartas'
     ]
   },
 
@@ -1192,7 +1191,7 @@ const FORMAT_SINGLE_ELIM_8 = {
       iconBg: 'icon-bg-purple',
       items: [
         'Os 8 classificados da fase de grupos disputam as <strong>Quartas de Final</strong>.',
-        '<strong>QF:</strong> 1º vs 8º, 2º vs 7º, 3º vs 6º, 4º vs 5º.',
+        '<strong>QF:</strong> 1º vs 8º, 4º vs 5º, 3º vs 6º, 2º vs 7º.',
         'Vencedores das Quartas disputam as <strong>Semifinais</strong>.',
         'Vencedores das Semifinais disputam a <strong>Final</strong>.',
         'Derrota = eliminação imediata. Sem segunda chance.'

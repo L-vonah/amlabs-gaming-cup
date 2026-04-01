@@ -397,25 +397,24 @@ function renderRegras() {
       </ul>
     </div>`;
   } else if (gt.id === 'sinuca') {
-    // Regras de Jogo — Sinuca
+    // Regras de Jogo 1 — Modalidade
     html += `<div class="rule-card">
       <div class="rule-card-header">
         <div class="rule-icon icon-bg-purple" style="width:40px;height:40px;border-radius:var(--radius)">&#127921;</div>
         <h3 class="rule-card-title">Regras de Jogo</h3>
       </div>
       <ul class="rule-list">
-        <li>Cada dupla deve jogar contra todas as outras duplas (todos contra todos).</li>
-        <li>A cada jogo realizado a dupla ganha <strong>1 ponto</strong>. Em caso de vit\u00f3ria, ganha <strong>mais 1 ponto</strong> (total 2).</li>
         <li>Modalidade: <strong>bola 1</strong> \u2014 cada time \u00e9 par ou \u00edmpar, devendo matar a bola 1 por \u00faltimo para vencer.</li>
-        <li>N\u00e3o h\u00e1 placar num\u00e9rico \u2014 apenas vit\u00f3ria ou derrota.</li>
+        <li>Partida \u00fanica \u2014 n\u00e3o h\u00e1 placar num\u00e9rico, apenas vit\u00f3ria ou derrota.</li>
+        <li>As rodadas finais ser\u00e3o realizadas durante a <strong>confraterniza\u00e7\u00e3o anual da empresa</strong>.</li>
       </ul>
     </div>`;
 
-    // Bola Branca e Mesa
+    // Regras de Jogo 2 — Bola branca e mesa
     html += `<div class="rule-card">
       <div class="rule-card-header">
         <div class="rule-icon icon-bg-blue" style="width:40px;height:40px;border-radius:var(--radius)">&#9898;</div>
-        <h3 class="rule-card-title">Bola Branca e Mesa</h3>
+        <h3 class="rule-card-title">Regras de Jogo</h3>
       </div>
       <ul class="rule-list">
         <li>A bola branca sempre come\u00e7a no <strong>centro da marca desenhada na mesa</strong> e retorna para l\u00e1 caso seja morta ou derrubada.</li>
@@ -424,11 +423,11 @@ function renderRegras() {
       </ul>
     </div>`;
 
-    // Regra da Última Chance
+    // Regras de Jogo 3 — Última chance
     html += `<div class="rule-card">
       <div class="rule-card-header">
         <div class="rule-icon icon-bg-yellow" style="width:40px;height:40px;border-radius:var(--radius)">&#9888;</div>
-        <h3 class="rule-card-title">\u00daltima Chance</h3>
+        <h3 class="rule-card-title">Regras de Jogo</h3>
       </div>
       <ul class="rule-list">
         <li>Se um time est\u00e1 prestes a vencer e acidentalmente mata a bola 1 cometendo uma <strong>falta</strong> (ex: matar a bola branca, matar bola do advers\u00e1rio), o time advers\u00e1rio ganha uma <strong>\u00faltima chance</strong>.</li>
@@ -446,7 +445,6 @@ function renderRegras() {
       <ul class="rule-list">
         <li>Partidas n\u00e3o realizadas dentro do prazo s\u00e3o <strong>ignoradas</strong> \u2014 ningu\u00e9m ganha ponto.</li>
         <li>Os playoffs podem ser iniciados mesmo com jogos pendentes.</li>
-        <li>As rodadas finais ser\u00e3o realizadas durante a <strong>confraterniza\u00e7\u00e3o anual da empresa</strong>.</li>
       </ul>
     </div>`;
   }
