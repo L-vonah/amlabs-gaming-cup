@@ -2571,6 +2571,7 @@ body {
 .mini-table td:last-child { padding-right: 12px; font-weight: 800; font-size: .9rem; }
 .mini-table tr { border-bottom: 1px solid var(--color-border); }
 .mini-table thead tr { border-bottom: 1px solid var(--color-border); }
+.mini-table td:nth-child(2) { text-align: left; }
 .mini-table .team-cell { display: flex; align-items: center; gap: 8px; }
 .mini-table .team-cell span { font-weight: 600; }
 
@@ -2736,8 +2737,11 @@ body {
   margin-bottom: 8px;
 }
 
+.bracket-info-cards-2col { grid-template-columns: repeat(2, 1fr); }
+
 @media (max-width: 768px) {
   .bracket-info-cards { grid-template-columns: 1fr; }
+  .bracket-info-cards-2col { grid-template-columns: 1fr; }
   .bracket-rules-section { grid-template-columns: 1fr; }
   .format-selector-header { flex-direction: column; align-items: flex-start; }
   .format-select { min-width: 100%; }
@@ -2777,6 +2781,12 @@ body {
 .classified-blue-light { background: rgba(116,185,255,.08); border-left: 3px solid #74b9ff; }
 .classified-yellow-light { background: rgba(220,190,80,.06); border-left: 3px solid #dcbe50; }
 .classified-green { background: rgba(0,184,148,.07); border-left: 3px solid var(--color-win); }
+.tier-upper { background: rgba(108,92,231,.08); border-left: 3px solid #6c5ce7; }
+.tier-lower { background: rgba(225,112,85,.08); border-left: 3px solid #e17055; }
+.tier-qualified { background: rgba(0,184,148,.07); border-left: 3px solid #00b894; }
+
+/* Winner checkmark for winner-only games */
+.winner-check { color: var(--color-win); font-weight: 800; font-size: 1em; }
 
 .classification-tier-legend {
   display: flex;
@@ -2950,6 +2960,136 @@ body.has-dev-banner {
 .selector-card-delete:hover {
   color: var(--color-loss);
   background: var(--color-loss-bg);
+}
+
+/* Game Type Selector */
+.game-type-selector {
+  display: flex;
+  gap: 12px;
+}
+
+.game-type-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 12px;
+  background: var(--color-surface-2);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.game-type-card:hover {
+  border-color: var(--color-primary);
+  background: var(--color-surface-3);
+}
+
+.game-type-card.selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-glow);
+}
+
+.game-type-icon {
+  font-size: 1.8rem;
+}
+
+.game-type-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* Winner-only score buttons */
+.btn-winner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px 20px;
+  background: var(--color-surface-2);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  min-width: 120px;
+  color: var(--color-text);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.btn-winner:hover {
+  border-color: var(--color-win);
+  background: var(--color-win-bg);
+}
+
+.btn-winner.selected {
+  border-color: var(--color-win);
+  background: var(--color-win-bg);
+}
+
+.btn-winner-label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 400;
+}
+
+.btn-winner.selected .btn-winner-label {
+  color: var(--color-win);
+  font-weight: 700;
+}
+
+/* Tiebreaker Resolution */
+.tiebreaker-group { margin-bottom: 20px; }
+.tiebreaker-group-header {
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.tiebreaker-slots {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+.tiebreaker-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.tiebreaker-item:hover { border-color: var(--color-primary); }
+.tiebreaker-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
+}
+.tiebreaker-name { font-weight: 600; flex: 1; }
+.tiebreaker-stats { font-size: 0.8rem; color: var(--color-text-muted); }
+.tiebreaker-count {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin-top: 8px;
+  text-align: right;
+}
+
+@media (max-width: 768px) {
+  .btn-winner {
+    min-width: 0;
+    flex: 1;
+    padding: 14px 12px;
+  }
 }
 
 .selector-loading {

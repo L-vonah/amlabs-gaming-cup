@@ -1,6 +1,6 @@
 # AMLabs Gaming Cup
 
-Plataforma web para gerenciar campeonatos de futebol virtual da AMLabs. Atualmente rodando o **1o Campeonato EA Sports FC AMLabs 2026**.
+Plataforma web para gerenciar campeonatos internos da AMLabs. Suporta **EA Sports FC** (futebol virtual com placar numérico) e **Sinuca** (partidas por vitória/derrota).
 
 **Site:** https://amlabs-cup.netlify.app
 **Backup:** https://l-vonah.github.io/amlabs-gaming-cup/
@@ -11,23 +11,27 @@ Plataforma web para gerenciar campeonatos de futebol virtual da AMLabs. Atualmen
 
 Site estatico hospedado no Netlify com autenticacao via Firebase (Google Login) e dados no Firestore. Qualquer pessoa pode visualizar o campeonato; apenas o administrador pode editar.
 
+### Tipos de Jogo
+
+| Aspecto | EA Sports FC | Sinuca |
+|---------|-------------|--------|
+| Placar | Numerico (golsA x golsB) | Apenas vencedor |
+| Empate | Possivel nos grupos | Nao existe |
+| Pontuacao | V=3, E=1, D=0 | V=2, D=1 |
+| Desempate | Pontos > Vitorias > Saldo > Gols > Confronto | Pontos > Vitorias > Admin seleciona |
+| Estatisticas | Artilheiros, goleadas, defesa | Nenhuma |
+| Jogos pendentes | Todos obrigatorios para playoffs | Pode iniciar com pendentes |
+| Penaltis (playoff) | Sim | Nao |
+
 ### Formato do Campeonato
 
-1. **Fase de Grupos** — Todos contra todos (turno unico, sem ida e volta)
-2. **Playoffs** — 3 formatos configuraveis:
-   - **Dupla Eliminacao (4 times)** — 1o vs 4o, 2o vs 3o, chaves superior e inferior, grande final
-   - **Play-In (6 times)** — 1o e 2o tem bye nas quartas, cruzamento na chave inferior
-   - **Escada/Gauntlet (6 times)** — 1o entra direto na final superior, cascata linear, 5o-6o sem 2a chance
-3. **Vantagem na Grande Final** — O time que chega pela Chave Superior tem vantagem de ban
-
-### Criterios de Classificacao
-
-| Criterio | Valor |
-|----------|-------|
-| Vitoria | 3 pontos |
-| Empate | 1 ponto |
-| Derrota | 0 pontos |
-| Desempate | Pontos > Vitorias > Saldo de Gols > Gols Marcados > Confronto Direto |
+1. **Fase de Grupos** — Todos contra todos (turno unico)
+2. **Playoffs** — 5 formatos configuraveis:
+   - **Eliminacao Simples (4 times)** — SF + Final
+   - **Eliminacao Simples (8 times)** — QF + SF + Final
+   - **Dupla Eliminacao (4 times)** — Chaves superior e inferior, grande final
+   - **Play-In (6 times)** — 1o e 2o com bye nas quartas
+   - **Escada/Gauntlet (6 times)** — Cascata linear
 
 ## Stack
 

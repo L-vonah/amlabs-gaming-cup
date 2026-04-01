@@ -9,11 +9,11 @@
 // ------------------------------------------------------------------
 
 function _newMatch(id, fase, label) {
-  return { id, fase, label, timeA: null, timeB: null, golsA: null, golsB: null, vencedor: null, perdedor: null };
+  return { id, fase, label, timeA: null, timeB: null, scoreA: null, scoreB: null, vencedor: null, perdedor: null };
 }
 
 function _clearMatch(m) {
-  m.golsA = null; m.golsB = null; m.vencedor = null; m.perdedor = null;
+  m.scoreA = null; m.scoreB = null; m.vencedor = null; m.perdedor = null;
 }
 
 function _clearMatchFull(m) {
@@ -23,7 +23,7 @@ function _clearMatchFull(m) {
 function _collectConcludedMatches(matches) {
   return Object.values(matches)
     .filter(m => m.vencedor)
-    .map(m => ({ timeA: m.timeA, timeB: m.timeB, golsA: m.golsA, golsB: m.golsB, id: m.id, fase: m.fase }));
+    .map(m => ({ timeA: m.timeA, timeB: m.timeB, scoreA: m.scoreA, scoreB: m.scoreB, id: m.id, fase: m.fase }));
 }
 
 // ------------------------------------------------------------------
@@ -34,7 +34,7 @@ function _slotHTML(state, matches, matchId, slot, previewLabel) {
   // slot = 'A' or 'B'
   const m = matches ? matches[matchId] : null;
   const teamId = m ? m['time' + slot] : null;
-  const gols = m ? m['gols' + slot] : null;
+  const score = m ? m['score' + slot] : null;
   const isWinner = m && m.vencedor && m.vencedor === teamId;
 
   if (!matches || !m || !teamId) {
@@ -45,15 +45,25 @@ function _slotHTML(state, matches, matchId, slot, previewLabel) {
   const time = state ? AppState.getTimeById(state, teamId) : null;
   if (!time) return `<div class="bracket-slot tbd"><span>A definir</span></div>`;
 
+  // For winner-only games, show checkmark instead of numeric score
+  const gt = (state && state.campeonato) ? getGameType(state.campeonato.gameType) : null;
+  const isWinnerOnly = gt && gt.scoreType !== 'numeric';
+  let scoreDisplay = '';
+  if (isWinnerOnly) {
+    scoreDisplay = isWinner ? '<span class="winner-check">✓</span>' : '';
+  } else {
+    scoreDisplay = score !== null ? score : '';
+  }
+
   return `<div class="bracket-slot ${isWinner ? 'winner' : ''}">
     ${UI.renderAvatar(time, 22, 'bracket-slot-avatar')}
     <span class="bracket-slot-name">${UI.escapeHtml(time.nome)}</span>
-    <span class="bracket-slot-score">${gols !== null ? gols : ''}</span>
+    <span class="bracket-slot-score">${scoreDisplay}</span>
   </div>`;
 }
 
 function _matchHTML(state, matches, matchId, tipo, previewA, previewB) {
-  return `<div class="bracket-match ${tipo}-match" style="margin-bottom:8px">
+  return `<div class="bracket-match ${tipo}-match">
     ${_slotHTML(state, matches, matchId, 'A', previewA)}
     ${_slotHTML(state, matches, matchId, 'B', previewB)}
   </div>`;
@@ -63,16 +73,16 @@ function _phaseHeader(text) {
   return `<div class="phase-label">${text}</div>`;
 }
 
-function _connector(height) {
-  return `<div class="bracket-connector" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:40px">
-    <div style="width:2px;height:${height || 48}px;background:var(--color-border)"></div>
+function _connector() {
+  return `<div class="bracket-connector" style="display:flex;align-items:center;justify-content:center">
+    <div style="width:2px;height:60%;max-height:120px;min-height:32px;background:var(--color-border);border-radius:1px"></div>
   </div>`;
 }
 
 function _gfSlotHTML(state, matches, matchId, slot, badge, badgeBg, badgeColor, previewLabel) {
   const m = matches ? matches[matchId] : null;
   const teamId = m ? m['time' + slot] : null;
-  const gols = m ? m['gols' + slot] : null;
+  const score = m ? m['score' + slot] : null;
   const isWinner = m && m.vencedor && m.vencedor === teamId;
 
   if (!matches || !m || !teamId) {
@@ -82,11 +92,21 @@ function _gfSlotHTML(state, matches, matchId, slot, badge, badgeBg, badgeColor, 
   const time = state ? AppState.getTimeById(state, teamId) : null;
   if (!time) return `<div class="bracket-slot tbd"><span>A definir</span></div>`;
 
+  // For winner-only games, show checkmark instead of numeric score
+  const gt = (state && state.campeonato) ? getGameType(state.campeonato.gameType) : null;
+  const isWinnerOnly = gt && gt.scoreType !== 'numeric';
+  let scoreDisplay = '';
+  if (isWinnerOnly) {
+    scoreDisplay = isWinner ? '<span class="winner-check">✓</span>' : '';
+  } else {
+    scoreDisplay = score !== null ? score : '';
+  }
+
   return `<div class="bracket-slot ${isWinner ? 'winner' : ''}">
     ${UI.renderAvatar(time, 22, 'bracket-slot-avatar')}
     <span class="bracket-slot-name">${UI.escapeHtml(time.nome)}</span>
     <span style="font-size:.6rem;background:${badgeBg};color:${badgeColor};padding:1px 5px;border-radius:8px;font-weight:700;margin-right:4px">${badge}</span>
-    <span class="bracket-slot-score">${gols !== null ? gols : ''}</span>
+    <span class="bracket-slot-score">${scoreDisplay}</span>
   </div>`;
 }
 
@@ -299,33 +319,42 @@ const FORMAT_DOUBLE_ELIM_4 = {
     return `
     <div class="bracket-container">
       <div style="margin-bottom:8px"><span class="bracket-label upper">&#9733; Chave Superior</span></div>
-      <div style="display:grid;grid-template-columns:1fr 48px 1fr 48px 1fr;gap:0;align-items:center;min-width:800px;margin-bottom:32px">
+      <div style="display:grid;grid-template-columns:1fr 48px 1fr 48px 1fr;grid-template-rows:auto 1fr;min-width:800px;margin-bottom:32px">
+        <div style="align-self:end">${_phaseHeader('Semifinal')}</div>
+        <div></div>
+        <div style="align-self:end">${_phaseHeader('Final Superior')}</div>
+        <div></div>
+        <div style="align-self:end"><div class="phase-label" style="color:var(--color-champion);border-bottom-color:rgba(249,168,37,.3)">Grande Final</div></div>
         <div style="display:flex;flex-direction:column;gap:16px">
-          ${_phaseHeader('Semifinal')}
           ${_matchHTML(state, m, 'ub-sf1', 'upper', '1º Colocado', '4º Colocado')}
           ${_matchHTML(state, m, 'ub-sf2', 'upper', '2º Colocado', '3º Colocado')}
         </div>
-        ${_connector(64)}
-        <div style="display:flex;flex-direction:column;justify-content:center">
-          <div style="margin-bottom:48px">${_phaseHeader('Final Superior')}</div>
+        <div style="display:flex;align-items:center;justify-content:center">
+          ${_connector()}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
           ${_matchHTML(state, m, 'ub-final', 'upper', 'Vencedor UB SF1', 'Vencedor UB SF2')}
         </div>
-        ${_connector(48)}
-        <div style="display:flex;flex-direction:column;justify-content:center">
-          <div style="margin-bottom:48px"><div class="phase-label" style="color:var(--color-champion);border-bottom-color:rgba(249,168,37,.3)">Grande Final</div></div>
+        <div style="display:flex;align-items:center;justify-content:center">
+          ${_connector()}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
           ${_grandFinalHTML(state, m)}
         </div>
       </div>
       <hr class="bracket-divider">
       <div style="margin-bottom:8px"><span class="bracket-label lower">&#8595; Chave Inferior</span></div>
-      <div style="display:grid;grid-template-columns:1fr 48px 1fr;gap:0;align-items:center;min-width:500px;max-width:700px;margin-bottom:16px">
-        <div>
-          ${_phaseHeader('Semifinal Inferior')}
+      <div style="display:grid;grid-template-columns:1fr 48px 1fr;grid-template-rows:auto 1fr;min-width:500px;max-width:700px;margin-bottom:16px">
+        <div style="align-self:end">${_phaseHeader('Semifinal Inferior')}</div>
+        <div></div>
+        <div style="align-self:end">${_phaseHeader('Final Inferior')}</div>
+        <div style="display:flex;flex-direction:column;gap:16px">
           ${_matchHTML(state, m, 'lb-sf', 'lower', 'Perdedor UB SF1', 'Perdedor UB SF2')}
         </div>
-        ${_connector(44)}
-        <div>
-          ${_phaseHeader('Final Inferior')}
+        <div style="display:flex;align-items:center;justify-content:center">
+          ${_connector()}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px">
           ${_matchHTML(state, m, 'lb-final', 'lower', 'Vencedor LB SF', 'Perdedor UB Final')}
         </div>
       </div>
@@ -497,7 +526,7 @@ const FORMAT_PLAY_IN_6 = {
       { name: 'Quartas de Final', matches: [
         { slotA: '3º Colocado', slotB: '6º Colocado' },
         { slotA: '4º Colocado', slotB: '5º Colocado' }
-      ], note: '1º e 2º não jogam nesta fase' },
+      ] },
       { name: 'Semifinal', matches: [
         { slotA: '1º Colocado (BYE)', slotB: 'Vencedor (4º vs 5º)' },
         { slotA: '2º Colocado (BYE)', slotB: 'Vencedor (3º vs 6º)' }
@@ -575,46 +604,60 @@ const FORMAT_PLAY_IN_6 = {
     return `
     <div class="bracket-container">
       <div style="margin-bottom:8px"><span class="bracket-label upper">&#9733; Chave Superior</span></div>
-      <div style="display:grid;grid-template-columns:1fr 36px 1fr 36px 1fr 36px 1fr;gap:0;align-items:center;min-width:900px;margin-bottom:32px">
+      <div style="display:grid;grid-template-columns:1fr 36px 1fr 36px 1fr 36px 1fr;grid-template-rows:auto 1fr;min-width:900px;margin-bottom:32px">
+        <div style="align-self:end">${_phaseHeader('Quartas de Final')}</div>
+        <div></div>
+        <div style="align-self:end">${_phaseHeader('Semifinal')}</div>
+        <div></div>
+        <div style="align-self:end">${_phaseHeader('Final Superior')}</div>
+        <div></div>
+        <div style="align-self:end"><div class="phase-label" style="color:var(--color-champion);border-bottom-color:rgba(249,168,37,.3)">Grande Final</div></div>
         <div style="display:flex;flex-direction:column;gap:16px">
-          ${_phaseHeader('Quartas de Final')}
           ${_matchHTML(state, m, 'ub-qf1', 'upper', '3º Colocado', '6º Colocado')}
           ${_matchHTML(state, m, 'ub-qf2', 'upper', '4º Colocado', '5º Colocado')}
-          <div style="font-size:.7rem;color:var(--color-text-dim);text-align:center;font-style:italic">1º e 2º não jogam</div>
         </div>
-        ${_connector(64)}
-        <div style="display:flex;flex-direction:column;gap:16px">
-          ${_phaseHeader('Semifinal')}
+        <div style="display:flex;align-items:center;justify-content:center">
+          ${_connector()}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
           ${_matchHTML(state, m, 'ub-sf1', 'upper', '1º Colocado (BYE)', 'Vencedor UB QF (4º vs 5º)')}
           ${_matchHTML(state, m, 'ub-sf2', 'upper', '2º Colocado (BYE)', 'Vencedor UB QF (3º vs 6º)')}
         </div>
-        ${_connector(48)}
-        <div style="display:flex;flex-direction:column;justify-content:center">
-          <div style="margin-bottom:48px">${_phaseHeader('Final Superior')}</div>
+        <div style="display:flex;align-items:center;justify-content:center">
+          ${_connector()}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
           ${_matchHTML(state, m, 'ub-final', 'upper', 'Vencedor UB SF1', 'Vencedor UB SF2')}
         </div>
-        ${_connector(48)}
-        <div style="display:flex;flex-direction:column;justify-content:center">
-          <div style="margin-bottom:48px"><div class="phase-label" style="color:var(--color-champion);border-bottom-color:rgba(249,168,37,.3)">Grande Final</div></div>
+        <div style="display:flex;align-items:center;justify-content:center">
+          ${_connector()}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
           ${_grandFinalHTML(state, m)}
         </div>
       </div>
       <hr class="bracket-divider">
       <div style="margin-bottom:8px"><span class="bracket-label lower">&#8595; Chave Inferior</span></div>
-      <div style="display:grid;grid-template-columns:1fr 36px 1fr 36px 1fr;gap:0;align-items:center;min-width:700px;max-width:900px;margin-bottom:16px">
+      <div style="display:grid;grid-template-columns:1fr 36px 1fr 36px 1fr;grid-template-rows:auto 1fr;min-width:700px;max-width:900px;margin-bottom:16px">
+        <div style="align-self:end">${_phaseHeader('Quartas de Final')}</div>
+        <div></div>
+        <div style="align-self:end">${_phaseHeader('Semifinal Inferior')}</div>
+        <div></div>
+        <div style="align-self:end">${_phaseHeader('Final Inferior')}</div>
         <div style="display:flex;flex-direction:column;gap:16px">
-          ${_phaseHeader('Quartas de Final')}
           ${_matchHTML(state, m, 'lb-qf1', 'lower', 'Perdedor UB SF1', 'Perdedor UB QF1')}
           ${_matchHTML(state, m, 'lb-qf2', 'lower', 'Perdedor UB SF2', 'Perdedor UB QF2')}
         </div>
-        ${_connector(44)}
-        <div>
-          ${_phaseHeader('Semifinal Inferior')}
+        <div style="display:flex;align-items:center;justify-content:center">
+          ${_connector()}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
           ${_matchHTML(state, m, 'lb-sf', 'lower', 'Vencedor LB QF1', 'Vencedor LB QF2')}
         </div>
-        ${_connector(44)}
-        <div>
-          ${_phaseHeader('Final Inferior')}
+        <div style="display:flex;align-items:center;justify-content:center">
+          ${_connector()}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
           ${_matchHTML(state, m, 'lb-final', 'lower', 'Vencedor LB SF', 'Perdedor UB Final')}
         </div>
       </div>
@@ -760,7 +803,7 @@ const FORMAT_GAUNTLET_6 = {
     { section: 'upper', title: 'Chave Superior (Escada)', phases: [
       { name: 'UB Round 1', matches: [
         { slotA: '3º Colocado', slotB: '4º Colocado' }
-      ], note: '1º e 2º não jogam nesta fase' },
+      ] },
       { name: 'UB Round 2', matches: [
         { slotA: '2º Colocado (BYE)', slotB: 'Vencedor UB R1' }
       ]},
@@ -771,7 +814,7 @@ const FORMAT_GAUNTLET_6 = {
     { section: 'lower', title: 'Chave Inferior', phases: [
       { name: 'Oitavas de Final', matches: [
         { slotA: '5º Colocado', slotB: '6º Colocado' }
-      ], note: 'Perdedor eliminado (sem 2ª chance)' },
+      ] },
       { name: 'Quartas de Final', matches: [
         { slotA: 'Vencedor LB Oitavas', slotB: 'Perdedor UB QF' }
       ]},
@@ -841,49 +884,65 @@ const FORMAT_GAUNTLET_6 = {
     return `
     <div class="bracket-container">
       <div style="margin-bottom:8px"><span class="bracket-label upper">&#9733; Chave Superior</span></div>
-      <div style="display:grid;grid-template-columns:1fr 36px 1fr 36px 1fr 36px 1fr;gap:0;align-items:start;min-width:900px;margin-bottom:32px">
-        <div>
-          ${_phaseHeader('Quartas de Final')}
+      <div style="display:grid;grid-template-columns:1fr 36px 1fr 36px 1fr 36px 1fr;grid-template-rows:auto 1fr;min-width:900px;margin-bottom:32px">
+        <div style="align-self:end">${_phaseHeader('Quartas de Final')}</div>
+        <div></div>
+        <div style="align-self:end">${_phaseHeader('Semifinal')}</div>
+        <div></div>
+        <div style="align-self:end">${_phaseHeader('Final Superior')}</div>
+        <div></div>
+        <div style="align-self:end"><div class="phase-label" style="color:var(--color-champion);border-bottom-color:rgba(249,168,37,.3)">Grande Final</div></div>
+        <div style="display:flex;flex-direction:column;gap:16px">
           ${_matchHTML(state, m, 'ub-r1', 'upper', '3º Colocado', '4º Colocado')}
-          <div style="font-size:.7rem;color:var(--color-text-dim);text-align:center;font-style:italic;margin-top:4px">1º e 2º não jogam</div>
         </div>
-        <div class="bracket-connector" style="display:flex;align-items:center;justify-content:center;height:100%"><div style="width:2px;height:48px;background:var(--color-border)"></div></div>
-        <div>
-          ${_phaseHeader('Semifinal')}
+        <div style="display:flex;align-items:center;justify-content:center">
+          ${_connector()}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
           ${_matchHTML(state, m, 'ub-r2', 'upper', '2º Colocado (BYE)', 'Vencedor UB QF')}
         </div>
-        <div class="bracket-connector" style="display:flex;align-items:center;justify-content:center;height:100%"><div style="width:2px;height:48px;background:var(--color-border)"></div></div>
-        <div>
-          ${_phaseHeader('Final Superior')}
+        <div style="display:flex;align-items:center;justify-content:center">
+          ${_connector()}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
           ${_matchHTML(state, m, 'ub-final', 'upper', '1º Colocado (BYE)', 'Vencedor UB SF')}
         </div>
-        <div class="bracket-connector" style="display:flex;align-items:center;justify-content:center;height:100%"><div style="width:2px;height:48px;background:var(--color-border)"></div></div>
-        <div>
-          <div class="phase-label" style="color:var(--color-champion);border-bottom-color:rgba(249,168,37,.3)">Grande Final</div>
+        <div style="display:flex;align-items:center;justify-content:center">
+          ${_connector()}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
           ${_grandFinalHTML(state, m)}
         </div>
       </div>
       <hr class="bracket-divider">
       <div style="margin-bottom:8px"><span class="bracket-label lower">&#8595; Chave Inferior</span></div>
-      <div style="display:grid;grid-template-columns:1fr 36px 1fr 36px 1fr 36px 1fr;gap:0;align-items:start;min-width:900px;max-width:1000px;margin-bottom:16px">
-        <div>
-          ${_phaseHeader('Oitavas de Final')}
+      <div style="display:grid;grid-template-columns:1fr 36px 1fr 36px 1fr 36px 1fr;grid-template-rows:auto 1fr;min-width:900px;max-width:1000px;margin-bottom:16px">
+        <div style="align-self:end">${_phaseHeader('Oitavas de Final')}</div>
+        <div></div>
+        <div style="align-self:end">${_phaseHeader('Quartas de Final')}</div>
+        <div></div>
+        <div style="align-self:end">${_phaseHeader('Semifinal Inferior')}</div>
+        <div></div>
+        <div style="align-self:end">${_phaseHeader('Final Inferior')}</div>
+        <div style="display:flex;flex-direction:column;gap:16px">
           ${_matchHTML(state, m, 'lb-r1', 'lower', '5º Colocado', '6º Colocado')}
-          <div style="font-size:.65rem;color:var(--color-loss);text-align:center;margin-top:4px">Perdedor eliminado</div>
         </div>
-        <div class="bracket-connector" style="display:flex;align-items:center;justify-content:center;height:100%"><div style="width:2px;height:44px;background:var(--color-border)"></div></div>
-        <div>
-          ${_phaseHeader('Quartas de Final')}
+        <div style="display:flex;align-items:center;justify-content:center">
+          ${_connector()}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
           ${_matchHTML(state, m, 'lb-r2', 'lower', 'Vencedor LB Oitavas', 'Perdedor UB QF')}
         </div>
-        <div class="bracket-connector" style="display:flex;align-items:center;justify-content:center;height:100%"><div style="width:2px;height:44px;background:var(--color-border)"></div></div>
-        <div>
-          ${_phaseHeader('Semifinal Inferior')}
+        <div style="display:flex;align-items:center;justify-content:center">
+          ${_connector()}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
           ${_matchHTML(state, m, 'lb-r3', 'lower', 'Vencedor LB QF', 'Perdedor UB SF')}
         </div>
-        <div class="bracket-connector" style="display:flex;align-items:center;justify-content:center;height:100%"><div style="width:2px;height:44px;background:var(--color-border)"></div></div>
-        <div>
-          ${_phaseHeader('Final Inferior')}
+        <div style="display:flex;align-items:center;justify-content:center">
+          ${_connector()}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
           ${_matchHTML(state, m, 'lb-final', 'lower', 'Vencedor LB SF', 'Perdedor UB Final')}
         </div>
       </div>
@@ -893,13 +952,312 @@ const FORMAT_GAUNTLET_6 = {
 };
 
 // ------------------------------------------------------------------
+// Single Elimination — 4 Times
+// ------------------------------------------------------------------
+
+const FORMAT_SINGLE_ELIM_4 = {
+  id: 'single-elim-4',
+  name: 'Eliminação Simples — 4 Times',
+  classified: 4,
+  minTeams: 4,
+
+  classificationTiers: [
+    { from: 1, to: 4, cssClass: 'tier-qualified', label: 'Semifinal', color: '#00b894' }
+  ],
+
+  defaultMatches() {
+    return {
+      'se-sf1': _newMatch('se-sf1', 'Semifinal 1', '1º vs 4º'),
+      'se-sf2': _newMatch('se-sf2', 'Semifinal 2', '2º vs 3º'),
+      'se-final': _newMatch('se-final', 'Final', 'Vencedor SF1 vs Vencedor SF2')
+    };
+  },
+
+  generateBracket(teams, matches) {
+    matches['se-sf1'].timeA = teams[0].id;
+    matches['se-sf1'].timeB = teams[3].id;
+    matches['se-sf2'].timeA = teams[1].id;
+    matches['se-sf2'].timeB = teams[2].id;
+  },
+
+  propagateResult(matches) {
+    const sf1 = matches['se-sf1'];
+    const sf2 = matches['se-sf2'];
+    const final_ = matches['se-final'];
+    if (sf1.vencedor) final_.timeA = sf1.vencedor;
+    if (sf2.vencedor) final_.timeB = sf2.vencedor;
+  },
+
+  resetDownstream(matches, matchId) {
+    if (matchId === 'se-sf1' || matchId === 'se-sf2') { _clearMatchFull(matches['se-final']); }
+  },
+
+  isGrandFinal(matchId) { return matchId === 'se-final'; },
+  getGrandFinal(matches) { return matches['se-final']; },
+  getAllMatches(matches) { return Object.values(matches); },
+  getRegularMatches(matches) { return [matches['se-sf1'], matches['se-sf2']]; },
+
+  getMatchMeta(matchId) {
+    const map = {
+      'se-sf1': { bracket: 'Semifinal', color: '#6c5ce7' },
+      'se-sf2': { bracket: 'Semifinal', color: '#6c5ce7' },
+      'se-final': { bracket: 'Final', color: '#f9a825' }
+    };
+    return map[matchId] || { bracket: '', color: '#636e72' };
+  },
+
+  matchImportanceOrder: ['se-final', 'se-sf1', 'se-sf2'],
+
+  miniBracketEntries: [
+    { matchId: 'se-sf1', phase: 'SF1', color: '#6c5ce7' },
+    { matchId: 'se-sf2', phase: 'SF2', color: '#6c5ce7' },
+    { matchId: 'se-final', phase: 'Final', color: '#f9a825' }
+  ],
+
+  previewSlots: [
+    { section: 'upper', title: 'Semifinais', phases: [
+      { name: 'Semifinais', matches: [
+        { slotA: '1º Colocado', slotB: '4º Colocado' },
+        { slotA: '2º Colocado', slotB: '3º Colocado' }
+      ]}
+    ]},
+    { section: 'grand', title: 'Final', phases: [
+      { name: 'Final', matches: [
+        { slotA: 'Vencedor SF1', slotB: 'Vencedor SF2' }
+      ]}
+    ]}
+  ],
+
+  renderBracketHTML(state) {
+    const m = state ? state.playoffs.matches : null;
+    return `<div class="bracket-container">
+      <div style="display:grid;grid-template-columns:1fr 48px 1fr;grid-template-rows:auto 1fr;min-width:600px">
+        <div style="align-self:end">${_phaseHeader('Semifinais')}</div>
+        <div></div>
+        <div style="align-self:end"><div class="phase-label" style="color:var(--color-champion);border-bottom-color:rgba(249,168,37,.3)">Final</div></div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          ${_matchHTML(state, m, 'se-sf1', 'upper', '1º Colocado', '4º Colocado')}
+          ${_matchHTML(state, m, 'se-sf2', 'upper', '2º Colocado', '3º Colocado')}
+        </div>
+        <div style="display:flex;align-items:center;justify-content:center">
+          ${_connector()}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
+          ${_matchHTML(state, m, 'se-final', 'grand', 'Vencedor SF1', 'Vencedor SF2')}
+        </div>
+      </div>
+    </div>`;
+  },
+
+  infoCards: {
+    path: [
+      { seed: '1º-2º', desc: 'Semifinal → Final', games: '2 jogos mín' },
+      { seed: '3º-4º', desc: 'Semifinal → Final', games: '2 jogos mín' }
+    ],
+    mechanics: [
+      'Semifinal: 1º vs 4º e 2º vs 3º',
+      'Vencedores disputam a Final',
+      'Perdeu, está eliminado — sem segunda chance'
+    ],
+    advantages: [
+      '1º e 2º — Enfrentam adversários mais fracos nas semifinais'
+    ]
+  },
+
+  rules: [
+    {
+      title: 'Eliminação Simples',
+      icon: '📋',
+      iconBg: 'icon-bg-purple',
+      items: [
+        'Os 4 classificados da fase de grupos disputam as <strong>Semifinais</strong>.',
+        '<strong>Semifinal 1:</strong> 1º colocado vs 4º colocado.',
+        '<strong>Semifinal 2:</strong> 2º colocado vs 3º colocado.',
+        'Vencedores das Semifinais disputam a <strong>Final</strong>.',
+        'Derrota = eliminação imediata. Sem segunda chance.'
+      ]
+    }
+  ]
+};
+
+// ------------------------------------------------------------------
+// Single Elimination — 8 Times
+// ------------------------------------------------------------------
+
+const FORMAT_SINGLE_ELIM_8 = {
+  id: 'single-elim-8',
+  name: 'Eliminação Simples — 8 Times',
+  classified: 8,
+  minTeams: 8,
+
+  classificationTiers: [
+    { from: 1, to: 8, cssClass: 'tier-qualified', label: 'Quartas de Final', color: '#00b894' }
+  ],
+
+  defaultMatches() {
+    return {
+      'se8-qf1': _newMatch('se8-qf1', 'Quartas 1', '1º vs 8º'),
+      'se8-qf2': _newMatch('se8-qf2', 'Quartas 2', '4º vs 5º'),
+      'se8-qf3': _newMatch('se8-qf3', 'Quartas 3', '3º vs 6º'),
+      'se8-qf4': _newMatch('se8-qf4', 'Quartas 4', '2º vs 7º'),
+      'se8-sf1': _newMatch('se8-sf1', 'Semifinal 1', 'V QF1 vs V QF2'),
+      'se8-sf2': _newMatch('se8-sf2', 'Semifinal 2', 'V QF3 vs V QF4'),
+      'se8-final': _newMatch('se8-final', 'Final', 'V SF1 vs V SF2')
+    };
+  },
+
+  generateBracket(teams, matches) {
+    matches['se8-qf1'].timeA = teams[0].id; matches['se8-qf1'].timeB = teams[7].id; // 1º vs 8º
+    matches['se8-qf2'].timeA = teams[3].id; matches['se8-qf2'].timeB = teams[4].id; // 4º vs 5º
+    matches['se8-qf3'].timeA = teams[2].id; matches['se8-qf3'].timeB = teams[5].id; // 3º vs 6º
+    matches['se8-qf4'].timeA = teams[1].id; matches['se8-qf4'].timeB = teams[6].id; // 2º vs 7º
+  },
+
+  propagateResult(matches) {
+    if (matches['se8-qf1'].vencedor) matches['se8-sf1'].timeA = matches['se8-qf1'].vencedor;
+    if (matches['se8-qf2'].vencedor) matches['se8-sf1'].timeB = matches['se8-qf2'].vencedor;
+    if (matches['se8-qf3'].vencedor) matches['se8-sf2'].timeA = matches['se8-qf3'].vencedor;
+    if (matches['se8-qf4'].vencedor) matches['se8-sf2'].timeB = matches['se8-qf4'].vencedor;
+    if (matches['se8-sf1'].vencedor) matches['se8-final'].timeA = matches['se8-sf1'].vencedor;
+    if (matches['se8-sf2'].vencedor) matches['se8-final'].timeB = matches['se8-sf2'].vencedor;
+  },
+
+  resetDownstream(matches, matchId) {
+    const deps = {
+      'se8-qf1': ['se8-sf1', 'se8-final'],
+      'se8-qf2': ['se8-sf1', 'se8-final'],
+      'se8-qf3': ['se8-sf2', 'se8-final'],
+      'se8-qf4': ['se8-sf2', 'se8-final'],
+      'se8-sf1': ['se8-final'],
+      'se8-sf2': ['se8-final']
+    };
+    (deps[matchId] || []).forEach(id => _clearMatchFull(matches[id]));
+  },
+
+  isGrandFinal(matchId) { return matchId === 'se8-final'; },
+  getGrandFinal(matches) { return matches['se8-final']; },
+  getAllMatches(matches) { return Object.values(matches); },
+  getRegularMatches(matches) {
+    return ['se8-qf1','se8-qf2','se8-qf3','se8-qf4','se8-sf1','se8-sf2'].map(id => matches[id]);
+  },
+
+  getMatchMeta(matchId) {
+    const map = {
+      'se8-qf1': { bracket: 'Quartas', color: '#00b894' },
+      'se8-qf2': { bracket: 'Quartas', color: '#00b894' },
+      'se8-qf3': { bracket: 'Quartas', color: '#00b894' },
+      'se8-qf4': { bracket: 'Quartas', color: '#00b894' },
+      'se8-sf1': { bracket: 'Semifinal', color: '#6c5ce7' },
+      'se8-sf2': { bracket: 'Semifinal', color: '#6c5ce7' },
+      'se8-final': { bracket: 'Final', color: '#f9a825' }
+    };
+    return map[matchId] || { bracket: '', color: '#636e72' };
+  },
+
+  matchImportanceOrder: ['se8-final', 'se8-sf1', 'se8-sf2', 'se8-qf1', 'se8-qf2', 'se8-qf3', 'se8-qf4'],
+
+  miniBracketEntries: [
+    { matchId: 'se8-qf1', phase: 'QF1', color: '#00b894' },
+    { matchId: 'se8-qf2', phase: 'QF2', color: '#00b894' },
+    { matchId: 'se8-sf1', phase: 'SF1', color: '#6c5ce7' },
+    { matchId: 'se8-sf2', phase: 'SF2', color: '#6c5ce7' },
+    { matchId: 'se8-final', phase: 'Final', color: '#f9a825' }
+  ],
+
+  previewSlots: [
+    { section: 'upper', title: 'Quartas de Final', phases: [
+      { name: 'Quartas de Final', matches: [
+        { slotA: '1º Colocado', slotB: '8º Colocado' },
+        { slotA: '4º Colocado', slotB: '5º Colocado' },
+        { slotA: '3º Colocado', slotB: '6º Colocado' },
+        { slotA: '2º Colocado', slotB: '7º Colocado' }
+      ]}
+    ]},
+    { section: 'upper', title: 'Semifinais', phases: [
+      { name: 'Semifinais', matches: [
+        { slotA: 'Vencedor QF1', slotB: 'Vencedor QF2' },
+        { slotA: 'Vencedor QF3', slotB: 'Vencedor QF4' }
+      ]}
+    ]},
+    { section: 'grand', title: 'Final', phases: [
+      { name: 'Final', matches: [
+        { slotA: 'Vencedor SF1', slotB: 'Vencedor SF2' }
+      ]}
+    ]}
+  ],
+
+  renderBracketHTML(state) {
+    const m = state ? state.playoffs.matches : null;
+    return `<div class="bracket-container">
+      <div style="display:grid;grid-template-columns:1fr 48px 1fr 48px 1fr;grid-template-rows:auto 1fr;min-width:800px">
+        <div style="align-self:end">${_phaseHeader('Quartas de Final')}</div>
+        <div></div>
+        <div style="align-self:end">${_phaseHeader('Semifinais')}</div>
+        <div></div>
+        <div style="align-self:end"><div class="phase-label" style="color:var(--color-champion);border-bottom-color:rgba(249,168,37,.3)">Final</div></div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          ${_matchHTML(state, m, 'se8-qf1', 'upper', '1º Colocado', '8º Colocado')}
+          ${_matchHTML(state, m, 'se8-qf2', 'upper', '4º Colocado', '5º Colocado')}
+          ${_matchHTML(state, m, 'se8-qf3', 'upper', '3º Colocado', '6º Colocado')}
+          ${_matchHTML(state, m, 'se8-qf4', 'upper', '2º Colocado', '7º Colocado')}
+        </div>
+        <div style="display:flex;align-items:center;justify-content:center">
+          ${_connector()}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
+          ${_matchHTML(state, m, 'se8-sf1', 'upper', 'V QF1', 'V QF2')}
+          ${_matchHTML(state, m, 'se8-sf2', 'upper', 'V QF3', 'V QF4')}
+        </div>
+        <div style="display:flex;align-items:center;justify-content:center">
+          ${_connector()}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
+          ${_matchHTML(state, m, 'se8-final', 'grand', 'Vencedor SF1', 'Vencedor SF2')}
+        </div>
+      </div>
+    </div>`;
+  },
+
+  infoCards: {
+    path: [
+      { seed: '1º-8º', desc: 'Quartas → Semifinal → Final', games: '3 jogos mín' }
+    ],
+    mechanics: [
+      'Quartas: 1º vs 8º, 4º vs 5º, 3º vs 6º, 2º vs 7º',
+      'Semifinal: Vencedores do mesmo lado se cruzam',
+      'Perdeu, está eliminado — sem segunda chance'
+    ],
+    advantages: [
+      'Melhores colocados enfrentam adversários piores nas quartas'
+    ]
+  },
+
+  rules: [
+    {
+      title: 'Eliminação Simples',
+      icon: '📋',
+      iconBg: 'icon-bg-purple',
+      items: [
+        'Os 8 classificados da fase de grupos disputam as <strong>Quartas de Final</strong>.',
+        '<strong>QF:</strong> 1º vs 8º, 4º vs 5º, 3º vs 6º, 2º vs 7º.',
+        'Vencedores das Quartas disputam as <strong>Semifinais</strong>.',
+        'Vencedores das Semifinais disputam a <strong>Final</strong>.',
+        'Derrota = eliminação imediata. Sem segunda chance.'
+      ]
+    }
+  ]
+};
+
+// ------------------------------------------------------------------
 // Registry
 // ------------------------------------------------------------------
 
 const PLAYOFF_FORMATS = {
   'double-elim-4': FORMAT_DOUBLE_ELIM_4,
   'play-in-6': FORMAT_PLAY_IN_6,
-  'gauntlet-6': FORMAT_GAUNTLET_6
+  'gauntlet-6': FORMAT_GAUNTLET_6,
+  'single-elim-4': FORMAT_SINGLE_ELIM_4,
+  'single-elim-8': FORMAT_SINGLE_ELIM_8
 };
 
 const DEFAULT_PLAYOFF_FORMAT = 'double-elim-4';

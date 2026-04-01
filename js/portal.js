@@ -67,7 +67,7 @@ function portalRenderCards() {
     <div class="selector-card" onclick="portalEnterTournament('${UI.escapeHtml(t.id)}')">
       <div class="selector-card-info">
         <span class="selector-card-name">${UI.escapeHtml(t.nome)}</span>
-        <span class="selector-card-meta">${UI.escapeHtml(t.jogo)}${date ? ' · ' + date : ''}</span>
+        <span class="selector-card-meta">${(() => { const gt = getGameType(t.gameType); return gt.icon + ' ' + gt.name; })()}${date ? ' · ' + date : ''}</span>
       </div>
       <div class="selector-card-right">
         <span class="badge badge-${UI.escapeHtml(t.status)}">${statusLabel[t.status] || t.status}</span>
@@ -129,14 +129,14 @@ async function portalCreateTournament(event) {
   if (!UI.checkAdmin()) return;
 
   const nome = document.getElementById('inputTournamentNome').value.trim();
-  const jogo = document.getElementById('inputTournamentJogo').value.trim();
+  const gameType = document.getElementById('inputTournamentGameType').value;
 
-  if (!nome || !jogo) {
-    UI.showToast('Preencha o nome e o jogo do campeonato.', 'error');
+  if (!nome) {
+    UI.showToast('Preencha o nome do campeonato.', 'error');
     return;
   }
 
-  const uuid = await FirestoreService.createTournament({ nome, jogo });
+  const uuid = await FirestoreService.createTournament({ nome, gameType });
   if (!uuid) {
     UI.showToast('Erro ao criar campeonato. Tente novamente.', 'error');
     return;
@@ -144,6 +144,13 @@ async function portalCreateTournament(event) {
 
   UI.showToast('Campeonato criado!', 'success');
   portalEnterTournament(uuid);
+}
+
+function portalSelectGameType(gameTypeId) {
+  document.getElementById('inputTournamentGameType').value = gameTypeId;
+  document.querySelectorAll('.game-type-card').forEach(card => {
+    card.classList.toggle('selected', card.dataset.gameType === gameTypeId);
+  });
 }
 
 // Boot
@@ -158,6 +165,19 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   initAuth();
+
+  // Render game type selector in creation modal
+  const selectorEl = document.getElementById('gameTypeSelector');
+  if (selectorEl) {
+    selectorEl.innerHTML = Object.values(GAME_TYPES).map(gt => `
+      <button type="button" class="game-type-card ${gt.id === DEFAULT_GAME_TYPE ? 'selected' : ''}"
+        onclick="portalSelectGameType('${gt.id}')" data-game-type="${gt.id}">
+        <span class="game-type-icon">${gt.icon}</span>
+        <span class="game-type-name">${gt.name}</span>
+      </button>
+    `).join('');
+  }
+
   portalRenderList();
 });
 
@@ -166,3 +186,4 @@ window.portalEnterTournament = portalEnterTournament;
 window.portalCreateTournament = portalCreateTournament;
 window.portalRequestDelete = portalRequestDelete;
 window.portalExecuteDelete = portalExecuteDelete;
+window.portalSelectGameType = portalSelectGameType;

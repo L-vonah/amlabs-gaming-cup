@@ -79,6 +79,9 @@ function renderClassificacao() {
     return;
   }
 
+  const gt = getGameType(state.campeonato.gameType);
+  const cols = gt.columns;
+
   container.innerHTML = `
     <div class="classification-table-wrapper">
       <table class="classification-table">
@@ -87,11 +90,11 @@ function renderClassificacao() {
             <th colspan="2">Time</th>
             <th class="text-center">J</th>
             <th class="text-center">V</th>
-            <th class="text-center">E</th>
+            ${cols.empates ? '<th class="text-center">E</th>' : ''}
             <th class="text-center">D</th>
-            <th class="text-center">GP</th>
-            <th class="text-center">GC</th>
-            <th class="text-center">SG</th>
+            ${cols.scoreMarcados ? '<th class="text-center">' + cols.scoreMarcados.label + '</th>' : ''}
+            ${cols.scoreSofridos ? '<th class="text-center">' + cols.scoreSofridos.label + '</th>' : ''}
+            ${cols.saldo ? '<th class="text-center">' + cols.saldo.label + '</th>' : ''}
             <th class="text-center">Pts</th>
             <th>Forma</th>
             <th></th>
@@ -102,7 +105,7 @@ function renderClassificacao() {
             const pos = i + 1;
             const tier = getTierForPosition(pos);
             const tierClass = tier ? tier.cssClass : '';
-            const sgClass = t.saldoGols > 0 ? 'stat-positive' : t.saldoGols < 0 ? 'stat-negative' : 'stat-neutral';
+            const sgClass = t.saldoScore > 0 ? 'stat-positive' : t.saldoScore < 0 ? 'stat-negative' : 'stat-neutral';
             return `
               <tr class="${tierClass}">
                 <td>
@@ -121,11 +124,11 @@ function renderClassificacao() {
                 </td>
                 <td class="text-center text-muted">${t.jogos}</td>
                 <td class="text-center stat-positive" style="font-weight:700">${t.vitorias}</td>
-                <td class="text-center stat-neutral">${t.empates}</td>
+                ${cols.empates ? '<td class="text-center stat-neutral">' + t.empates + '</td>' : ''}
                 <td class="text-center stat-negative">${t.derrotas}</td>
-                <td class="text-center">${t.golsMarcados}</td>
-                <td class="text-center">${t.golsSofridos}</td>
-                <td class="text-center ${sgClass}" style="font-weight:700">${UI.signedNumber(t.saldoGols)}</td>
+                ${cols.scoreMarcados ? '<td class="text-center">' + t.scoreMarcados + '</td>' : ''}
+                ${cols.scoreSofridos ? '<td class="text-center">' + t.scoreSofridos + '</td>' : ''}
+                ${cols.saldo ? '<td class="text-center ' + sgClass + '" style="font-weight:700">' + UI.signedNumber(t.saldoScore) + '</td>' : ''}
                 <td class="text-center"><span class="stat-pts">${t.pontos}</span></td>
                 <td>
                   <div class="form-badges">
@@ -140,7 +143,7 @@ function renderClassificacao() {
     </div>
     <div class="classification-tier-legend">
       ${tiers.map(tier => `<div class="tier-legend-item"><span class="tier-legend-dot" style="background:${tier.color}"></span>${UI.escapeHtml(tier.label)} (${tier.from === tier.to ? tier.from + '&ordm;' : tier.from + '&ordm;-' + tier.to + '&ordm;'})</div>`).join('')}
-      <span>&bull; Desempate: Pontos &rarr; Vit&oacute;rias &rarr; Saldo de Gols &rarr; Gols Marcados</span>
+      <span>&bull; Desempate: ${gt.tiebreakerLabels.join(' &rarr; ')}</span>
     </div>`;
 }
 
@@ -150,6 +153,20 @@ function renderClassificacao() {
 
 function renderEstatisticas() {
   const state = AppState.loadReadOnly();
+  const gt = getGameType(state.campeonato.gameType);
+
+  // Hide statistics entirely for game types that don't have them
+  if (!gt.hasStatistics) {
+    ['statTotalPartidas','statTotalGols','statMediaGols','statTotalTimes','statTopGols','statTopDef','statGoleada','statMaisGols'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        const card = el.closest('.card');
+        if (card) card.style.display = 'none';
+      }
+    });
+    return;
+  }
+
   const stats = AppState.calcularEstatisticas(state);
 
   // Overview cards
@@ -160,17 +177,17 @@ function renderEstatisticas() {
     totalTimes: document.getElementById('statTotalTimes')
   };
   if (els.totalPartidas) els.totalPartidas.textContent = stats.totalPartidas;
-  if (els.totalGols) els.totalGols.textContent = stats.totalGols;
-  if (els.mediaGols) els.mediaGols.textContent = stats.mediaGols;
+  if (els.totalGols) els.totalGols.textContent = stats.totalScore;
+  if (els.mediaGols) els.mediaGols.textContent = stats.mediaScore;
   if (els.totalTimes) els.totalTimes.textContent = state.times.length;
 
   // Top scorers (by team)
   const topGolsEl = document.getElementById('statTopGols');
   if (topGolsEl) {
-    if (stats.topGoleadores.length === 0) {
+    if (stats.topScorers.length === 0) {
       topGolsEl.innerHTML = '<div class="empty-state" style="padding:24px"><div class="empty-title">Sem dados ainda</div></div>';
     } else {
-      topGolsEl.innerHTML = stats.topGoleadores.map((t, i) => `
+      topGolsEl.innerHTML = stats.topScorers.map((t, i) => `
         <div class="stat-rank-item">
           <span class="stat-rank-pos ${i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : ''}">${i + 1}</span>
           ${UI.renderAvatar(t, 36)}
@@ -179,7 +196,7 @@ function renderEstatisticas() {
             ${t.participante ? '<div class="stat-rank-participant">' + UI.escapeHtml(t.participante) + '</div>' : ''}
           </div>
           <div class="stat-rank-numbers">
-            <span class="stat-rank-value" style="color:var(--color-primary)">${t.golsMarcados}</span>
+            <span class="stat-rank-value" style="color:var(--color-primary)">${t.scoreMarcados}</span>
             <span class="stat-rank-label">${t.jogos}J</span>
           </div>
         </div>`).join('');
@@ -201,7 +218,7 @@ function renderEstatisticas() {
             ${t.participante ? '<div class="stat-rank-participant">' + UI.escapeHtml(t.participante) + '</div>' : ''}
           </div>
           <div class="stat-rank-numbers">
-            <span class="stat-rank-value" style="color:var(--color-win)">${t.golsSofridos}</span>
+            <span class="stat-rank-value" style="color:var(--color-win)">${t.scoreSofridos}</span>
             <span class="stat-rank-label">${t.jogos}J</span>
           </div>
         </div>`).join('');
@@ -211,10 +228,10 @@ function renderEstatisticas() {
   // Biggest win
   const goleadaEl = document.getElementById('statGoleada');
   if (goleadaEl) {
-    if (!stats.maiorGoleada.partida) {
+    if (!stats.maiorVitoria.partida) {
       goleadaEl.innerHTML = '<div class="text-dim text-sm" style="padding:16px 0">Sem partidas concluídas</div>';
     } else {
-      const p = stats.maiorGoleada.partida;
+      const p = stats.maiorVitoria.partida;
       const tA = AppState.getTimeById(state, p.timeA);
       const tB = AppState.getTimeById(state, p.timeB);
       const pWinA = p.penaltyWinner === p.timeA;
@@ -222,24 +239,24 @@ function renderEstatisticas() {
       goleadaEl.innerHTML = `
         <div class="stat-match-row">
           ${UI.renderAvatar(tA, 28)}
-          <span class="stat-match-name ${p.golsA > p.golsB || pWinA ? 'winner' : ''}">${tA ? UI.escapeHtml(tA.nome) : '?'}</span>
-          <span class="stat-match-score">${pWinA ? '<span class="penalty-tag">P</span>' : ''}${p.golsA}</span>
+          <span class="stat-match-name ${(p.scoreA || 0) > (p.scoreB || 0) || pWinA ? 'winner' : ''}">${tA ? UI.escapeHtml(tA.nome) : '?'}</span>
+          <span class="stat-match-score">${pWinA ? '<span class="penalty-tag">P</span>' : ''}${p.scoreA}</span>
           <span class="bracket-mini-separator">:</span>
-          <span class="stat-match-score">${p.golsB}${pWinB ? '<span class="penalty-tag">P</span>' : ''}</span>
-          <span class="stat-match-name ${p.golsB > p.golsA || pWinB ? 'winner' : ''}" style="text-align:right">${tB ? UI.escapeHtml(tB.nome) : '?'}</span>
+          <span class="stat-match-score">${p.scoreB}${pWinB ? '<span class="penalty-tag">P</span>' : ''}</span>
+          <span class="stat-match-name ${(p.scoreB || 0) > (p.scoreA || 0) || pWinB ? 'winner' : ''}" style="text-align:right">${tB ? UI.escapeHtml(tB.nome) : '?'}</span>
           ${UI.renderAvatar(tB, 28)}
         </div>
-        <div class="stat-match-note">Diferen&ccedil;a de ${Math.abs(p.golsA - p.golsB)} gol${Math.abs(p.golsA - p.golsB) !== 1 ? 's' : ''}</div>`;
+        <div class="stat-match-note">Diferen&ccedil;a de ${Math.abs((p.scoreA || 0) - (p.scoreB || 0))} gol${Math.abs((p.scoreA || 0) - (p.scoreB || 0)) !== 1 ? 's' : ''}</div>`;
     }
   }
 
   // Match with most goals
   const maisGolsEl = document.getElementById('statMaisGols');
   if (maisGolsEl) {
-    if (!stats.partidaMaisGols || !stats.partidaMaisGols.partida) {
+    if (!stats.partidaMaisScore || !stats.partidaMaisScore.partida) {
       maisGolsEl.innerHTML = '<div class="text-dim text-sm" style="padding:16px 0">Sem partidas conclu&iacute;das</div>';
     } else {
-      const p = stats.partidaMaisGols.partida;
+      const p = stats.partidaMaisScore.partida;
       const tA = AppState.getTimeById(state, p.timeA);
       const tB = AppState.getTimeById(state, p.timeB);
       const mgPA = p.penaltyWinner === p.timeA;
@@ -247,14 +264,14 @@ function renderEstatisticas() {
       maisGolsEl.innerHTML = `
         <div class="stat-match-row">
           ${UI.renderAvatar(tA, 28)}
-          <span class="stat-match-name ${p.golsA > p.golsB || mgPA ? 'winner' : ''}">${tA ? UI.escapeHtml(tA.nome) : '?'}</span>
-          <span class="stat-match-score">${mgPA ? '<span class="penalty-tag">P</span>' : ''}${p.golsA}</span>
+          <span class="stat-match-name ${(p.scoreA || 0) > (p.scoreB || 0) || mgPA ? 'winner' : ''}">${tA ? UI.escapeHtml(tA.nome) : '?'}</span>
+          <span class="stat-match-score">${mgPA ? '<span class="penalty-tag">P</span>' : ''}${p.scoreA}</span>
           <span class="bracket-mini-separator">:</span>
-          <span class="stat-match-score">${p.golsB}${mgPB ? '<span class="penalty-tag">P</span>' : ''}</span>
-          <span class="stat-match-name ${p.golsB > p.golsA || mgPB ? 'winner' : ''}" style="text-align:right">${tB ? UI.escapeHtml(tB.nome) : '?'}</span>
+          <span class="stat-match-score">${p.scoreB}${mgPB ? '<span class="penalty-tag">P</span>' : ''}</span>
+          <span class="stat-match-name ${(p.scoreB || 0) > (p.scoreA || 0) || mgPB ? 'winner' : ''}" style="text-align:right">${tB ? UI.escapeHtml(tB.nome) : '?'}</span>
           ${UI.renderAvatar(tB, 28)}
         </div>
-        <div class="stat-match-note">${stats.partidaMaisGols.total} gols na partida</div>`;
+        <div class="stat-match-note">${stats.partidaMaisScore.total} gols na partida</div>`;
     }
   }
 }
@@ -264,7 +281,199 @@ function renderEstatisticas() {
 // ------------------------------------------------------------------
 
 function renderRegras() {
-  // Rules page is mostly static HTML. Playoff rules are now on the bracket page.
+  const container = document.getElementById('rulesGridContainer');
+  if (!container) return;
+
+  const state = AppState.loadReadOnly();
+  const gt = getGameType(state.campeonato.gameType);
+  const scoring = gt.scoring;
+
+  let html = '';
+
+  // Fase de Grupos — universal but scoring adapted
+  const scoringDesc = gt.drawAllowed
+    ? 'Vit\u00f3ria vale <strong>' + scoring.vitoria + ' pontos</strong>, empate vale <strong>' + scoring.empate + ' ponto</strong> para cada time, derrota vale <strong>' + scoring.derrota + ' pontos</strong>.'
+    : 'Vit\u00f3ria vale <strong>' + scoring.vitoria + ' pontos</strong>, derrota vale <strong>' + scoring.derrota + ' ponto(s)</strong>. N\u00e3o h\u00e1 empate.';
+
+  html += `<div class="rule-card">
+    <div class="rule-card-header">
+      <div class="rule-icon icon-bg-blue" style="width:40px;height:40px;border-radius:var(--radius)">&#9917;</div>
+      <h3 class="rule-card-title">Fase de Grupos</h3>
+    </div>
+    <ul class="rule-list">
+      <li>Todos os times participam em um \u00fanico grupo, jogando em sistema todos contra todos (round-robin).</li>
+      <li>Turno \u00fanico: cada par de times se enfrenta uma vez.</li>
+      <li>${scoringDesc}</li>
+      <li>Os melhores colocados se classificam para os Playoffs (quantidade depende do formato escolhido).</li>
+    </ul>
+  </div>`;
+
+  // Criterios de desempate — adapted per game type
+  html += `<div class="rule-card">
+    <div class="rule-card-header">
+      <div class="rule-icon icon-bg-yellow" style="width:40px;height:40px;border-radius:var(--radius)">&#9878;</div>
+      <h3 class="rule-card-title">Crit\u00e9rios de Desempate</h3>
+    </div>
+    <ul class="rule-list">
+      ${gt.tiebreakerLabels.map((label, i) => '<li>' + (i + 1) + '\u00ba crit\u00e9rio: <strong>' + UI.escapeHtml(label) + '</strong></li>').join('')}
+    </ul>
+  </div>`;
+
+  // Formato dos Playoffs — universal
+  const playoffTieDesc = gt.penaltyResolution
+    ? '<strong>Empates n\u00e3o s\u00e3o permitidos</strong>. Em caso de empate, utiliza-se prorroga\u00e7\u00e3o e/ou p\u00eanaltis.'
+    : 'Cada partida tem um vencedor. N\u00e3o h\u00e1 empate nos playoffs.';
+
+  html += `<div class="rule-card">
+    <div class="rule-card-header">
+      <div class="rule-icon icon-bg-green" style="width:40px;height:40px;border-radius:var(--radius)">&#128204;</div>
+      <h3 class="rule-card-title">Formato dos Playoffs</h3>
+    </div>
+    <ul class="rule-list">
+      <li>Todos os jogos dos playoffs s\u00e3o decididos em jogo \u00fanico.</li>
+      <li>${playoffTieDesc}</li>
+      <li>O formato e as regras das chaves est\u00e3o detalhados na <strong>tela de Chaveamento</strong>.</li>
+    </ul>
+  </div>`;
+
+  // Game-specific rules
+  if (gt.id === 'futebol-virtual') {
+    // Grande Final & Vantagem
+    html += `<div class="rule-card">
+      <div class="rule-card-header">
+        <div class="rule-icon icon-bg-yellow" style="width:40px;height:40px;border-radius:var(--radius)">&#127942;</div>
+        <h3 class="rule-card-title">Grande Final &amp; Vantagem</h3>
+      </div>
+      <ul class="rule-list">
+        <li>Disputa entre o vencedor da <strong>Chave Superior</strong> e o vencedor da <strong>Chave Inferior</strong>.</li>
+        <li>Jogo \u00fanico, sem empate (prorroga\u00e7\u00e3o/p\u00eanaltis se necess\u00e1rio).</li>
+        <li>O jogador da <strong>Chave Superior</strong> (sem derrota) escolhe qual vantagem de ban aplicar.</li>
+      </ul>
+      <div class="highlight-box" style="margin-top:12px">
+        <span>&#9733;</span>
+        <span><strong>Exemplos de vantagem:</strong> advers\u00e1rio s\u00f3 pode usar times de 4&#9733; ou menos, ban de 3 jogadores do time advers\u00e1rio, entre outras op\u00e7\u00f5es customiz\u00e1veis.</span>
+      </div>
+      <div class="highlight-box" style="margin-top:8px">
+        <span>!</span>
+        <span>Esta regra pode ser alterada durante o campeonato, mediante <strong>consenso dos participantes</strong>.</span>
+      </div>
+    </div>`;
+
+    // Configuracao de Jogo
+    html += `<div class="rule-card">
+      <div class="rule-card-header">
+        <div class="rule-icon icon-bg-purple" style="width:40px;height:40px;border-radius:var(--radius)">&#127918;</div>
+        <h3 class="rule-card-title">Configura\u00e7\u00e3o de Jogo</h3>
+      </div>
+      <ul class="rule-list">
+        <li>Dura\u00e7\u00e3o: <strong>6 minutos por tempo</strong>.</li>
+        <li>Sele\u00e7\u00e3o de times: <strong>livre em todas as fases</strong>. Cada jogador pode escolher qualquer time a cada partida, inclusive repetir.</li>
+      </ul>
+    </div>`;
+
+    // Problema Tecnico
+    html += `<div class="rule-card">
+      <div class="rule-card-header">
+        <div class="rule-icon icon-bg-orange" style="width:40px;height:40px;border-radius:var(--radius)">&#9888;</div>
+        <h3 class="rule-card-title">Problema T\u00e9cnico / Desconex\u00e3o</h3>
+      </div>
+      <ul class="rule-list">
+        <li><strong>1\u00ba tempo + diferen\u00e7a menor que 3 gols:</strong> partida recome\u00e7a do zero.</li>
+        <li><strong>1\u00ba tempo + diferen\u00e7a de 3 gols ou mais:</strong> vale o placar parcial, jogo encerrado.</li>
+        <li><strong>2\u00ba tempo:</strong> vale o placar parcial, jogo encerrado.</li>
+        <li><strong>Desconex\u00e3o intencional:</strong> derrota por WO (3\u00d70).</li>
+      </ul>
+    </div>`;
+
+    // Desistencia
+    html += `<div class="rule-card">
+      <div class="rule-card-header">
+        <div class="rule-icon icon-bg-orange" style="width:40px;height:40px;border-radius:var(--radius)">&#128683;</div>
+        <h3 class="rule-card-title">Desist\u00eancia</h3>
+      </div>
+      <ul class="rule-list">
+        <li>Partidas <strong>j\u00e1 jogadas</strong>: se o advers\u00e1rio venceu com placar melhor que 3\u00d70, mant\u00e9m. Caso contr\u00e1rio, o resultado \u00e9 alterado para <strong>3\u00d70</strong> a favor do advers\u00e1rio.</li>
+        <li>Partidas <strong>pendentes</strong>: WO de 3\u00d70 para o advers\u00e1rio.</li>
+      </ul>
+    </div>`;
+  } else if (gt.id === 'sinuca') {
+    // Regras de Jogo 1 — Modalidade
+    html += `<div class="rule-card">
+      <div class="rule-card-header">
+        <div class="rule-icon icon-bg-purple" style="width:40px;height:40px;border-radius:var(--radius)">&#127921;</div>
+        <h3 class="rule-card-title">Regras de Jogo</h3>
+      </div>
+      <ul class="rule-list">
+        <li>Modalidade: <strong>bola 1</strong> \u2014 cada time \u00e9 par ou \u00edmpar, devendo matar a bola 1 por \u00faltimo para vencer.</li>
+        <li>Partida \u00fanica \u2014 n\u00e3o h\u00e1 placar num\u00e9rico, apenas vit\u00f3ria ou derrota.</li>
+        <li>As rodadas finais ser\u00e3o realizadas durante a <strong>confraterniza\u00e7\u00e3o anual da empresa</strong>.</li>
+      </ul>
+    </div>`;
+
+    // Regras de Jogo 2 — Bola branca e mesa
+    html += `<div class="rule-card">
+      <div class="rule-card-header">
+        <div class="rule-icon icon-bg-blue" style="width:40px;height:40px;border-radius:var(--radius)">&#9898;</div>
+        <h3 class="rule-card-title">Regras de Jogo</h3>
+      </div>
+      <ul class="rule-list">
+        <li>A bola branca sempre come\u00e7a no <strong>centro da marca desenhada na mesa</strong> e retorna para l\u00e1 caso seja morta ou derrubada.</li>
+        <li>Se a bola branca cair fora da mesa, o time que a derrubou \u00e9 penalizado como se tivesse matado a bola branca.</li>
+        <li>Se uma bola (exceto a branca) cair fora da mesa, <strong>n\u00e3o h\u00e1 penalidade</strong>. A bola deve ser colocada de volta na mesa, encostada na tabela do lado oposto \u00e0 onde a bola 1 iniciou.</li>
+      </ul>
+    </div>`;
+
+    // Regras de Jogo 3 — Última chance
+    html += `<div class="rule-card">
+      <div class="rule-card-header">
+        <div class="rule-icon icon-bg-yellow" style="width:40px;height:40px;border-radius:var(--radius)">&#9888;</div>
+        <h3 class="rule-card-title">Regras de Jogo</h3>
+      </div>
+      <ul class="rule-list">
+        <li>Se um time est\u00e1 prestes a vencer e acidentalmente mata a bola 1 cometendo uma <strong>falta</strong> (ex: matar a bola branca, matar bola do advers\u00e1rio), o time advers\u00e1rio ganha uma <strong>\u00faltima chance</strong>.</li>
+        <li>Se o advers\u00e1rio conseguir matar todas as bolas restantes na mesa, ele vence.</li>
+        <li>O time que cometeu a falta ainda \u00e9 penalizado normalmente pela falta cometida.</li>
+      </ul>
+    </div>`;
+
+    // Partidas Pendentes
+    html += `<div class="rule-card">
+      <div class="rule-card-header">
+        <div class="rule-icon icon-bg-green" style="width:40px;height:40px;border-radius:var(--radius)">&#128197;</div>
+        <h3 class="rule-card-title">Partidas Pendentes</h3>
+      </div>
+      <ul class="rule-list">
+        <li>Partidas n\u00e3o realizadas dentro do prazo s\u00e3o <strong>ignoradas</strong> \u2014 ningu\u00e9m ganha ponto.</li>
+        <li>Os playoffs podem ser iniciados mesmo com jogos pendentes.</li>
+      </ul>
+    </div>`;
+  }
+
+  // Prazo e Organizacao — universal
+  html += `<div class="rule-card">
+    <div class="rule-card-header">
+      <div class="rule-icon icon-bg-blue" style="width:40px;height:40px;border-radius:var(--radius)">&#128197;</div>
+      <h3 class="rule-card-title">Prazo e Organiza\u00e7\u00e3o</h3>
+    </div>
+    <ul class="rule-list">
+      <li>Os jogadores se organizam livremente para jogar suas partidas, em qualquer ordem de rodada.</li>
+      <li>N\u00e3o h\u00e1 prazo fixo por rodada. O admin decide caso a caso se necess\u00e1rio aplicar WO.</li>
+    </ul>
+  </div>`;
+
+  // Registro de Resultado — universal
+  html += `<div class="rule-card">
+    <div class="rule-card-header">
+      <div class="rule-icon icon-bg-green" style="width:40px;height:40px;border-radius:var(--radius)">&#128172;</div>
+      <h3 class="rule-card-title">Registro de Resultado</h3>
+    </div>
+    <ul class="rule-list">
+      <li>Ap\u00f3s cada partida, os jogadores informam o resultado via <strong>Microsoft Teams</strong>.</li>
+      <li>O admin registra o placar no sistema com base nas informa\u00e7\u00f5es dos jogadores.</li>
+    </ul>
+  </div>`;
+
+  container.innerHTML = html;
 }
 
 // ------------------------------------------------------------------

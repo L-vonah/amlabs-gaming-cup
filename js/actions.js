@@ -263,26 +263,147 @@ function gerarFaseGrupos() {
 function iniciarPlayoffs() {
   if (!UI.checkAdmin()) { UI.showToast('Voc\u00ea precisa estar logado como admin para editar.', 'error'); return; }
   const state = AppState.load();
+  const gt = getGameType(state.campeonato.gameType);
   const formatId = typeof getSelectedPlayoffFormatId === 'function' ? getSelectedPlayoffFormatId() : PlayoffFormats.DEFAULT;
 
   if (!canStartPlayoffs(state)) {
-    UI.showToast('Conclua todos os jogos da fase de grupos primeiro.', 'error');
-    return;
-  }
-
-  const ok = AppState.popularPlayoffs(state, formatId);
-  if (!ok) {
-    const reqFormat = PlayoffFormats.get(formatId);
-    UI.showToast('Erro ao iniciar os playoffs. Verifique se h\u00e1 pelo menos ' + reqFormat.classified + ' times classificados.', 'error');
+    const msg = gt.requireAllMatches
+      ? 'Conclua todos os jogos da fase de grupos primeiro.'
+      : 'Verifique se há pelo menos 4 times cadastrados.';
+    UI.showToast(msg, 'error');
     return;
   }
 
   const format = PlayoffFormats.get(formatId);
+  const tabela = AppState.calcularClassificacao(state);
+
+  // Check for ties at cutoff if game type uses admin tiebreaker
+  if (gt.tiebreakers.includes('admin')) {
+    const tiedGroups = _detectTiesAtCutoff(tabela, format.classified);
+    if (tiedGroups.length > 0) {
+      _showTiebreakerModal(tiedGroups, tabela, format.classified, formatId);
+      return;
+    }
+  }
+
+  _executeIniciarPlayoffs(state, formatId);
+}
+
+function _detectTiesAtCutoff(tabela, classified) {
+  const groups = [];
+  let i = 0;
+  while (i < tabela.length) {
+    let j = i + 1;
+    while (j < tabela.length && tabela[j].pontos === tabela[i].pontos && tabela[j].vitorias === tabela[i].vitorias) {
+      j++;
+    }
+    // Check if this tied group spans the cutoff
+    if (j > i + 1 && i < classified && j > classified) {
+      const slotsAvailable = classified - i;
+      groups.push({ players: tabela.slice(i, j), startPos: i + 1, endPos: j, slotsAvailable });
+    }
+    i = j;
+  }
+  return groups;
+}
+
+let _tiebreakerState = null;
+
+function _showTiebreakerModal(tiedGroups, tabela, classified, formatId) {
+  _tiebreakerState = { tiedGroups, tabela, classified, formatId };
+  const body = document.getElementById('tiebreakerBody');
+  let html = '';
+
+  tiedGroups.forEach((group, gi) => {
+    html += `<div class="tiebreaker-group">
+      <div class="tiebreaker-group-header">
+        Empate nas posi&ccedil;&otilde;es ${group.startPos}-${group.endPos}
+        <span class="tiebreaker-slots">${group.players.length} jogadores para ${group.slotsAvailable} vaga${group.slotsAvailable > 1 ? 's' : ''}</span>
+      </div>`;
+    group.players.forEach(p => {
+      html += `<label class="tiebreaker-item">
+        <input type="checkbox" data-group="${gi}" data-team="${p.id}" onchange="updateTiebreakerSelection()">
+        <span class="tiebreaker-name">${UI.escapeHtml(p.nome)}</span>
+        <span class="tiebreaker-stats">${p.pontos}pts ${p.vitorias}V ${p.derrotas}D</span>
+      </label>`;
+    });
+    html += `<div class="tiebreaker-count" id="tiebreakerCount${gi}">Selecionados: 0 de ${group.slotsAvailable}</div></div>`;
+  });
+
+  body.innerHTML = html;
+  document.getElementById('btnConfirmTiebreaker').disabled = true;
+  UI.openModal('modalTiebreaker');
+}
+
+function updateTiebreakerSelection() {
+  if (!_tiebreakerState) return;
+  let allValid = true;
+  _tiebreakerState.tiedGroups.forEach((group, gi) => {
+    const checked = document.querySelectorAll('input[data-group="' + gi + '"]:checked');
+    const count = checked.length;
+    const countEl = document.getElementById('tiebreakerCount' + gi);
+    if (countEl) countEl.textContent = 'Selecionados: ' + count + ' de ' + group.slotsAvailable;
+    if (count !== group.slotsAvailable) allValid = false;
+    // Disable unchecked if limit reached
+    document.querySelectorAll('input[data-group="' + gi + '"]').forEach(cb => {
+      if (!cb.checked) cb.disabled = count >= group.slotsAvailable;
+    });
+  });
+  document.getElementById('btnConfirmTiebreaker').disabled = !allValid;
+}
+
+function confirmTiebreaker() {
+  if (!_tiebreakerState) return;
+  const promotedIds = new Set();
+  _tiebreakerState.tiedGroups.forEach((group, gi) => {
+    document.querySelectorAll('input[data-group="' + gi + '"]:checked').forEach(cb => {
+      promotedIds.add(cb.dataset.team);
+    });
+  });
+
+  // Reorder tabela: promoted above non-promoted in their group
+  const tabela = _tiebreakerState.tabela;
+  _tiebreakerState.tiedGroups.forEach(group => {
+    const startIdx = group.startPos - 1;
+    const groupPlayers = tabela.slice(startIdx, group.endPos);
+    const promoted = groupPlayers.filter(p => promotedIds.has(p.id));
+    const demoted = groupPlayers.filter(p => !promotedIds.has(p.id));
+    tabela.splice(startIdx, groupPlayers.length, ...promoted, ...demoted);
+  });
+
+  UI.closeModal('modalTiebreaker');
+  const state = AppState.load();
+  _executeIniciarPlayoffsWithTabela(state, _tiebreakerState.formatId, tabela);
+  _tiebreakerState = null;
+}
+
+function _executeIniciarPlayoffs(state, formatId) {
+  const format = PlayoffFormats.get(formatId);
+  const tabela = AppState.calcularClassificacao(state);
+  if (tabela.length < format.classified) {
+    UI.showToast('Erro ao iniciar os playoffs. Verifique se h\u00e1 pelo menos ' + format.classified + ' times classificados.', 'error');
+    return;
+  }
+  _executeIniciarPlayoffsWithTabela(state, formatId, tabela);
+}
+
+function _executeIniciarPlayoffsWithTabela(state, formatId, tabela) {
+  const format = PlayoffFormats.get(formatId);
+  const classified = tabela.slice(0, format.classified);
+  state.playoffs.formato = format.id;
+  state.playoffs.matches = format.defaultMatches();
+  format.generateBracket(classified, state.playoffs.matches);
+  state.playoffs.status = 'andamento';
+  state.campeonato.status = 'playoffs';
+
   AppState.save(state);
   AppState.addAuditLog(getAuditUser(), 'Playoffs iniciados (' + format.name + ') com os ' + format.classified + ' classificados');
   UI.showToast('Playoffs iniciados! ' + format.name + ' com os ' + format.classified + ' classificados.', 'success');
   UI.navigateTo('bracket');
 }
+
+window.updateTiebreakerSelection = updateTiebreakerSelection;
+window.confirmTiebreaker = confirmTiebreaker;
 
 // ------------------------------------------------------------------
 // Group Stage Results — inline calendar form
@@ -290,21 +411,22 @@ function iniciarPlayoffs() {
 
 /**
  * Saves a group stage result. Called by the score modal (submitScoreModal).
- * @param {string} partidaId
- * @param {number} golsA
- * @param {number} golsB
+ * Supports both numeric scores (EA Sports FC) and winner-only (Sinuca).
  */
-function saveInlineResult(partidaId, golsA, golsB) {
+function saveInlineResult(partidaId, scoreA, scoreB, winnerSide) {
   if (!UI.checkAdmin()) { UI.showToast('Voc\u00ea precisa estar logado como admin para editar.', 'error'); return; }
 
-  if (isNaN(golsA) || isNaN(golsB) || golsA < 0 || golsB < 0) {
-    UI.showToast('Informe placar válido (números não negativos).', 'error');
-    return;
-  }
+  const gt = getActiveGameType();
 
-  if (golsA > 99 || golsB > 99) {
-    UI.showToast('Placar maximo permitido: 99.', 'error');
-    return;
+  if (gt.scoreType === 'numeric') {
+    if (isNaN(scoreA) || isNaN(scoreB) || scoreA < 0 || scoreB < 0) {
+      UI.showToast('Informe placar válido (números não negativos).', 'error');
+      return;
+    }
+    if (gt.maxScore && (scoreA > gt.maxScore || scoreB > gt.maxScore)) {
+      UI.showToast('Placar máximo permitido: ' + gt.maxScore + '.', 'error');
+      return;
+    }
   }
 
   const state = AppState.load();
@@ -315,7 +437,6 @@ function saveInlineResult(partidaId, golsA, golsB) {
   }
 
   const partida = state.faseGrupos.partidas.find(p => p.id === partidaId);
-
   if (!partida) {
     UI.showToast('Partida não encontrada.', 'error');
     return;
@@ -324,25 +445,38 @@ function saveInlineResult(partidaId, golsA, golsB) {
   const tA = AppState.getTimeById(state, partida.timeA);
   const tB = AppState.getTimeById(state, partida.timeB);
 
-  partida.golsA = golsA;
-  partida.golsB = golsB;
+  partida.scoreA = gt.scoreType === 'numeric' ? scoreA : null;
+  partida.scoreB = gt.scoreType === 'numeric' ? scoreB : null;
   partida.status = 'concluida';
+
+  // Set vencedor
+  if (gt.scoreType === 'numeric') {
+    if (scoreA > scoreB) partida.vencedor = partida.timeA;
+    else if (scoreB > scoreA) partida.vencedor = partida.timeB;
+    else partida.vencedor = null; // draw
+  } else {
+    partida.vencedor = winnerSide === 'A' ? partida.timeA : partida.timeB;
+  }
 
   AppState.save(state);
 
-  const scoreStr = `${tA ? tA.nome : '?'} ${golsA} x ${golsB} ${tB ? tB.nome : '?'}`;
-  AppState.addAuditLog(getAuditUser(), `Registrou resultado: ${scoreStr}`, { partidaId, golsA, golsB, rodada: partida.rodada });
-  UI.showToast(`Resultado salvo: ${scoreStr}`, 'success');
+  const nomeA = tA ? tA.nome : '?';
+  const nomeB = tB ? tB.nome : '?';
+  const nomeVencedor = partida.vencedor ? (partida.vencedor === partida.timeA ? nomeA : nomeB) : null;
+  const auditStr = gt.auditResultLabel(nomeA, nomeB, scoreA, scoreB, nomeVencedor);
+  AppState.addAuditLog(getAuditUser(), 'Registrou resultado: ' + auditStr, { partidaId, scoreA, scoreB, rodada: partida.rodada });
+  UI.showToast('Resultado salvo: ' + auditStr, 'success');
 
-  // Re-render relevant sections
   Renderers.classificacao();
 
-  // Check if all matches done — suggest starting playoffs
-  const pending = state.faseGrupos.partidas.filter(p => p.status === 'pendente').length;
-  if (pending === 0 && state.times.length >= 4) {
-    setTimeout(() => {
-      UI.showToast('Todos os jogos concluídos! Você pode iniciar os Playoffs.', 'info', 5000);
-    }, 500);
+  // Check if all matches done — suggest starting playoffs (only if required)
+  if (gt.requireAllMatches) {
+    const pending = state.faseGrupos.partidas.filter(p => p.status === 'pendente').length;
+    if (pending === 0 && state.times.length >= 4) {
+      setTimeout(() => {
+        UI.showToast('Todos os jogos concluídos! Você pode iniciar os Playoffs.', 'info', 5000);
+      }, 500);
+    }
   }
 }
 
@@ -351,27 +485,41 @@ function saveInlineResult(partidaId, golsA, golsB) {
 // Playoff Results
 // ------------------------------------------------------------------
 
-function savePlayoffResult(matchId, golsA, golsB, penaltyWinner) {
+function savePlayoffResult(matchId, scoreA, scoreB, penaltyWinner, winnerSide) {
   if (!UI.checkAdmin()) { UI.showToast('Voc\u00ea precisa estar logado como admin para editar.', 'error'); return; }
 
-  if (isNaN(golsA) || isNaN(golsB) || golsA < 0 || golsB < 0) {
-    UI.showToast('Informe placar válido.', 'error');
-    return;
-  }
+  const gt = getActiveGameType();
 
-  if (golsA > 99 || golsB > 99) {
-    UI.showToast('Placar maximo permitido: 99.', 'error');
-    return;
+  if (gt.scoreType === 'numeric') {
+    if (isNaN(scoreA) || isNaN(scoreB) || scoreA < 0 || scoreB < 0) {
+      UI.showToast('Informe placar válido.', 'error');
+      return;
+    }
+    if (gt.maxScore && (scoreA > gt.maxScore || scoreB > gt.maxScore)) {
+      UI.showToast('Placar máximo permitido: ' + gt.maxScore + '.', 'error');
+      return;
+    }
   }
 
   const state = AppState.load();
 
-  // Find match details for audit log
   const match = state.playoffs.matches ? state.playoffs.matches[matchId] : null;
   const tA = match ? AppState.getTimeById(state, match.timeA) : null;
   const tB = match ? AppState.getTimeById(state, match.timeB) : null;
 
-  const ok = AppState.registrarResultadoPlayoff(state, matchId, golsA, golsB, penaltyWinner);
+  let ok;
+  if (gt.scoreType !== 'numeric' && winnerSide) {
+    // Winner-only: use dummy scores for the registrar function
+    ok = AppState.registrarResultadoPlayoff(state, matchId,
+      winnerSide === 'A' ? 1 : 0,
+      winnerSide === 'B' ? 1 : 0,
+      null);
+    // Override scores back to null (display only)
+    if (ok && match) { match.scoreA = null; match.scoreB = null; }
+  } else {
+    const effPenalty = gt.penaltyResolution ? penaltyWinner : null;
+    ok = AppState.registrarResultadoPlayoff(state, matchId, scoreA, scoreB, effPenalty);
+  }
 
   if (!ok) {
     UI.showToast('Erro ao salvar resultado do playoff.', 'error');
@@ -380,11 +528,14 @@ function savePlayoffResult(matchId, golsA, golsB, penaltyWinner) {
 
   AppState.save(state);
 
-  const faseLabel = match ? match.fase : matchId;
-  const scoreStr = `${tA ? tA.nome : '?'} ${golsA} x ${golsB} ${tB ? tB.nome : '?'}`;
-  AppState.addAuditLog(getAuditUser(), `Registrou resultado de playoff: ${scoreStr}`, { matchId, fase: faseLabel, golsA, golsB });
-  UI.showToast('Resultado de playoff salvo!', 'success');
+  const nomeA = tA ? tA.nome : '?';
+  const nomeB = tB ? tB.nome : '?';
+  const nomeVencedor = match && match.vencedor ? (match.vencedor === match.timeA ? nomeA : nomeB) : null;
+  const auditStr = gt.auditResultLabel(nomeA, nomeB, scoreA, scoreB, nomeVencedor);
+  AppState.addAuditLog(getAuditUser(), 'Registrou resultado playoff: ' + auditStr, { matchId });
+  UI.showToast('Resultado salvo: ' + auditStr, 'success');
   Renderers.bracket();
+  Renderers.home();
 }
 
 // ------------------------------------------------------------------

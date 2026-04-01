@@ -19,20 +19,16 @@ function renderHome() {
   const statusLabel = { configuracao: 'Inscrições abertas', grupos: 'Fase de Grupos', playoffs: 'Playoffs', encerrado: 'Encerrado' };
 
   if (heroBadge) {
-    const jogo = state.campeonato.jogo ? state.campeonato.jogo : '';
-    heroBadge.textContent = jogo + (jogo ? ' · ' : '') + (statusLabel[state.campeonato.status] || '');
+    const gt = getGameType(state.campeonato.gameType);
+    heroBadge.textContent = gt.icon + ' ' + gt.name + ' · ' + (statusLabel[state.campeonato.status] || '');
   }
   if (heroTitle) {
     heroTitle.textContent = state.campeonato.nome || 'Campeonato';
   }
   if (heroSubtitle) {
-    const formatLabels = {
-      'double-elim-4': 'Dupla Eliminação (Chave Superior & Inferior)',
-      'play-in-6': 'Play-In (1º e 2º com bye nas quartas)',
-      'gauntlet-6': 'Escada/Gauntlet (1º direto na final superior)'
-    };
-    const playoffLabel = formatLabels[state.playoffs.formato] || '';
-    heroSubtitle.textContent = playoffLabel ? 'Fase de grupos todos contra todos + Playoffs com ' + playoffLabel : 'Fase de grupos todos contra todos + Playoffs';
+    const fmtId = state.playoffs.formato || PlayoffFormats.DEFAULT;
+    const fmt = PlayoffFormats.get(fmtId);
+    heroSubtitle.textContent = 'Fase de grupos todos contra todos + Playoffs com ' + fmt.name;
   }
 
   // Champion banner — shown prominently when tournament is finished
@@ -55,7 +51,7 @@ function renderHome() {
             <div class="champion-name">${winner ? UI.escapeHtml(winner.nome) : '?'}</div>
             ${winner && winner.participante ? `<div class="champion-label" style="margin-top:4px;letter-spacing:.12em;font-size:.85rem">${UI.escapeHtml(winner.participante)}</div>` : ''}
             ${winner ? `<div class="champion-avatar-wrapper">${UI.renderAvatar(winner, 80)}</div>` : ''}
-            <div class="champion-score">${gf ? gf.golsA + ' &times; ' + gf.golsB : ''} &mdash; Grande Final</div>
+            <div class="champion-score">${gf ? (gf.scoreA !== null && gf.scoreB !== null ? gf.scoreA + ' &times; ' + gf.scoreB : '<span class="winner-check">✓</span>') : ''} &mdash; ${UI.escapeHtml(gf ? gf.fase || 'Final' : 'Final')}</div>
             <div class="champion-badge">${UI.escapeHtml(state.campeonato.nome || 'Campeonato')}</div>
           </div>
         </div>`;
@@ -69,8 +65,8 @@ function renderHome() {
     type: 'group',
     timeA: p.timeA,
     timeB: p.timeB,
-    golsA: p.golsA,
-    golsB: p.golsB,
+    scoreA: p.scoreA,
+    scoreB: p.scoreB,
     id: p.id,
     status: p.status,
     rodada: p.rodada,
@@ -86,11 +82,13 @@ function renderHome() {
           type: 'playoff',
           timeA: m.timeA,
           timeB: m.timeB,
-          golsA: m.golsA,
-          golsB: m.golsB,
+          scoreA: m.scoreA,
+          scoreB: m.scoreB,
           fase: m.fase,
           id: m.id,
-          penaltyWinner: m.penaltyWinner || null
+          penaltyWinner: m.penaltyWinner || null,
+          vencedor: m.vencedor,
+          original: m
         });
       }
     });
@@ -127,25 +125,27 @@ function renderHome() {
         const tB = AppState.getTimeById(state, m.timeB);
         const nameA = tA ? UI.escapeHtml(tA.nome) : '?';
         const nameB = tB ? UI.escapeHtml(tB.nome) : '?';
+        const npA = tA && tA.participante ? `<span class="team-participant">${UI.escapeHtml(tA.participante)}</span>` : '';
+        const npB = tB && tB.participante ? `<span class="team-participant">${UI.escapeHtml(tB.participante)}</span>` : '';
         return `<div class="match-card">
           <div class="match-round-badge" style="font-size:.6rem">${UI.escapeHtml(m.fase || '')}</div>
           <div class="match-desktop">
             <div class="match-teams">
               <div class="match-team home">
-                <div class="match-team-info" style="text-align:right"><span class="team-name-text">${nameA}</span></div>
+                <div class="match-team-info" style="text-align:right"><span class="team-name-text">${nameA}</span>${npA}</div>
                 ${UI.renderAvatar(tA, 24)}
               </div>
               <div class="match-score"><span class="score-val">-</span><span class="dash">:</span><span class="score-val">-</span></div>
               <div class="match-team away">
                 ${UI.renderAvatar(tB, 24)}
-                <div class="match-team-info"><span class="team-name-text">${nameB}</span></div>
+                <div class="match-team-info"><span class="team-name-text">${nameB}</span>${npB}</div>
               </div>
             </div>
             <div class="match-action-slot"></div>
           </div>
           <div class="match-mobile">
-            <div class="match-mobile-row">${UI.renderAvatar(tA, 28)}<span class="match-mobile-name">${nameA}</span><span class="match-mobile-score">-</span></div>
-            <div class="match-mobile-row">${UI.renderAvatar(tB, 28)}<span class="match-mobile-name">${nameB}</span><span class="match-mobile-score">-</span></div>
+            <div class="match-mobile-row">${UI.renderAvatar(tA, 28)}<span class="match-mobile-name">${nameA}${npA ? ' ' + npA : ''}</span><span class="match-mobile-score">-</span></div>
+            <div class="match-mobile-row">${UI.renderAvatar(tB, 28)}<span class="match-mobile-name">${nameB}${npB ? ' ' + npB : ''}</span><span class="match-mobile-score">-</span></div>
           </div>
         </div>`;
       }).join('');
@@ -155,35 +155,54 @@ function renderHome() {
   const container = document.getElementById('homeLastResults');
   if (container) {
     if (lastResults.length === 0) {
-      container.innerHTML = '<div class="empty-state"><div class="empty-icon">&#9917;</div><div class="empty-title">Nenhum resultado ainda</div><div class="empty-desc">Registre resultados na aba Resultados</div></div>';
+      const gtIcon = getGameType(state.campeonato.gameType).icon;
+      container.innerHTML = '<div class="empty-state"><div class="empty-icon">' + gtIcon + '</div><div class="empty-title">Nenhum resultado ainda</div><div class="empty-desc">Registre resultados na aba Resultados</div></div>';
     } else {
       container.innerHTML = lastResults.map(r => {
         const tA = AppState.getTimeById(state, r.timeA);
         const tB = AppState.getTimeById(state, r.timeB);
         const nameA = tA ? UI.escapeHtml(tA.nome) : '?';
         const nameB = tB ? UI.escapeHtml(tB.nome) : '?';
-        const sc = UI.scoreClass(r.golsA, r.golsB);
+        const gtR = getGameType(state.campeonato.gameType);
+        const rWinnerOnly = gtR.scoreType !== 'numeric';
+        const sc = rWinnerOnly ? '' : UI.scoreClass(r.scoreA, r.scoreB);
         const badge = r.type === 'group' ? 'Rodada ' + r.rodada : (r.fase || '');
         const pA = r.penaltyWinner === r.timeA;
         const pB = r.penaltyWinner === r.timeB;
-        const winA = r.golsA > r.golsB || pA;
-        const winB = r.golsB > r.golsA || pB;
+        // For winner-only: determine winner from the original match data
+        const rWinA = rWinnerOnly ? (r.original ? r.original.vencedor === r.timeA : r.scoreA > r.scoreB || pA) : (r.scoreA > r.scoreB || pA);
+        const rWinB = rWinnerOnly ? (r.original ? r.original.vencedor === r.timeB : r.scoreB > r.scoreA || pB) : (r.scoreB > r.scoreA || pB);
+        // Score display
+        let rdScoreA, rdScoreB, rmScoreA, rmScoreB;
+        if (rWinnerOnly) {
+          rdScoreA = rWinA ? '<span class="winner-check">✓</span>' : '';
+          rdScoreB = rWinB ? '<span class="winner-check">✓</span>' : '';
+          rmScoreA = rWinA ? '<span class="winner-check">✓</span>' : '';
+          rmScoreB = rWinB ? '<span class="winner-check">✓</span>' : '';
+        } else {
+          rdScoreA = (pA ? '<span class="penalty-tag">P</span>' : '') + r.scoreA;
+          rdScoreB = r.scoreB + (pB ? '<span class="penalty-tag">P</span>' : '');
+          rmScoreA = r.scoreA + (pA ? '<span class="penalty-tag">P</span>' : '');
+          rmScoreB = r.scoreB + (pB ? '<span class="penalty-tag">P</span>' : '');
+        }
+        const partA = tA && tA.participante ? `<span class="team-participant">${UI.escapeHtml(tA.participante)}</span>` : '';
+        const partB = tB && tB.participante ? `<span class="team-participant">${UI.escapeHtml(tB.participante)}</span>` : '';
         return `<div class="match-card">
           <div class="match-round-badge" style="font-size:.6rem">${UI.escapeHtml(badge)}</div>
           <div class="match-desktop">
             <div class="match-teams">
               <div class="match-team home">
-                <div class="match-team-info" style="text-align:right"><span class="team-name-text">${nameA}</span></div>
+                <div class="match-team-info" style="text-align:right"><span class="team-name-text">${nameA}</span>${partA}</div>
                 ${UI.renderAvatar(tA, 24)}
               </div>
               <div class="match-score ${sc}">
-                ${pA ? '<span class="penalty-tag">P</span>' : ''}<span class="score-val">${r.golsA}</span>
-                <span class="dash">:</span>
-                <span class="score-val">${r.golsB}</span>${pB ? '<span class="penalty-tag">P</span>' : ''}
+                <span class="score-val">${rdScoreA}</span>
+                <span class="dash">${rWinnerOnly ? 'vs' : ':'}</span>
+                <span class="score-val">${rdScoreB}</span>
               </div>
               <div class="match-team away">
                 ${UI.renderAvatar(tB, 24)}
-                <div class="match-team-info"><span class="team-name-text">${nameB}</span></div>
+                <div class="match-team-info"><span class="team-name-text">${nameB}</span>${partB}</div>
               </div>
             </div>
             <div class="match-action-slot"></div>
@@ -191,13 +210,13 @@ function renderHome() {
           <div class="match-mobile">
             <div class="match-mobile-row">
               ${UI.renderAvatar(tA, 28)}
-              <span class="match-mobile-name">${nameA}</span>
-              <span class="match-mobile-score ${winA ? 'win' : winB ? 'loss' : ''}">${r.golsA}${pA ? '<span class="penalty-tag">P</span>' : ''}</span>
+              <span class="match-mobile-name">${nameA}${partA ? ' ' + partA : ''}</span>
+              <span class="match-mobile-score ${rWinA ? 'win' : rWinB ? 'loss' : ''}">${rmScoreA}</span>
             </div>
             <div class="match-mobile-row">
               ${UI.renderAvatar(tB, 28)}
-              <span class="match-mobile-name">${nameB}</span>
-              <span class="match-mobile-score ${winB ? 'win' : winA ? 'loss' : ''}">${r.golsB}${pB ? '<span class="penalty-tag">P</span>' : ''}</span>
+              <span class="match-mobile-name">${nameB}${partB ? ' ' + partB : ''}</span>
+              <span class="match-mobile-score ${rWinB ? 'win' : rWinA ? 'loss' : ''}">${rmScoreB}</span>
             </div>
           </div>
         </div>`;
@@ -227,22 +246,23 @@ function renderHome() {
         if (!m || !m.timeA || !m.timeB) return;
         const tA = m.timeA ? AppState.getTimeById(state, m.timeA) : null;
         const tB = m.timeB ? AppState.getTimeById(state, m.timeB) : null;
-        const nameA = tA ? UI.escapeHtml(tA.nome) : 'A definir';
-        const nameB = tB ? UI.escapeHtml(tB.nome) : 'A definir';
-        const sA = m.golsA !== null ? m.golsA : '-';
-        const sB = m.golsB !== null ? m.golsB : '-';
+        const nameA = tA ? UI.escapeHtml(tA.nome) + (tA.participante ? '<span class="team-participant-sub" style="display:block;font-size:.65rem">' + UI.escapeHtml(tA.participante) + '</span>' : '') : 'A definir';
+        const nameB = tB ? UI.escapeHtml(tB.nome) + (tB.participante ? '<span class="team-participant-sub" style="display:block;font-size:.65rem">' + UI.escapeHtml(tB.participante) + '</span>' : '') : 'A definir';
         const winnerA = m.vencedor === m.timeA;
         const winnerB = m.vencedor === m.timeB;
-
         const pA = m.penaltyWinner === m.timeA;
         const pB = m.penaltyWinner === m.timeB;
+        const gtMini = getGameType(state.campeonato.gameType);
+        const isWO = gtMini.scoreType !== 'numeric';
+        const sA = isWO ? (winnerA ? '<span class="winner-check">✓</span>' : (m.vencedor ? '' : '-')) : (m.scoreA !== null ? m.scoreA : '-');
+        const sB = isWO ? (winnerB ? '<span class="winner-check">✓</span>' : (m.vencedor ? '' : '-')) : (m.scoreB !== null ? m.scoreB : '-');
 
         matchLines += `<div class="bracket-mini-row" style="border-left:3px solid ${entry.color}">
           <span class="bracket-mini-phase">${entry.phase}</span>
           <span class="bracket-mini-team" style="font-weight:${winnerA ? '700' : '400'}">${nameA}</span>
-          <span class="bracket-mini-score">${sA}${pA ? '<span class="penalty-tag">P</span>' : ''}</span>
-          <span class="bracket-mini-separator">:</span>
-          <span class="bracket-mini-score">${sB}${pB ? '<span class="penalty-tag">P</span>' : ''}</span>
+          <span class="bracket-mini-score">${sA}${!isWO && pA ? '<span class="penalty-tag">P</span>' : ''}</span>
+          <span class="bracket-mini-separator">${isWO ? 'vs' : ':'}</span>
+          <span class="bracket-mini-score">${sB}${!isWO && pB ? '<span class="penalty-tag">P</span>' : ''}</span>
           <span class="bracket-mini-team" style="font-weight:${winnerB ? '700' : '400'};text-align:right">${nameB}</span>
         </div>`;
       });
@@ -262,6 +282,8 @@ function renderHome() {
         leaderEl.innerHTML = '<div class="text-dim text-sm" style="padding:16px">Aguardando cadastro de times...</div>';
       } else {
         const top = tabela.slice(0, 6);
+        const gtMini = getGameType(state.campeonato.gameType);
+        const showSG = gtMini.columns.saldo;
         leaderEl.innerHTML = `
           <div>
             <table class="mini-table">
@@ -270,7 +292,7 @@ function renderHome() {
                   <th colspan="2">Time</th>
                   <th>J</th>
                   <th>V</th>
-                  <th>SG</th>
+                  ${showSG ? '<th>' + showSG.label + '</th>' : ''}
                   <th>Pts</th>
                 </tr>
               </thead>
@@ -280,13 +302,13 @@ function renderHome() {
                   const fmtId = typeof getSelectedPlayoffFormatId === 'function' ? getSelectedPlayoffFormatId() : PlayoffFormats.DEFAULT;
                   const fmt = PlayoffFormats.get(fmtId);
                   const tier = fmt.classificationTiers.find(tr => pos >= tr.from && pos <= tr.to);
-                  const sgColor = t.saldoGols > 0 ? 'var(--color-win)' : t.saldoGols < 0 ? 'var(--color-loss)' : 'var(--color-text-muted)';
+                  const sgColor = t.saldoScore > 0 ? 'var(--color-win)' : t.saldoScore < 0 ? 'var(--color-loss)' : 'var(--color-text-muted)';
                   return `<tr class="${tier ? tier.cssClass : ''}">
                     <td ${tier ? 'style="color:' + tier.color + '"' : ''}>${pos}</td>
-                    <td><div class="team-cell">${UI.renderAvatar(t, 22)}<span>${UI.escapeHtml(t.nome)}</span></div></td>
+                    <td><div class="team-cell">${UI.renderAvatar(t, 22)}<div style="line-height:1.2"><span>${UI.escapeHtml(t.nome)}</span>${t.participante ? '<div class="team-participant-sub">' + UI.escapeHtml(t.participante) + '</div>' : ''}</div></div></td>
                     <td style="color:var(--color-text-muted)">${t.jogos}</td>
                     <td style="color:var(--color-win);font-weight:700">${t.vitorias}</td>
-                    <td style="font-weight:700;color:${sgColor}">${UI.signedNumber(t.saldoGols)}</td>
+                    ${showSG ? '<td style="font-weight:700;color:' + sgColor + '">' + UI.signedNumber(t.saldoScore) + '</td>' : ''}
                     <td>${t.pontos}</td>
                   </tr>`;
                 }).join('')}
