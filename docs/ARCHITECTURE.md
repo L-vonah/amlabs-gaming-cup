@@ -503,23 +503,7 @@ Todo formato de playoff é um objeto que implementa:
 
 ### 9.2 Formatos Implementados
 
-#### single-elim-4 (Eliminação Simples — 4 Times) — PADRÃO
-
-```
-Classifica: 4 melhores
-Matches: 3
-SF1: 1º vs 4º → SF2: 2º vs 3º → Final
-```
-
-#### single-elim-8 (Eliminação Simples — 8 Times)
-
-```
-Classifica: 8 melhores
-Matches: 7
-QF: 1º×8º, 2º×7º, 3º×6º, 4º×5º → SF: V(QF) → Final
-```
-
-#### double-elim-4 (Dupla Eliminação — 4 Times)
+#### double-elim-4 (Dupla Eliminação — 4 Times) — PADRÃO
 
 ```
 Classifica: 4 melhores
@@ -577,13 +561,37 @@ Chave Inferior:
 Grande Final: W(UB Final) vs W(LB Final)
 ```
 
+#### single-elim-4 (Eliminação Simples — 4 Times)
+
+```
+Classifica: 4 melhores
+Matches: 3
+SF1: 1º vs 4º
+SF2: 2º vs 3º
+Final: V(SF1) vs V(SF2)
+```
+
+#### single-elim-8 (Eliminação Simples — 8 Times)
+
+```
+Classifica: 8 melhores
+Matches: 7
+QF1: 1º vs 8º    QF2: 4º vs 5º
+QF3: 3º vs 6º    QF4: 2º vs 7º
+SF1: V(QF1) vs V(QF2)
+SF2: V(QF3) vs V(QF4)
+Final: V(SF1) vs V(SF2)
+```
+
 ### 9.3 Registry
 
 ```javascript
 const PLAYOFF_FORMATS = {
   'double-elim-4': FORMAT_DOUBLE_ELIM_4,
   'play-in-6': FORMAT_PLAY_IN_6,
-  'gauntlet-6': FORMAT_GAUNTLET_6
+  'gauntlet-6': FORMAT_GAUNTLET_6,
+  'single-elim-4': FORMAT_SINGLE_ELIM_4,
+  'single-elim-8': FORMAT_SINGLE_ELIM_8
 };
 
 window.PlayoffFormats = {

@@ -282,6 +282,8 @@ function renderHome() {
         leaderEl.innerHTML = '<div class="text-dim text-sm" style="padding:16px">Aguardando cadastro de times...</div>';
       } else {
         const top = tabela.slice(0, 6);
+        const gtMini = getGameType(state.campeonato.gameType);
+        const showSG = gtMini.columns.saldo;
         leaderEl.innerHTML = `
           <div>
             <table class="mini-table">
@@ -290,7 +292,7 @@ function renderHome() {
                   <th colspan="2">Time</th>
                   <th>J</th>
                   <th>V</th>
-                  <th>SG</th>
+                  ${showSG ? '<th>' + showSG.label + '</th>' : ''}
                   <th>Pts</th>
                 </tr>
               </thead>
@@ -303,10 +305,10 @@ function renderHome() {
                   const sgColor = t.saldoScore > 0 ? 'var(--color-win)' : t.saldoScore < 0 ? 'var(--color-loss)' : 'var(--color-text-muted)';
                   return `<tr class="${tier ? tier.cssClass : ''}">
                     <td ${tier ? 'style="color:' + tier.color + '"' : ''}>${pos}</td>
-                    <td><div class="team-cell">${UI.renderAvatar(t, 22)}<div><span>${UI.escapeHtml(t.nome)}</span>${t.participante ? '<div class="team-participant-sub">' + UI.escapeHtml(t.participante) + '</div>' : ''}</div></div></td>
+                    <td><div class="team-cell">${UI.renderAvatar(t, 22)}<div style="line-height:1.2"><span>${UI.escapeHtml(t.nome)}</span>${t.participante ? '<div class="team-participant-sub">' + UI.escapeHtml(t.participante) + '</div>' : ''}</div></div></td>
                     <td style="color:var(--color-text-muted)">${t.jogos}</td>
                     <td style="color:var(--color-win);font-weight:700">${t.vitorias}</td>
-                    <td style="font-weight:700;color:${sgColor}">${UI.signedNumber(t.saldoScore)}</td>
+                    ${showSG ? '<td style="font-weight:700;color:' + sgColor + '">' + UI.signedNumber(t.saldoScore) + '</td>' : ''}
                     <td>${t.pontos}</td>
                   </tr>`;
                 }).join('')}

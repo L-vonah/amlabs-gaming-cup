@@ -575,7 +575,7 @@ function _renderInfoCards(format) {
 
   if (isSingleElim) {
     // Single elimination: unified 2-column grid with all cards together
-    html += '<div class="bracket-info-cards" style="grid-template-columns:repeat(2,1fr)">';
+    html += '<div class="bracket-info-cards bracket-info-cards-2col">';
 
     // Rules card (single card spanning format rules)
     if (rules && rules.length > 0) {
