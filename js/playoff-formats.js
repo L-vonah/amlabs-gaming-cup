@@ -63,7 +63,7 @@ function _slotHTML(state, matches, matchId, slot, previewLabel) {
 }
 
 function _matchHTML(state, matches, matchId, tipo, previewA, previewB) {
-  return `<div class="bracket-match ${tipo}-match" style="margin-bottom:8px">
+  return `<div class="bracket-match ${tipo}-match">
     ${_slotHTML(state, matches, matchId, 'A', previewA)}
     ${_slotHTML(state, matches, matchId, 'B', previewB)}
   </div>`;
@@ -526,7 +526,7 @@ const FORMAT_PLAY_IN_6 = {
       { name: 'Quartas de Final', matches: [
         { slotA: '3º Colocado', slotB: '6º Colocado' },
         { slotA: '4º Colocado', slotB: '5º Colocado' }
-      ], note: '1º e 2º não jogam nesta fase' },
+      ] },
       { name: 'Semifinal', matches: [
         { slotA: '1º Colocado (BYE)', slotB: 'Vencedor (4º vs 5º)' },
         { slotA: '2º Colocado (BYE)', slotB: 'Vencedor (3º vs 6º)' }
@@ -615,7 +615,6 @@ const FORMAT_PLAY_IN_6 = {
         <div style="display:flex;flex-direction:column;gap:16px">
           ${_matchHTML(state, m, 'ub-qf1', 'upper', '3º Colocado', '6º Colocado')}
           ${_matchHTML(state, m, 'ub-qf2', 'upper', '4º Colocado', '5º Colocado')}
-          <div style="font-size:.7rem;color:var(--color-text-dim);text-align:center;font-style:italic">1º e 2º não jogam</div>
         </div>
         <div style="display:flex;align-items:center;justify-content:center">
           ${_connector()}
@@ -804,7 +803,7 @@ const FORMAT_GAUNTLET_6 = {
     { section: 'upper', title: 'Chave Superior (Escada)', phases: [
       { name: 'UB Round 1', matches: [
         { slotA: '3º Colocado', slotB: '4º Colocado' }
-      ], note: '1º e 2º não jogam nesta fase' },
+      ] },
       { name: 'UB Round 2', matches: [
         { slotA: '2º Colocado (BYE)', slotB: 'Vencedor UB R1' }
       ]},
@@ -815,7 +814,7 @@ const FORMAT_GAUNTLET_6 = {
     { section: 'lower', title: 'Chave Inferior', phases: [
       { name: 'Oitavas de Final', matches: [
         { slotA: '5º Colocado', slotB: '6º Colocado' }
-      ], note: 'Perdedor eliminado (sem 2ª chance)' },
+      ] },
       { name: 'Quartas de Final', matches: [
         { slotA: 'Vencedor LB Oitavas', slotB: 'Perdedor UB QF' }
       ]},
@@ -895,7 +894,6 @@ const FORMAT_GAUNTLET_6 = {
         <div style="align-self:end"><div class="phase-label" style="color:var(--color-champion);border-bottom-color:rgba(249,168,37,.3)">Grande Final</div></div>
         <div style="display:flex;flex-direction:column;gap:16px">
           ${_matchHTML(state, m, 'ub-r1', 'upper', '3º Colocado', '4º Colocado')}
-          <div style="font-size:.7rem;color:var(--color-text-dim);text-align:center;font-style:italic;margin-top:4px">1º e 2º não jogam</div>
         </div>
         <div style="display:flex;align-items:center;justify-content:center">
           ${_connector()}
@@ -928,7 +926,6 @@ const FORMAT_GAUNTLET_6 = {
         <div style="align-self:end">${_phaseHeader('Final Inferior')}</div>
         <div style="display:flex;flex-direction:column;gap:16px">
           ${_matchHTML(state, m, 'lb-r1', 'lower', '5º Colocado', '6º Colocado')}
-          <div style="font-size:.65rem;color:var(--color-loss);text-align:center;margin-top:4px">Perdedor eliminado</div>
         </div>
         <div style="display:flex;align-items:center;justify-content:center">
           ${_connector()}
