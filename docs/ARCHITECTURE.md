@@ -2,7 +2,7 @@
 
 > **Objetivo:** Referência completa para qualquer desenvolvedor ou agente que precise entender, modificar ou estender o projeto. Leia este documento ANTES de propor qualquer mudança.
 >
-> **Última atualização:** 2026-03-24
+> **Última atualização:** 2026-04-01
 
 ---
 
@@ -71,12 +71,13 @@ campeonato-amlabs/
 │   ├── firestore-service.js       # CRUD Firestore + real-time listener (203 linhas)
 │   ├── state.js                   # Estado centralizado, lógica de domínio (627 linhas)
 │   ├── ui.js                      # Helpers: avatar, toast, modal, nav, escape (240 linhas)
-│   ├── playoff-formats.js         # 3 estratégias de playoff — Strategy Pattern (921 linhas)
-│   ├── renderers-home.js          # Dashboard home (276 linhas)
-│   ├── renderers-matches.js       # Partidas + bracket + preview (612 linhas)
-│   ├── renderers.js               # Times, classificação, stats, regras, histórico, inscrições (422 linhas)
-│   ├── actions.js                 # Event handlers do admin (621 linhas)
-│   └── app.js                     # Bootstrap, score modal, mobile nav (354 linhas)
+│   ├── playoff-formats.js         # 5 estratégias de playoff — Strategy Pattern
+│   ├── renderers-home.js          # Dashboard home
+│   ├── renderers-matches.js       # Partidas + bracket + preview
+│   ├── renderers.js               # Times, classificação, stats, regras, histórico, inscrições
+│   ├── actions.js                 # Event handlers do admin
+│   ├── app.js                     # Bootstrap, score modal, mobile nav
+│   └── portal.js                  # Landing page: listar/criar/deletar torneios
 ├── assets/
 │   └── logo-amlabs.png            # Logo da empresa
 ├── firestore.rules                # Regras de segurança Firestore
@@ -91,7 +92,7 @@ campeonato-amlabs/
 Os scripts são carregados em sequência no `index.html`. A ordem importa porque cada módulo depende dos anteriores:
 
 ```
-env.js → firebase-config.js → auth.js → firestore-service.js → state.js → ui.js
+env.js → firebase-config.js → game-types.js → auth.js → firestore-service.js → state.js → ui.js
 → playoff-formats.js → renderers-home.js → renderers-matches.js
 → renderers.js → actions.js → app.js
 ```
@@ -110,10 +111,10 @@ O `uuid` é o ID do campeonato ativo (lido de `sessionStorage` via `getActiveTou
 
 ```javascript
 {
-  _schemaVersion: 1,        // versão do schema — usado por migrateState()
+  _schemaVersion: 2,        // versão atual — migrateState() converte versões antigas automaticamente
   campeonato: {
     nome: '',               // preenchido pelo Firestore
-    jogo: '',               // preenchido pelo Firestore
+    gameType: '',           // 'futebol-virtual' | 'sinuca' — preenchido pelo Firestore
     status: 'configuracao'  // configuracao | grupos | playoffs | encerrado
   },
   config: {
@@ -156,8 +157,8 @@ O `uuid` é o ID do campeonato ativo (lido de `sessionStorage` via `getActiveTou
   rodada: 1,
   timeA: 'time_xxx',      // id do time mandante
   timeB: 'time_yyy',      // id do time visitante
-  golsA: null,            // null = pendente, number = concluída
-  golsB: null,
+  scoreA: null,           // null = pendente; number = concluída; null para winner-only (sinuca)
+  scoreB: null,
   status: 'pendente'      // pendente | concluida
 }
 ```
@@ -170,8 +171,8 @@ O `uuid` é o ID do campeonato ativo (lido de `sessionStorage` via `getActiveTou
   label: '1º vs 4º',
   timeA: null,            // preenchido pela propagação
   timeB: null,
-  golsA: null,
-  golsB: null,
+  scoreA: null,           // null para winner-only (sinuca)
+  scoreB: null,
   vencedor: null,         // id do time vencedor
   perdedor: null,         // id do time perdedor
   penaltyWinner: null     // id do time que venceu nos pênaltis (quando empate)
@@ -261,12 +262,17 @@ configuracao ──→ grupos ──→ playoffs ──→ encerrado
 
 ### 6.2 Classificação
 
+Pontuação e critérios de desempate variam por tipo de jogo (definidos em `GAME_TYPES`):
+- **EA Sports FC:** V=3, E=1, D=0
+- **Sinuca:** V=2, D=1 (empate inexistente)
+
 Critérios de desempate (em ordem):
-1. **Pontos** (V=3, E=1, D=0)
+1. **Pontos**
 2. **Vitórias**
-3. **Saldo de Gols** (marcados - sofridos)
-4. **Gols Marcados**
+3. **Saldo de Gols** (marcados - sofridos) — apenas futebol-virtual
+4. **Gols Marcados** — apenas futebol-virtual
 5. **Confronto Direto** — SOMENTE quando 2 times estão empatados em TODOS os critérios acima. Não resolve empates de 3+ times.
+6. **Admin** (sinuca) — quando empate persiste, admin seleciona manualmente via modal de desempate
 
 **Forma:** últimas 5 partidas (V/E/D) calculadas por ordem cronológica de registro.
 
@@ -352,7 +358,7 @@ O sistema suporta múltiplos tipos de jogo via `GAME_TYPES` em `js/game-types.js
 ├─────────────────────────────────────────────────────────┤
 │                    DOMÍNIO (lógica pura)                  │
 │  state.js — CRUD, round-robin, classificação, playoffs    │
-│  playoff-formats.js — 3 estratégias (Strategy Pattern)    │
+│  playoff-formats.js — 5 estratégias (Strategy Pattern)    │
 ├─────────────────────────────────────────────────────────┤
 │                    INFRAESTRUTURA                         │
 │  firebase-config.js — inicialização                       │
@@ -366,6 +372,7 @@ O sistema suporta múltiplos tipos de jogo via `GAME_TYPES` em `js/game-types.js
 | Módulo | Responsabilidade | Exports (window) |
 |--------|------------------|-------------------|
 | `firebase-config.js` | Inicializa Firebase, define `FIREBASE_CONFIGURED` | `FIREBASE_CONFIGURED` (global) |
+| `game-types.js` | Perfis de game type (EA Sports FC, Sinuca), helpers | `GAME_TYPES`, `getGameType()`, `getAllGameTypes()` |
 | `auth.js` | Login/logout Google, `isAdmin()`, `updateAdminUI()` | `ADMIN_EMAIL`, `currentUser`, `isAdmin()`, `loginAdmin()`, `logoutAdmin()`, `initAuth()`, `updateAdminUI()` |
 | `firestore-service.js` | CRUD Firestore, real-time listener, inscrições, deleção de campeonato | `FirestoreService` (inclui `deleteTournament(uuid)`) |
 | `state.js` | Estado centralizado, todas as operações de domínio | `AppState` |
@@ -712,7 +719,7 @@ Usar `sessionStorage` garante que cada aba pode ter um campeonato diferente aber
 
 1. **Confronto direto não resolve empates de 3+ times** — apenas entre 2 times empatados em todos os outros critérios
 2. **Zero testes automatizados** — sem cobertura de unit ou integration tests
-3. ~~**Sem versionamento de schema**~~ — implementado: `_schemaVersion` + `migrateState()` em `state.js`
+3. ~~**Sem versionamento de schema**~~ — implementado: `_schemaVersion` + `migrateState()` em `state.js`. Versão atual: v2 (migração v1→v2: `golsA/golsB` → `scoreA/scoreB`, derivação de `vencedor`, remoção de `jogo`)
 4. **Admin único hardcoded** — não suporta múltiplos admins
 5. **CSS monolítico** — ~2648 linhas sem pré-processador ou módulos
 6. **Sem minificação** — JS e CSS servidos sem build step
@@ -790,7 +797,10 @@ O `sessionStorage` mantém o torneio ativo por aba. Abrir uma nova aba volta ao 
 
 ### 16.3 Schema Versioning
 
-`DEFAULT_STATE` tem `_schemaVersion: 1`. Em todo `_ensureCache()`, o state carregado passa por `migrateState()` antes de ser retornado.
+`DEFAULT_STATE` tem `_schemaVersion: 2` (versão atual). Em todo `_ensureCache()`, o state carregado passa por `migrateState()` antes de ser retornado.
+
+**Migrações implementadas:**
+- **v1 → v2:** `golsA/golsB` → `scoreA/scoreB` em partidas e matches; `vencedor` derivado do resultado; campo `jogo` removido (substituído por `gameType`)
 
 **Convenção para futuras mudanças de schema:**
 1. Incremente `CURRENT_SCHEMA_VERSION` em `state.js`
