@@ -73,9 +73,9 @@ function _phaseHeader(text) {
   return `<div class="phase-label">${text}</div>`;
 }
 
-function _connector(height) {
-  return `<div class="bracket-connector" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:40px">
-    <div style="width:2px;height:${height || 48}px;background:var(--color-border)"></div>
+function _connector() {
+  return `<div class="bracket-connector" style="display:flex;align-items:center;justify-content:center">
+    <div style="width:2px;height:60%;max-height:120px;min-height:32px;background:var(--color-border);border-radius:1px"></div>
   </div>`;
 }
 
@@ -319,33 +319,42 @@ const FORMAT_DOUBLE_ELIM_4 = {
     return `
     <div class="bracket-container">
       <div style="margin-bottom:8px"><span class="bracket-label upper">&#9733; Chave Superior</span></div>
-      <div style="display:grid;grid-template-columns:1fr 48px 1fr 48px 1fr;gap:0;align-items:center;min-width:800px;margin-bottom:32px">
+      <div style="display:grid;grid-template-columns:1fr 48px 1fr 48px 1fr;grid-template-rows:auto 1fr;min-width:800px;margin-bottom:32px">
+        <div style="align-self:end">${_phaseHeader('Semifinal')}</div>
+        <div></div>
+        <div style="align-self:end">${_phaseHeader('Final Superior')}</div>
+        <div></div>
+        <div style="align-self:end"><div class="phase-label" style="color:var(--color-champion);border-bottom-color:rgba(249,168,37,.3)">Grande Final</div></div>
         <div style="display:flex;flex-direction:column;gap:16px">
-          ${_phaseHeader('Semifinal')}
           ${_matchHTML(state, m, 'ub-sf1', 'upper', '1º Colocado', '4º Colocado')}
           ${_matchHTML(state, m, 'ub-sf2', 'upper', '2º Colocado', '3º Colocado')}
         </div>
-        ${_connector(64)}
-        <div style="display:flex;flex-direction:column;justify-content:center">
-          <div style="margin-bottom:48px">${_phaseHeader('Final Superior')}</div>
+        <div style="display:flex;align-items:center;justify-content:center">
+          ${_connector()}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
           ${_matchHTML(state, m, 'ub-final', 'upper', 'Vencedor UB SF1', 'Vencedor UB SF2')}
         </div>
-        ${_connector(48)}
-        <div style="display:flex;flex-direction:column;justify-content:center">
-          <div style="margin-bottom:48px"><div class="phase-label" style="color:var(--color-champion);border-bottom-color:rgba(249,168,37,.3)">Grande Final</div></div>
+        <div style="display:flex;align-items:center;justify-content:center">
+          ${_connector()}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
           ${_grandFinalHTML(state, m)}
         </div>
       </div>
       <hr class="bracket-divider">
       <div style="margin-bottom:8px"><span class="bracket-label lower">&#8595; Chave Inferior</span></div>
-      <div style="display:grid;grid-template-columns:1fr 48px 1fr;gap:0;align-items:center;min-width:500px;max-width:700px;margin-bottom:16px">
-        <div>
-          ${_phaseHeader('Semifinal Inferior')}
+      <div style="display:grid;grid-template-columns:1fr 48px 1fr;grid-template-rows:auto 1fr;min-width:500px;max-width:700px;margin-bottom:16px">
+        <div style="align-self:end">${_phaseHeader('Semifinal Inferior')}</div>
+        <div></div>
+        <div style="align-self:end">${_phaseHeader('Final Inferior')}</div>
+        <div style="display:flex;flex-direction:column;gap:16px">
           ${_matchHTML(state, m, 'lb-sf', 'lower', 'Perdedor UB SF1', 'Perdedor UB SF2')}
         </div>
-        ${_connector(44)}
-        <div>
-          ${_phaseHeader('Final Inferior')}
+        <div style="display:flex;align-items:center;justify-content:center">
+          ${_connector()}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px">
           ${_matchHTML(state, m, 'lb-final', 'lower', 'Vencedor LB SF', 'Perdedor UB Final')}
         </div>
       </div>
@@ -595,46 +604,61 @@ const FORMAT_PLAY_IN_6 = {
     return `
     <div class="bracket-container">
       <div style="margin-bottom:8px"><span class="bracket-label upper">&#9733; Chave Superior</span></div>
-      <div style="display:grid;grid-template-columns:1fr 36px 1fr 36px 1fr 36px 1fr;gap:0;align-items:center;min-width:900px;margin-bottom:32px">
+      <div style="display:grid;grid-template-columns:1fr 36px 1fr 36px 1fr 36px 1fr;grid-template-rows:auto 1fr;min-width:900px;margin-bottom:32px">
+        <div style="align-self:end">${_phaseHeader('Quartas de Final')}</div>
+        <div></div>
+        <div style="align-self:end">${_phaseHeader('Semifinal')}</div>
+        <div></div>
+        <div style="align-self:end">${_phaseHeader('Final Superior')}</div>
+        <div></div>
+        <div style="align-self:end"><div class="phase-label" style="color:var(--color-champion);border-bottom-color:rgba(249,168,37,.3)">Grande Final</div></div>
         <div style="display:flex;flex-direction:column;gap:16px">
-          ${_phaseHeader('Quartas de Final')}
           ${_matchHTML(state, m, 'ub-qf1', 'upper', '3º Colocado', '6º Colocado')}
           ${_matchHTML(state, m, 'ub-qf2', 'upper', '4º Colocado', '5º Colocado')}
           <div style="font-size:.7rem;color:var(--color-text-dim);text-align:center;font-style:italic">1º e 2º não jogam</div>
         </div>
-        ${_connector(64)}
-        <div style="display:flex;flex-direction:column;gap:16px">
-          ${_phaseHeader('Semifinal')}
+        <div style="display:flex;align-items:center;justify-content:center">
+          ${_connector()}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
           ${_matchHTML(state, m, 'ub-sf1', 'upper', '1º Colocado (BYE)', 'Vencedor UB QF (4º vs 5º)')}
           ${_matchHTML(state, m, 'ub-sf2', 'upper', '2º Colocado (BYE)', 'Vencedor UB QF (3º vs 6º)')}
         </div>
-        ${_connector(48)}
-        <div style="display:flex;flex-direction:column;justify-content:center">
-          <div style="margin-bottom:48px">${_phaseHeader('Final Superior')}</div>
+        <div style="display:flex;align-items:center;justify-content:center">
+          ${_connector()}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
           ${_matchHTML(state, m, 'ub-final', 'upper', 'Vencedor UB SF1', 'Vencedor UB SF2')}
         </div>
-        ${_connector(48)}
-        <div style="display:flex;flex-direction:column;justify-content:center">
-          <div style="margin-bottom:48px"><div class="phase-label" style="color:var(--color-champion);border-bottom-color:rgba(249,168,37,.3)">Grande Final</div></div>
+        <div style="display:flex;align-items:center;justify-content:center">
+          ${_connector()}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
           ${_grandFinalHTML(state, m)}
         </div>
       </div>
       <hr class="bracket-divider">
       <div style="margin-bottom:8px"><span class="bracket-label lower">&#8595; Chave Inferior</span></div>
-      <div style="display:grid;grid-template-columns:1fr 36px 1fr 36px 1fr;gap:0;align-items:center;min-width:700px;max-width:900px;margin-bottom:16px">
+      <div style="display:grid;grid-template-columns:1fr 36px 1fr 36px 1fr;grid-template-rows:auto 1fr;min-width:700px;max-width:900px;margin-bottom:16px">
+        <div style="align-self:end">${_phaseHeader('Quartas de Final')}</div>
+        <div></div>
+        <div style="align-self:end">${_phaseHeader('Semifinal Inferior')}</div>
+        <div></div>
+        <div style="align-self:end">${_phaseHeader('Final Inferior')}</div>
         <div style="display:flex;flex-direction:column;gap:16px">
-          ${_phaseHeader('Quartas de Final')}
           ${_matchHTML(state, m, 'lb-qf1', 'lower', 'Perdedor UB SF1', 'Perdedor UB QF1')}
           ${_matchHTML(state, m, 'lb-qf2', 'lower', 'Perdedor UB SF2', 'Perdedor UB QF2')}
         </div>
-        ${_connector(44)}
-        <div>
-          ${_phaseHeader('Semifinal Inferior')}
+        <div style="display:flex;align-items:center;justify-content:center">
+          ${_connector()}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
           ${_matchHTML(state, m, 'lb-sf', 'lower', 'Vencedor LB QF1', 'Vencedor LB QF2')}
         </div>
-        ${_connector(44)}
-        <div>
-          ${_phaseHeader('Final Inferior')}
+        <div style="display:flex;align-items:center;justify-content:center">
+          ${_connector()}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
           ${_matchHTML(state, m, 'lb-final', 'lower', 'Vencedor LB SF', 'Perdedor UB Final')}
         </div>
       </div>
@@ -861,49 +885,67 @@ const FORMAT_GAUNTLET_6 = {
     return `
     <div class="bracket-container">
       <div style="margin-bottom:8px"><span class="bracket-label upper">&#9733; Chave Superior</span></div>
-      <div style="display:grid;grid-template-columns:1fr 36px 1fr 36px 1fr 36px 1fr;gap:0;align-items:start;min-width:900px;margin-bottom:32px">
-        <div>
-          ${_phaseHeader('Quartas de Final')}
+      <div style="display:grid;grid-template-columns:1fr 36px 1fr 36px 1fr 36px 1fr;grid-template-rows:auto 1fr;min-width:900px;margin-bottom:32px">
+        <div style="align-self:end">${_phaseHeader('Quartas de Final')}</div>
+        <div></div>
+        <div style="align-self:end">${_phaseHeader('Semifinal')}</div>
+        <div></div>
+        <div style="align-self:end">${_phaseHeader('Final Superior')}</div>
+        <div></div>
+        <div style="align-self:end"><div class="phase-label" style="color:var(--color-champion);border-bottom-color:rgba(249,168,37,.3)">Grande Final</div></div>
+        <div style="display:flex;flex-direction:column;gap:16px">
           ${_matchHTML(state, m, 'ub-r1', 'upper', '3º Colocado', '4º Colocado')}
           <div style="font-size:.7rem;color:var(--color-text-dim);text-align:center;font-style:italic;margin-top:4px">1º e 2º não jogam</div>
         </div>
-        <div class="bracket-connector" style="display:flex;align-items:center;justify-content:center;height:100%"><div style="width:2px;height:48px;background:var(--color-border)"></div></div>
-        <div>
-          ${_phaseHeader('Semifinal')}
+        <div style="display:flex;align-items:center;justify-content:center">
+          ${_connector()}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
           ${_matchHTML(state, m, 'ub-r2', 'upper', '2º Colocado (BYE)', 'Vencedor UB QF')}
         </div>
-        <div class="bracket-connector" style="display:flex;align-items:center;justify-content:center;height:100%"><div style="width:2px;height:48px;background:var(--color-border)"></div></div>
-        <div>
-          ${_phaseHeader('Final Superior')}
+        <div style="display:flex;align-items:center;justify-content:center">
+          ${_connector()}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
           ${_matchHTML(state, m, 'ub-final', 'upper', '1º Colocado (BYE)', 'Vencedor UB SF')}
         </div>
-        <div class="bracket-connector" style="display:flex;align-items:center;justify-content:center;height:100%"><div style="width:2px;height:48px;background:var(--color-border)"></div></div>
-        <div>
-          <div class="phase-label" style="color:var(--color-champion);border-bottom-color:rgba(249,168,37,.3)">Grande Final</div>
+        <div style="display:flex;align-items:center;justify-content:center">
+          ${_connector()}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
           ${_grandFinalHTML(state, m)}
         </div>
       </div>
       <hr class="bracket-divider">
       <div style="margin-bottom:8px"><span class="bracket-label lower">&#8595; Chave Inferior</span></div>
-      <div style="display:grid;grid-template-columns:1fr 36px 1fr 36px 1fr 36px 1fr;gap:0;align-items:start;min-width:900px;max-width:1000px;margin-bottom:16px">
-        <div>
-          ${_phaseHeader('Oitavas de Final')}
+      <div style="display:grid;grid-template-columns:1fr 36px 1fr 36px 1fr 36px 1fr;grid-template-rows:auto 1fr;min-width:900px;max-width:1000px;margin-bottom:16px">
+        <div style="align-self:end">${_phaseHeader('Oitavas de Final')}</div>
+        <div></div>
+        <div style="align-self:end">${_phaseHeader('Quartas de Final')}</div>
+        <div></div>
+        <div style="align-self:end">${_phaseHeader('Semifinal Inferior')}</div>
+        <div></div>
+        <div style="align-self:end">${_phaseHeader('Final Inferior')}</div>
+        <div style="display:flex;flex-direction:column;gap:16px">
           ${_matchHTML(state, m, 'lb-r1', 'lower', '5º Colocado', '6º Colocado')}
           <div style="font-size:.65rem;color:var(--color-loss);text-align:center;margin-top:4px">Perdedor eliminado</div>
         </div>
-        <div class="bracket-connector" style="display:flex;align-items:center;justify-content:center;height:100%"><div style="width:2px;height:44px;background:var(--color-border)"></div></div>
-        <div>
-          ${_phaseHeader('Quartas de Final')}
+        <div style="display:flex;align-items:center;justify-content:center">
+          ${_connector()}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
           ${_matchHTML(state, m, 'lb-r2', 'lower', 'Vencedor LB Oitavas', 'Perdedor UB QF')}
         </div>
-        <div class="bracket-connector" style="display:flex;align-items:center;justify-content:center;height:100%"><div style="width:2px;height:44px;background:var(--color-border)"></div></div>
-        <div>
-          ${_phaseHeader('Semifinal Inferior')}
+        <div style="display:flex;align-items:center;justify-content:center">
+          ${_connector()}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
           ${_matchHTML(state, m, 'lb-r3', 'lower', 'Vencedor LB QF', 'Perdedor UB SF')}
         </div>
-        <div class="bracket-connector" style="display:flex;align-items:center;justify-content:center;height:100%"><div style="width:2px;height:44px;background:var(--color-border)"></div></div>
-        <div>
-          ${_phaseHeader('Final Inferior')}
+        <div style="display:flex;align-items:center;justify-content:center">
+          ${_connector()}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
           ${_matchHTML(state, m, 'lb-final', 'lower', 'Vencedor LB SF', 'Perdedor UB Final')}
         </div>
       </div>
@@ -992,15 +1034,18 @@ const FORMAT_SINGLE_ELIM_4 = {
   renderBracketHTML(state) {
     const m = state ? state.playoffs.matches : null;
     return `<div class="bracket-container">
-      <div style="display:grid;grid-template-columns:1fr 48px 1fr;gap:0;align-items:center;min-width:600px">
+      <div style="display:grid;grid-template-columns:1fr 48px 1fr;grid-template-rows:auto 1fr;min-width:600px">
+        <div style="align-self:end">${_phaseHeader('Semifinais')}</div>
+        <div></div>
+        <div style="align-self:end"><div class="phase-label" style="color:var(--color-champion);border-bottom-color:rgba(249,168,37,.3)">Final</div></div>
         <div style="display:flex;flex-direction:column;gap:16px">
-          ${_phaseHeader('Semifinais')}
           ${_matchHTML(state, m, 'se-sf1', 'upper', '1º Colocado', '4º Colocado')}
           ${_matchHTML(state, m, 'se-sf2', 'upper', '2º Colocado', '3º Colocado')}
         </div>
-        ${_connector(60)}
-        <div style="display:flex;flex-direction:column;justify-content:center">
-          <div style="margin-bottom:48px"><div class="phase-label" style="color:var(--color-champion);border-bottom-color:rgba(249,168,37,.3)">Final</div></div>
+        <div style="display:flex;align-items:center;justify-content:center">
+          ${_connector()}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
           ${_matchHTML(state, m, 'se-final', 'grand', 'Vencedor SF1', 'Vencedor SF2')}
         </div>
       </div>
@@ -1147,23 +1192,29 @@ const FORMAT_SINGLE_ELIM_8 = {
   renderBracketHTML(state) {
     const m = state ? state.playoffs.matches : null;
     return `<div class="bracket-container">
-      <div style="display:grid;grid-template-columns:1fr 48px 1fr 48px 1fr;gap:0;align-items:center;min-width:800px">
+      <div style="display:grid;grid-template-columns:1fr 48px 1fr 48px 1fr;grid-template-rows:auto 1fr;min-width:800px">
+        <div style="align-self:end">${_phaseHeader('Quartas de Final')}</div>
+        <div></div>
+        <div style="align-self:end">${_phaseHeader('Semifinais')}</div>
+        <div></div>
+        <div style="align-self:end"><div class="phase-label" style="color:var(--color-champion);border-bottom-color:rgba(249,168,37,.3)">Final</div></div>
         <div style="display:flex;flex-direction:column;gap:16px">
-          ${_phaseHeader('Quartas de Final')}
           ${_matchHTML(state, m, 'se8-qf1', 'upper', '1º Colocado', '8º Colocado')}
           ${_matchHTML(state, m, 'se8-qf2', 'upper', '4º Colocado', '5º Colocado')}
           ${_matchHTML(state, m, 'se8-qf3', 'upper', '3º Colocado', '6º Colocado')}
           ${_matchHTML(state, m, 'se8-qf4', 'upper', '2º Colocado', '7º Colocado')}
         </div>
-        ${_connector(80)}
+        <div style="display:flex;align-items:center;justify-content:center">
+          ${_connector()}
+        </div>
         <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
-          ${_phaseHeader('Semifinais')}
           ${_matchHTML(state, m, 'se8-sf1', 'upper', 'V QF1', 'V QF2')}
           ${_matchHTML(state, m, 'se8-sf2', 'upper', 'V QF3', 'V QF4')}
         </div>
-        ${_connector(60)}
-        <div style="display:flex;flex-direction:column;justify-content:center">
-          <div style="margin-bottom:48px"><div class="phase-label" style="color:var(--color-champion);border-bottom-color:rgba(249,168,37,.3)">Final</div></div>
+        <div style="display:flex;align-items:center;justify-content:center">
+          ${_connector()}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;justify-content:center">
           ${_matchHTML(state, m, 'se8-final', 'grand', 'Vencedor SF1', 'Vencedor SF2')}
         </div>
       </div>
