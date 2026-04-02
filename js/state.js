@@ -696,7 +696,9 @@ function _getCampeao(state) {
   if (!state.playoffs || !state.playoffs.matches) return null;
   const format = PlayoffFormats.getSelected(state);
   const gf = format.getGrandFinal(state.playoffs.matches);
-  return gf ? gf.vencedor : null;
+  if (!gf || !gf.vencedor) return null;
+  const time = (state.times || []).find(t => t.id === gf.vencedor);
+  return time ? time.nome : gf.vencedor;
 }
 
 // ------------------------------------------------------------------

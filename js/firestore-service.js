@@ -217,16 +217,24 @@ const FirestoreService = {
         .collection(CAMPEONATOS_COLLECTION)
         .orderBy('metadata.criadoEm', 'desc')
         .get();
-      return snapshot.docs.map(doc => ({
-        id: doc.id,
-        nome: doc.data().metadata?.nome || 'Campeonato',
-        gameType: doc.data().metadata?.gameType || 'futebol-virtual',
-        teamMode: doc.data().metadata?.teamMode || 'individual',
-        status: doc.data().metadata?.status || 'configuracao',
-        criadoEm: doc.data().metadata?.criadoEm || null,
-        timesCount: (doc.data().times || []).length,
-        campeao: doc.data().campeao || null
-      }));
+      return snapshot.docs.map(doc => {
+        const data = doc.data();
+        const times = data.times || [];
+        const campeaoRaw = data.campeao || null;
+        // campeaoRaw may be a team ID (legacy) or already a name (new saves)
+        const campeaoTime = campeaoRaw ? times.find(t => t.id === campeaoRaw) : null;
+        const campeao = campeaoTime ? campeaoTime.nome : campeaoRaw;
+        return {
+          id: doc.id,
+          nome: data.metadata?.nome || 'Campeonato',
+          gameType: data.metadata?.gameType || 'futebol-virtual',
+          teamMode: data.metadata?.teamMode || 'individual',
+          status: data.metadata?.status || 'configuracao',
+          criadoEm: data.metadata?.criadoEm || null,
+          timesCount: times.length,
+          campeao
+        };
+      });
     } catch (error) {
       console.error('Error listing tournaments:', error);
       return [];
