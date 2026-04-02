@@ -22,6 +22,7 @@ async function portalRenderList() {
 
   _visibleCount = PORTAL_PAGE_SIZE;
   portalRenderCards();
+  portalRenderHistorico();
 }
 
 function portalRenderCards() {
@@ -85,6 +86,34 @@ function portalRenderCards() {
 function portalShowMore() {
   _visibleCount += PORTAL_PAGE_SIZE;
   portalRenderCards();
+}
+
+function portalRenderHistorico() {
+  const section = document.getElementById('historicoSection');
+  const container = document.getElementById('historicoCampeoes');
+  if (!section || !container) return;
+
+  const campeoes = _allTournaments.filter(t => t.status === 'encerrado' && t.campeao);
+
+  if (campeoes.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+
+  section.style.display = '';
+  container.innerHTML = campeoes.map(t => {
+    const gt = getGameType(t.gameType);
+    const ano = t.criadoEm ? new Date(t.criadoEm).getFullYear() : '';
+    return `
+    <div class="historico-card" onclick="portalEnterTournament('${UI.escapeHtml(t.id)}')">
+      <div class="historico-trophy">🏆</div>
+      <div class="historico-info">
+        <span class="historico-campeao">${UI.escapeHtml(t.campeao)}</span>
+        <span class="historico-meta">${UI.escapeHtml(t.nome)} · ${gt.icon} ${gt.name}${ano ? ' · ' + ano : ''}</span>
+      </div>
+      <span class="selector-card-arrow">→</span>
+    </div>`;
+  }).join('');
 }
 
 function portalRequestDelete(uuid, nome, timesCount) {

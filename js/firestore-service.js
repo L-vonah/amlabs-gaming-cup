@@ -221,9 +221,11 @@ const FirestoreService = {
         id: doc.id,
         nome: doc.data().metadata?.nome || 'Campeonato',
         gameType: doc.data().metadata?.gameType || 'futebol-virtual',
+        teamMode: doc.data().metadata?.teamMode || 'individual',
         status: doc.data().metadata?.status || 'configuracao',
         criadoEm: doc.data().metadata?.criadoEm || null,
-        timesCount: (doc.data().times || []).length
+        timesCount: (doc.data().times || []).length,
+        campeao: doc.data().campeao || null
       }));
     } catch (error) {
       console.error('Error listing tournaments:', error);
