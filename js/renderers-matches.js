@@ -151,12 +151,16 @@ function renderPartidasPlayoffs(state, admin) {
 
     let desktopBtn = '';
     let mobileBtn = '';
+    let desktopResetBtn = '';
+    let mobileResetBtn = '';
     if (admin && !concluded) {
       desktopBtn = `<button class="btn btn-sm btn-success admin-only btn-score-action" data-match-id="${m.id}" data-gf="${gfAttr}">Registrar</button>`;
       mobileBtn = desktopBtn;
     } else if (admin && concluded) {
       desktopBtn = `<button class="btn btn-sm btn-secondary admin-only btn-score-action" data-match-id="${m.id}" data-gf="${gfAttr}">Editar</button>`;
       mobileBtn = desktopBtn;
+      desktopResetBtn = `<button class="btn-ghost-danger admin-only" onclick="resetMatchResult('${m.id}')">Resetar</button>`;
+      mobileResetBtn = `<button class="btn btn-sm admin-only" style="color:var(--color-loss);border-color:var(--color-border)" onclick="resetMatchResult('${m.id}')">Resetar</button>`;
     }
 
     const partA = tA && tA.participante && !tA.participante2 ? `<span class="team-participant">${UI.escapeHtml(tA.participante)}</span>` : '';
@@ -198,7 +202,7 @@ function renderPartidasPlayoffs(state, admin) {
             <div class="match-team-info"><span class="team-name-text">${nameB}</span>${partB}</div>
           </div>
         </div>
-        <div class="match-action-slot">${desktopBtn}</div>
+        <div class="match-action-slot">${desktopBtn}${desktopResetBtn}</div>
       </div>
       <div class="match-mobile">
         <div class="match-mobile-row">
@@ -211,7 +215,7 @@ function renderPartidasPlayoffs(state, admin) {
           <span class="match-mobile-name">${nameB}</span>
           <span class="match-mobile-score ${winB ? 'win' : winA ? 'loss' : ''}">${mobileScoreB}</span>
         </div>
-        ${mobileBtn ? '<div class="match-mobile-action">' + mobileBtn + '</div>' : ''}
+        ${(mobileBtn || mobileResetBtn) ? '<div class="match-mobile-action">' + mobileBtn + mobileResetBtn + '</div>' : ''}
       </div>
     </div>`;
 
@@ -236,12 +240,16 @@ function renderMatchCardWithAction(p, state, admin) {
 
   let desktopBtn = '';
   let mobileBtn = '';
+  let desktopResetBtn = '';
+  let mobileResetBtn = '';
   if (admin && !concluded) {
     desktopBtn = `<button class="btn btn-sm btn-success admin-only btn-score-action" data-match-id="${p.id}" data-gf="0">Registrar</button>`;
     mobileBtn = desktopBtn;
   } else if (admin && concluded) {
     desktopBtn = `<button class="btn btn-sm btn-secondary admin-only btn-score-action" data-match-id="${p.id}" data-gf="0">Editar</button>`;
     mobileBtn = desktopBtn;
+    desktopResetBtn = `<button class="btn-ghost-danger admin-only" onclick="resetMatchResult('${p.id}')">Resetar</button>`;
+    mobileResetBtn = `<button class="btn btn-sm admin-only" style="color:var(--color-loss);border-color:var(--color-border)" onclick="resetMatchResult('${p.id}')">Resetar</button>`;
   }
 
   // Winner-only score display
@@ -278,7 +286,7 @@ function renderMatchCardWithAction(p, state, admin) {
             <div class="match-team-info"><span class="team-name-text">${nameB}</span>${partB}</div>
           </div>
         </div>
-        <div class="match-action-slot">${desktopBtn}</div>
+        <div class="match-action-slot">${desktopBtn}${desktopResetBtn}</div>
       </div>
       <div class="match-mobile">
         <div class="match-mobile-row">
@@ -291,7 +299,7 @@ function renderMatchCardWithAction(p, state, admin) {
           <span class="match-mobile-name">${nameB}${partB ? ' <span class="team-participant">' + UI.escapeHtml(tB.participante) + '</span>' : ''}</span>
           <span class="match-mobile-score ${pWinB ? 'win' : pWinA ? 'loss' : ''}">${mScoreB}</span>
         </div>
-        ${mobileBtn ? '<div class="match-mobile-action">' + mobileBtn + '</div>' : ''}
+        ${(mobileBtn || mobileResetBtn) ? '<div class="match-mobile-action">' + mobileBtn + mobileResetBtn + '</div>' : ''}
       </div>
     </div>`;
 }

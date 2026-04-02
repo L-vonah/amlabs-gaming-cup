@@ -2100,13 +2100,32 @@ body {
 .match-mobile-action {
   display: flex;
   justify-content: center;
+  gap: 8px;
   padding-top: 8px;
   border-top: 1px dashed var(--color-border);
   margin-top: 4px;
 }
 
 .match-mobile-action .btn {
-  width: 100%;
+  flex: 1;
+}
+
+.btn-ghost-danger {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--color-text-dim);
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+.btn-ghost-danger:hover {
+  color: var(--color-loss);
+  border-color: var(--color-loss);
+  background: var(--color-loss-bg);
 }
 
 

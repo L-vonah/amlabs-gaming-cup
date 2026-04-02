@@ -613,6 +613,49 @@ function savePlayoffResult(matchId, scoreA, scoreB, penaltyWinner, winnerSide) {
 }
 
 // ------------------------------------------------------------------
+// Reset Match Result
+// ------------------------------------------------------------------
+
+function resetMatchResult(matchId) {
+  if (!UI.checkAdmin()) { UI.showToast('Você precisa estar logado como admin para editar.', 'error'); return; }
+  if (!confirm('Resetar o resultado desta partida? Ela voltará para pendente.')) return;
+
+  const state = AppState.load();
+
+  if (matchId.startsWith('rr_')) {
+    const partida = state.faseGrupos.partidas.find(p => p.id === matchId);
+    if (!partida) return;
+    partida.scoreA = null;
+    partida.scoreB = null;
+    partida.vencedor = null;
+    partida.status = 'pendente';
+    AppState.save(state);
+    AppState.addAuditLog(getAuditUser(), 'Resetou resultado de partida', { matchId });
+    UI.showToast('Resultado resetado.', 'info');
+    Renderers.classificacao();
+    Renderers.partidas();
+  } else {
+    const format = PlayoffFormats.getSelected(state);
+    const match = state.playoffs.matches && state.playoffs.matches[matchId];
+    if (!match) return;
+    format.resetDownstream(state.playoffs.matches, matchId);
+    match.scoreA = null;
+    match.scoreB = null;
+    match.vencedor = null;
+    match.perdedor = null;
+    match.penaltyWinner = null;
+    if (state.campeonato.status === 'encerrado') state.campeonato.status = 'playoffs';
+    AppState.save(state);
+    AppState.addAuditLog(getAuditUser(), 'Resetou resultado de playoff', { matchId });
+    UI.showToast('Resultado resetado.', 'info');
+    Renderers.bracket();
+    Renderers.home();
+    Renderers.partidas();
+  }
+}
+window.resetMatchResult = resetMatchResult;
+
+// ------------------------------------------------------------------
 // Reset
 // ------------------------------------------------------------------
 
