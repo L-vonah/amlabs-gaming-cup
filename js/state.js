@@ -5,10 +5,12 @@
  */
 
 const DEFAULT_STATE = {
-  _schemaVersion: 2,
+  _schemaVersion: 3,
   campeonato: {
     nome: '',
     gameType: 'futebol-virtual',
+    teamMode: 'individual', // individual | duplas
+    drawMode: 'admin',      // admin | sorteio (só relevante quando teamMode = 'duplas')
     status: 'configuracao' // configuracao | grupos | playoffs | encerrado
   },
   config: {
@@ -42,7 +44,7 @@ function invalidateCache() {
   _classificacaoCache = null;
 }
 
-const CURRENT_SCHEMA_VERSION = 2;
+const CURRENT_SCHEMA_VERSION = 3;
 
 function migrateState(state) {
   const version = state._schemaVersion || 0;
@@ -92,6 +94,17 @@ function migrateState(state) {
       delete state.config.pontosPorDerrota;
       delete state.config.criteriosDesempate;
     }
+  }
+
+  if (version < 3) {
+    // v2 → v3: duplas support
+    if (state.times) {
+      state.times.forEach(t => {
+        if (t.participante2 === undefined) t.participante2 = null;
+      });
+    }
+    if (!state.campeonato.teamMode) state.campeonato.teamMode = 'individual';
+    if (!state.campeonato.drawMode)  state.campeonato.drawMode  = 'admin';
   }
 
   state._schemaVersion = CURRENT_SCHEMA_VERSION;
@@ -169,10 +182,12 @@ function saveState(state) {
 function convertStateToFirestore(state) {
   return {
     id: getActiveTournamentId(),
-    _schemaVersion: state._schemaVersion || 2,
+    _schemaVersion: state._schemaVersion || 3,
     metadata: {
       nome: state.campeonato.nome,
       gameType: state.campeonato.gameType || 'futebol-virtual',
+      teamMode: state.campeonato.teamMode || 'individual',
+      drawMode: state.campeonato.drawMode || 'admin',
       status: state.campeonato.status,
       criadoEm: state._criadoEm || new Date().toISOString(),
       atualizadoEm: new Date().toISOString()
@@ -197,6 +212,8 @@ function convertFirestoreToState(data) {
     campeonato: {
       nome: data.metadata.nome,
       gameType: data.metadata.gameType || 'futebol-virtual',
+      teamMode: data.metadata.teamMode || 'individual',
+      drawMode: data.metadata.drawMode || 'admin',
       // Legacy: if jogo field exists but no gameType, keep it for migration
       ...(data.metadata.jogo && !data.metadata.gameType ? { jogo: data.metadata.jogo } : {}),
       status: data.metadata.status
@@ -251,9 +268,15 @@ async function loadAuditLog() {
 // Teams
 // ------------------------------------------------------------------
 
-function addTime(state, { nome, abreviacao, cor, participante }) {
+function addTime(state, { nome, abreviacao, cor, participante, participante2 = null }) {
   const id = 'time_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
-  const time = { id, nome, abreviacao: abreviacao.replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 3), cor, participante: participante || '' };
+  const time = {
+    id, nome,
+    abreviacao: abreviacao.replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 3),
+    cor,
+    participante: participante || '',
+    participante2: participante2 || null
+  };
   state.times.push(time);
   return time;
 }
@@ -264,6 +287,33 @@ function removeTime(state, id) {
 
 function getTimeById(state, id) {
   return state.times.find(t => t.id === id) || null;
+}
+
+// ------------------------------------------------------------------
+// Duplas helpers
+// ------------------------------------------------------------------
+
+function generateDuplaName(p1, p2) {
+  const firstName = name => (name || '').trim().split(/\s+/)[0];
+  return firstName(p1) + ' & ' + firstName(p2);
+}
+
+function generateDuplaAbrev(p1, p2) {
+  const initial = name => ((name || '').trim()[0] || '').toUpperCase();
+  const i1 = initial(p1);
+  const i2 = initial(p2);
+  if (i1 && i2 && i1 === i2) {
+    // Same initial: use first letter of p1 + first two of p2
+    return (i1 + (p2 || '').trim().slice(1, 3)).toUpperCase().slice(0, 3);
+  }
+  return (i1 + i2).slice(0, 3);
+}
+
+function pairPlayers(state, p1Participante, p2Participante) {
+  const nome = generateDuplaName(p1Participante, p2Participante);
+  const abreviacao = generateDuplaAbrev(p1Participante, p2Participante);
+  const cor = typeof UI !== 'undefined' ? UI.getRandomColor() : '#6c5ce7';
+  return addTime(state, { nome, abreviacao, cor, participante: p1Participante, participante2: p2Participante });
 }
 
 // ------------------------------------------------------------------
@@ -393,6 +443,7 @@ function calcularClassificacao(state) {
     abreviacao: t.abreviacao,
     cor: t.cor,
     participante: t.participante || '',
+    participante2: t.participante2 || null,
     jogos: 0,
     vitorias: 0,
     empates: 0,
@@ -679,5 +730,8 @@ window.AppState = {
   getCampeao: _getCampeao,
   convertStateToFirestore,
   convertFirestoreToState,
-  invalidateCache
+  invalidateCache,
+  generateDuplaName,
+  generateDuplaAbrev,
+  pairPlayers
 };

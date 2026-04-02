@@ -130,13 +130,15 @@ async function portalCreateTournament(event) {
 
   const nome = document.getElementById('inputTournamentNome').value.trim();
   const gameType = document.getElementById('inputTournamentGameType').value;
+  const teamMode = document.getElementById('inputTournamentTeamMode').value || 'individual';
+  const drawMode = document.getElementById('inputTournamentDrawMode').value || 'admin';
 
   if (!nome) {
     UI.showToast('Preencha o nome do campeonato.', 'error');
     return;
   }
 
-  const uuid = await FirestoreService.createTournament({ nome, gameType });
+  const uuid = await FirestoreService.createTournament({ nome, gameType, teamMode, drawMode });
   if (!uuid) {
     UI.showToast('Erro ao criar campeonato. Tente novamente.', 'error');
     return;
@@ -148,8 +150,24 @@ async function portalCreateTournament(event) {
 
 function portalSelectGameType(gameTypeId) {
   document.getElementById('inputTournamentGameType').value = gameTypeId;
-  document.querySelectorAll('.game-type-card').forEach(card => {
+  document.querySelectorAll('#gameTypeSelector .game-type-card').forEach(card => {
     card.classList.toggle('selected', card.dataset.gameType === gameTypeId);
+  });
+}
+
+function portalSelectTeamMode(teamModeId) {
+  document.getElementById('inputTournamentTeamMode').value = teamModeId;
+  document.querySelectorAll('#teamModeSelector .game-type-card').forEach(card => {
+    card.classList.toggle('selected', card.dataset.teamMode === teamModeId);
+  });
+  const drawModeGroup = document.getElementById('drawModeGroup');
+  if (drawModeGroup) drawModeGroup.style.display = teamModeId === 'duplas' ? '' : 'none';
+}
+
+function portalSelectDrawMode(drawModeId) {
+  document.getElementById('inputTournamentDrawMode').value = drawModeId;
+  document.querySelectorAll('#drawModeSelector .game-type-card').forEach(card => {
+    card.classList.toggle('selected', card.dataset.drawMode === drawModeId);
   });
 }
 
@@ -187,3 +205,5 @@ window.portalCreateTournament = portalCreateTournament;
 window.portalRequestDelete = portalRequestDelete;
 window.portalExecuteDelete = portalExecuteDelete;
 window.portalSelectGameType = portalSelectGameType;
+window.portalSelectTeamMode = portalSelectTeamMode;
+window.portalSelectDrawMode = portalSelectDrawMode;

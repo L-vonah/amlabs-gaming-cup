@@ -31,7 +31,7 @@ function renderTimes() {
       ${UI.renderAvatar(t, 44, 'team-card-avatar')}
       <div class="team-card-info">
         <div class="team-card-name">${UI.escapeHtml(t.nome)}</div>
-        <div class="team-card-abbr">${UI.escapeHtml(t.participante || '')}</div>
+        <div class="team-card-abbr">${t.participante2 ? UI.escapeHtml(t.participante) + ' &amp; ' + UI.escapeHtml(t.participante2) : UI.escapeHtml(t.participante || '')}</div>
       </div>
       <div class="team-card-actions admin-only">
         <button class="btn-icon" onclick="openEditTeamModal('${t.id}')" title="Editar time">&#9998;</button>
@@ -42,8 +42,13 @@ function renderTimes() {
   // Update generate button state
   const genBtn = document.getElementById('btnGerarGrupos');
   if (genBtn) {
-    genBtn.disabled = state.times.length < 5 || state.campeonato.status !== 'configuracao';
-    genBtn.title = state.times.length < 5 ? 'Minimo de 5 times para iniciar' : '';
+    const isDuplas = state.campeonato.teamMode === 'duplas';
+    const pairingEl = document.getElementById('pairingBoardContainer');
+    const hasUnpaired = isDuplas && pairingEl && pairingEl.dataset.hasUnpaired === '1';
+    const tooFew = state.times.length < 5;
+    genBtn.disabled = tooFew || state.campeonato.status !== 'configuracao' || hasUnpaired;
+    genBtn.title = tooFew ? 'M\u00ednimo de 5 times para iniciar'
+      : hasUnpaired ? 'Existem jogadores n\u00e3o pareados' : '';
   }
 
   if (typeof updateAdminUI === 'function') updateAdminUI();
@@ -118,7 +123,7 @@ function renderClassificacao() {
                     ${UI.renderAvatar(t, 28)}
                     <div>
                       <div class="team-name-text">${UI.escapeHtml(t.nome)}</div>
-                      ${t.participante ? '<div class="team-participant-sub">' + UI.escapeHtml(t.participante) + '</div>' : ''}
+                      ${t.participante ? '<div class="team-participant-sub">' + (t.participante2 ? UI.escapeHtml(t.participante) + ' &amp; ' + UI.escapeHtml(t.participante2) : UI.escapeHtml(t.participante)) + '</div>' : ''}
                     </div>
                   </div>
                 </td>
@@ -193,7 +198,7 @@ function renderEstatisticas() {
           ${UI.renderAvatar(t, 36)}
           <div class="stat-rank-info">
             <div class="stat-rank-name">${UI.escapeHtml(t.nome)}</div>
-            ${t.participante ? '<div class="stat-rank-participant">' + UI.escapeHtml(t.participante) + '</div>' : ''}
+            ${t.participante ? '<div class="stat-rank-participant">' + (t.participante2 ? UI.escapeHtml(t.participante) + ' &amp; ' + UI.escapeHtml(t.participante2) : UI.escapeHtml(t.participante)) + '</div>' : ''}
           </div>
           <div class="stat-rank-numbers">
             <span class="stat-rank-value" style="color:var(--color-primary)">${t.scoreMarcados}</span>
@@ -215,7 +220,7 @@ function renderEstatisticas() {
           ${UI.renderAvatar(t, 36)}
           <div class="stat-rank-info">
             <div class="stat-rank-name">${UI.escapeHtml(t.nome)}</div>
-            ${t.participante ? '<div class="stat-rank-participant">' + UI.escapeHtml(t.participante) + '</div>' : ''}
+            ${t.participante ? '<div class="stat-rank-participant">' + (t.participante2 ? UI.escapeHtml(t.participante) + ' &amp; ' + UI.escapeHtml(t.participante2) : UI.escapeHtml(t.participante)) + '</div>' : ''}
           </div>
           <div class="stat-rank-numbers">
             <span class="stat-rank-value" style="color:var(--color-win)">${t.scoreSofridos}</span>
@@ -527,6 +532,7 @@ async function renderInscricoes() {
   const container = document.getElementById('inscricoesContainer');
   if (!container) return;
 
+  const isDuplas = state.campeonato.teamMode === 'duplas';
   const registrations = await FirestoreService.loadRegistrations();
   const pendentes = registrations.filter(r => r.status === 'pendente');
   const aprovados = registrations.filter(r => r.status === 'aprovado');
@@ -538,7 +544,7 @@ async function renderInscricoes() {
 
   // Status banner
   if (isOpen) {
-    html += '<div class="status-banner open"><span>&#9989;</span> Inscri&ccedil;&otilde;es abertas! Cadastre seu time abaixo.</div>';
+    html += '<div class="status-banner open"><span>&#9989;</span> Inscri&ccedil;&otilde;es abertas! ' + (isDuplas ? 'Inscreva-se abaixo.' : 'Cadastre seu time abaixo.') + '</div>';
   } else {
     html += '<div class="status-banner closed"><span>&#128683;</span> Inscri&ccedil;&otilde;es encerradas. O campeonato j&aacute; come&ccedil;ou. Contate o administrador.</div>';
   }
@@ -547,47 +553,153 @@ async function renderInscricoes() {
   if (pendentes.length > 0) {
     html += '<div class="section-header"><h3 class="section-title"><span class="section-title-icon icon-bg-yellow">&#9203;</span> Aguardando Aprovacao (' + pendentes.length + ')</h3></div>';
     html += '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px">';
-    html += pendentes.map(r => renderRegistrationCard(r, 'pendente', admin)).join('');
+    html += pendentes.map(r => renderRegistrationCard(r, 'pendente', admin, isDuplas)).join('');
     html += '</div>';
   }
 
-  // Enrolled teams
-  if (state.times.length > 0) {
-    html += '<div class="section-header"><h3 class="section-title"><span class="section-title-icon icon-bg-green">&#9989;</span> Times Inscritos (' + state.times.length + ')</h3></div>';
-    html += '<div class="teams-grid mb-24">';
-    html += state.times.map(t => '<div class="team-card"><div style="display:flex;align-items:center;gap:12px">' + UI.renderAvatar(t, 36) + '<div><div class="team-card-name">' + UI.escapeHtml(t.nome) + '</div><div class="team-card-abbr">' + UI.escapeHtml(t.abreviacao) + (t.participante ? ' &bull; ' + UI.escapeHtml(t.participante) : '') + '</div></div></div></div>').join('');
-    html += '</div>';
-  } else if (pendentes.length === 0) {
-    html += '<div class="empty-state"><div class="empty-icon">&#128101;</div><div class="empty-title">Nenhum time inscrito ainda</div><div class="empty-desc">Seja o primeiro a inscrever seu time!</div></div>';
+  if (isDuplas) {
+    // Duplas: approved players go to pool; show pairing board for admin
+    if (aprovados.length > 0 || state.times.filter(t => t.participante2).length > 0) {
+      const pairingContainer = document.getElementById('pairingBoardContainer');
+      if (pairingContainer) pairingContainer.style.display = admin && isOpen ? '' : 'none';
+    }
+    // Show formed duplas (from state.times)
+    const duplas = state.times.filter(t => t.participante2 !== null);
+    if (duplas.length > 0) {
+      html += '<div class="section-header"><h3 class="section-title"><span class="section-title-icon icon-bg-green">&#9989;</span> Duplas Formadas (' + duplas.length + ')</h3></div>';
+      html += '<div class="teams-grid mb-24">';
+      html += duplas.map(t => {
+        const nomes = UI.escapeHtml(t.participante) + ' &amp; ' + UI.escapeHtml(t.participante2);
+        return '<div class="team-card"><div style="display:flex;align-items:center;gap:12px">' + UI.renderAvatar(t, 36) + '<div><div class="team-card-name">' + UI.escapeHtml(t.nome) + '</div><div class="team-card-abbr">' + nomes + '</div></div></div></div>';
+      }).join('');
+      html += '</div>';
+    } else if (pendentes.length === 0) {
+      html += '<div class="empty-state"><div class="empty-icon">&#128101;</div><div class="empty-title">Nenhuma dupla formada ainda</div><div class="empty-desc">Aguarde o sorteio ou contate o administrador.</div></div>';
+    }
+  } else {
+    // Individual: show enrolled teams as today
+    if (state.times.length > 0) {
+      html += '<div class="section-header"><h3 class="section-title"><span class="section-title-icon icon-bg-green">&#9989;</span> Times Inscritos (' + state.times.length + ')</h3></div>';
+      html += '<div class="teams-grid mb-24">';
+      html += state.times.map(t => '<div class="team-card"><div style="display:flex;align-items:center;gap:12px">' + UI.renderAvatar(t, 36) + '<div><div class="team-card-name">' + UI.escapeHtml(t.nome) + '</div><div class="team-card-abbr">' + UI.escapeHtml(t.abreviacao) + (t.participante ? ' &bull; ' + UI.escapeHtml(t.participante) : '') + '</div></div></div></div>').join('');
+      html += '</div>';
+    } else if (pendentes.length === 0) {
+      html += '<div class="empty-state"><div class="empty-icon">&#128101;</div><div class="empty-title">Nenhum time inscrito ainda</div><div class="empty-desc">Seja o primeiro a inscrever seu time!</div></div>';
+    }
   }
 
   // Rejected (admin only)
   if (admin && rejeitados.length > 0) {
     html += '<div class="section-header"><h3 class="section-title" style="font-size:.9rem;color:var(--color-text-dim)">Rejeitados (' + rejeitados.length + ')</h3></div>';
     html += '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px">';
-    html += rejeitados.map(r => renderRegistrationCard(r, 'rejeitado', false)).join('');
+    html += rejeitados.map(r => renderRegistrationCard(r, 'rejeitado', false, isDuplas)).join('');
     html += '</div>';
   }
 
   container.innerHTML = html;
 
-  // Hide form when closed
+  // Show/hide form and adapt for duplas
   const formCard = document.getElementById('inscricaoFormCard');
   if (formCard) {
     formCard.style.display = isOpen ? '' : 'none';
+    formCard.querySelectorAll('.duplas-hide').forEach(el => {
+      el.style.display = isDuplas ? 'none' : '';
+    });
+    const titleEl = document.getElementById('inscricaoFormTitle');
+    if (titleEl) titleEl.textContent = isDuplas ? 'Inscrever-se' : 'Inscrever meu Time';
+  }
+
+  // Render pairing board (admin only, duplas only, configuracao only)
+  if (isDuplas && admin && isOpen) {
+    renderPairingBoard(registrations);
   }
 }
 
-function renderRegistrationCard(r, status, showActions) {
+async function renderPairingBoard(registrations) {
+  const container = document.getElementById('pairingBoardContainer');
+  if (!container) return;
+  container.style.display = '';
+
+  const state = AppState.loadReadOnly();
+  const pool = (registrations || []).filter(r => r.status === 'aprovado');
+  const duplas = state.times.filter(t => t.participante2 !== null);
+
+  // Signal to renderTimes whether unpaired players exist
+  container.dataset.hasUnpaired = pool.length > 0 ? '1' : '0';
+
+  let html = `<div class="pairing-board">
+    <div class="pairing-section">
+      <div class="pairing-section-header">
+        <h3 class="pairing-section-title">Jogadores dispon&iacute;veis (${pool.length})</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-sm btn-primary" id="btnCriarDupla"
+            onclick="pairSelectedPlayers()" disabled>Criar Dupla</button>
+          <button class="btn btn-sm btn-secondary"
+            onclick="shuffleAllPairs()">Sortear Todos</button>
+        </div>
+      </div>
+      <div class="pairing-pool">`;
+
+  if (pool.length === 0) {
+    html += '<div class="empty-state" style="padding:16px"><div class="empty-title" style="font-size:.85rem">Nenhum jogador dispon&iacute;vel</div></div>';
+  } else {
+    pool.forEach(r => {
+      html += `<label class="pairing-pool-item">
+        <input type="checkbox" class="pairing-pool-check"
+          data-participante="${UI.escapeHtml(r.participante)}"
+          data-insc-id="${UI.escapeHtml(r.id)}"
+          onchange="updatePairingSelection()">
+        <span class="pairing-pool-name">${UI.escapeHtml(r.participante)}</span>
+      </label>`;
+    });
+  }
+
+  html += `</div></div>
+    <div class="pairing-section">
+      <div class="pairing-section-header">
+        <h3 class="pairing-section-title">Duplas formadas (${duplas.length})</h3>
+      </div>
+      <div class="pairing-formed">`;
+
+  if (duplas.length === 0) {
+    html += '<div class="empty-state" style="padding:16px"><div class="empty-title" style="font-size:.85rem">Nenhuma dupla formada ainda</div></div>';
+  } else {
+    duplas.forEach(t => {
+      html += `<div class="pairing-formed-item">
+        ${UI.renderAvatar(t, 32)}
+        <div class="pairing-formed-names">
+          <span class="pairing-formed-team">${UI.escapeHtml(t.nome)}</span>
+          <span class="pairing-formed-participants">${UI.escapeHtml(t.participante)} &amp; ${UI.escapeHtml(t.participante2)}</span>
+        </div>
+        <button class="btn-icon pairing-undo-btn" onclick="unpairTeam('${t.id}')" title="Desfazer dupla">&#x2715;</button>
+      </div>`;
+    });
+  }
+
+  html += `</div></div></div>`;
+  container.innerHTML = html;
+}
+
+function renderRegistrationCard(r, status, showActions, isDuplas = false) {
   const statusColors = {
     pendente: { bg: 'var(--color-draw-bg)', color: '#b8860b', border: 'rgba(253,203,110,0.4)', label: 'Aguardando' },
     aprovado: { bg: 'var(--color-win-bg)', color: 'var(--color-win)', border: 'rgba(0,184,148,0.3)', label: 'Aprovado' },
     rejeitado: { bg: 'var(--color-loss-bg)', color: 'var(--color-loss)', border: 'rgba(232,67,147,0.3)', label: 'Rejeitado' }
   };
   const s = statusColors[status];
-  const avatar = { nome: r.nome, abreviacao: r.abreviacao, cor: r.cor };
 
-  const meta = UI.escapeHtml(r.abreviacao) + (r.participante ? ' &bull; ' + UI.escapeHtml(r.participante) : '') + ' &bull; ' + new Date(r.criadoEm).toLocaleDateString('pt-BR');
+  let name, meta, avatar;
+  if (isDuplas) {
+    // Duplas: individual player registration — no team name/abbr/color
+    name = UI.escapeHtml(r.participante || r.nome || '');
+    meta = new Date(r.criadoEm).toLocaleDateString('pt-BR');
+    avatar = { nome: r.participante || r.nome || '?', abreviacao: (r.participante || '?')[0], cor: '#6c5ce7' };
+  } else {
+    name = UI.escapeHtml(r.nome);
+    meta = UI.escapeHtml(r.abreviacao) + (r.participante ? ' &bull; ' + UI.escapeHtml(r.participante) : '') + ' &bull; ' + new Date(r.criadoEm).toLocaleDateString('pt-BR');
+    avatar = { nome: r.nome, abreviacao: r.abreviacao, cor: r.cor };
+  }
+
   const actions = showActions
     ? `<div style="display:flex;gap:6px"><button class="btn btn-sm btn-success" onclick="approveRegistration('${r.id}')">Aprovar</button><button class="btn btn-sm btn-secondary" onclick="rejectRegistration('${r.id}')">Rejeitar</button></div>`
     : '';
@@ -595,7 +707,7 @@ function renderRegistrationCard(r, status, showActions) {
   return `<div class="registration-card">
     ${UI.renderAvatar(avatar, 36)}
     <div class="registration-card-info">
-      <div class="registration-card-name">${UI.escapeHtml(r.nome)}</div>
+      <div class="registration-card-name">${name}</div>
       <div class="registration-card-meta">${meta}</div>
     </div>
     <span class="registration-card-badge" style="background:${s.bg};color:${s.color};border:1px solid ${s.border}">${s.label}</span>
@@ -616,7 +728,8 @@ window.Renderers = {
   estatisticas: renderEstatisticas,
   regras: renderRegras,
   historico: renderHistorico,
-  inscricoes: renderInscricoes
+  inscricoes: renderInscricoes,
+  pairingBoard: renderPairingBoard
 };
 
 // Helpers used by actions

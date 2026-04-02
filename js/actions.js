@@ -191,6 +191,18 @@ function openEditTeamModal(id) {
   document.getElementById('editTeamNome').value = time.nome;
   document.getElementById('editTeamAbrev').value = time.abreviacao;
   document.getElementById('editTeamCor').value = time.cor || '#6c5ce7';
+
+  const p2Group = document.getElementById('editTeamParticipante2Group');
+  const p2Input = document.getElementById('editTeamParticipante2');
+  if (p2Group && p2Input) {
+    if (time.participante2) {
+      p2Input.value = time.participante2;
+      p2Group.style.display = '';
+    } else {
+      p2Group.style.display = 'none';
+    }
+  }
+
   UI.openModal('modalEditTeam');
 }
 window.openEditTeamModal = openEditTeamModal;
@@ -580,24 +592,10 @@ async function exportData() {
 
 async function submitPublicRegistration() {
   const participante = UI.getFormValue('inputInscParticipante');
-  const nome = UI.getFormValue('inputInscNome');
-  let abrev = UI.getFormValue('inputInscAbrev').replace(/[^A-Za-z]/g, '');
-  const cor = document.getElementById('inputInscCor')
-    ? document.getElementById('inputInscCor').value
-    : UI.getRandomColor();
 
   if (!participante) {
     UI.showToast('Informe seu nome para identifica\u00e7\u00e3o.', 'error');
     return;
-  }
-
-  if (!nome) {
-    UI.showToast('Informe o nome do time.', 'error');
-    return;
-  }
-  if (!abrev) {
-    abrev = nome.replace(/[aeiouAEIOU\s]/g, '').slice(0, 3).toUpperCase()
-      || nome.slice(0, 3).toUpperCase();
   }
 
   const state = AppState.load();
@@ -606,32 +604,63 @@ async function submitPublicRegistration() {
     return;
   }
 
+  const isDuplas = state.campeonato.teamMode === 'duplas';
+
   const submitBtn = document.querySelector('#inscricaoFormCard .btn-primary');
   setLoading(submitBtn, true);
 
   try {
     const registrations = await FirestoreService.loadRegistrations();
-    const allNames = [
-      ...state.times.map(t => t.nome.toLowerCase()),
-      ...registrations.filter(r => r.status === 'pendente').map(r => r.nome.toLowerCase())
-    ];
-    if (allNames.includes(nome.toLowerCase())) {
-      UI.showToast('Ja existe um time ou solicitacao com esse nome.', 'error');
-      return;
+
+    if (isDuplas) {
+      // Duplas: inscrição individual — só verifica nome do participante
+      const allParticipantes = registrations
+        .filter(r => r.status === 'pendente' || r.status === 'aprovado')
+        .map(r => r.participante.toLowerCase());
+      if (allParticipantes.includes(participante.toLowerCase())) {
+        UI.showToast('Ja existe uma inscricao com esse nome.', 'error');
+        return;
+      }
+      await FirestoreService.submitRegistration({ participante });
+      AppState.addAuditLog(getAuditUser(), 'Solicitou inscri\u00e7\u00e3o: ' + participante, { participante });
+      UI.clearForm('inputInscParticipante');
+    } else {
+      // Individual: fluxo completo com nome de time, abreviação e cor
+      const nome = UI.getFormValue('inputInscNome');
+      let abrev = UI.getFormValue('inputInscAbrev').replace(/[^A-Za-z]/g, '');
+      const cor = document.getElementById('inputInscCor')
+        ? document.getElementById('inputInscCor').value
+        : UI.getRandomColor();
+
+      if (!nome) {
+        UI.showToast('Informe o nome do time.', 'error');
+        return;
+      }
+      if (!abrev) {
+        abrev = nome.replace(/[aeiouAEIOU\s]/g, '').slice(0, 3).toUpperCase()
+          || nome.slice(0, 3).toUpperCase();
+      }
+
+      const allNames = [
+        ...state.times.map(t => t.nome.toLowerCase()),
+        ...registrations.filter(r => r.status === 'pendente').map(r => (r.nome || '').toLowerCase())
+      ];
+      if (allNames.includes(nome.toLowerCase())) {
+        UI.showToast('Ja existe um time ou solicitacao com esse nome.', 'error');
+        return;
+      }
+
+      await FirestoreService.submitRegistration({
+        participante,
+        nome,
+        abreviacao: abrev.toUpperCase().slice(0, 3),
+        cor
+      });
+      AppState.addAuditLog(getAuditUser(), 'Solicitou inscri\u00e7\u00e3o: ' + nome + ' (' + participante + ')', { abreviacao: abrev, participante });
+      UI.clearForm('inputInscParticipante', 'inputInscNome', 'inputInscAbrev');
+      const colorInput = document.getElementById('inputInscCor');
+      if (colorInput) colorInput.value = UI.getRandomColor();
     }
-
-    await FirestoreService.submitRegistration({
-      participante,
-      nome,
-      abreviacao: abrev.toUpperCase().slice(0, 3),
-      cor
-    });
-
-    AppState.addAuditLog(getAuditUser(), 'Solicitou inscri\u00e7\u00e3o:' + nome + ' (' + participante + ')', { abreviacao: abrev, participante });
-
-    UI.clearForm('inputInscParticipante', 'inputInscNome', 'inputInscAbrev');
-    const colorInput = document.getElementById('inputInscCor');
-    if (colorInput) colorInput.value = UI.getRandomColor();
 
     UI.showToast('Solicita\u00e7\u00e3o enviada! Aguarde aprova\u00e7\u00e3o do administrador.', 'success');
     Renderers.inscricoes();
@@ -655,26 +684,30 @@ async function approveRegistration(id) {
     if (!reg) return;
 
     const state = AppState.load();
-    AppState.addTime(state, { nome: reg.nome, abreviacao: reg.abreviacao, cor: reg.cor, participante: reg.participante || '' });
+    const isDuplas = state.campeonato.teamMode === 'duplas';
 
-    if (state.campeonato.status === 'grupos') {
-      AppState.regenerarFaseGrupos(state);
+    if (isDuplas) {
+      // Duplas: apenas admite o jogador ao pool — time será criado no pairing
+      await FirestoreService.updateRegistration(id, {
+        status: 'aprovado',
+        resolvidoEm: new Date().toISOString(),
+        resolvidoPor: currentUser ? currentUser.email : 'admin'
+      });
+      AppState.addAuditLog(getAuditUser(), 'Aprovou jogador: ' + reg.participante);
+      UI.showToast('Jogador "' + reg.participante + '" aprovado e adicionado ao pool!', 'success');
+    } else {
+      AppState.addTime(state, { nome: reg.nome, abreviacao: reg.abreviacao, cor: reg.cor, participante: reg.participante || '' });
+      if (state.campeonato.status === 'grupos') AppState.regenerarFaseGrupos(state);
+      AppState.save(state);
+      await FirestoreService.updateRegistration(id, {
+        status: 'aprovado',
+        resolvidoEm: new Date().toISOString(),
+        resolvidoPor: currentUser ? currentUser.email : 'admin'
+      });
+      AppState.addAuditLog(getAuditUser(), 'Aprovou inscri\u00e7\u00e3o: ' + reg.nome);
+      UI.showToast('Time "' + reg.nome + '" aprovado e adicionado!', 'success');
     }
 
-    AppState.save(state);
-
-    await FirestoreService.updateRegistration(id, {
-      status: 'aprovado',
-      resolvidoEm: new Date().toISOString(),
-      resolvidoPor: currentUser ? currentUser.email : 'admin'
-    });
-
-    AppState.addAuditLog(
-      currentUser ? currentUser.email : getDeviceId(),
-      'Aprovou inscri\u00e7\u00e3o:' + reg.nome
-    );
-
-    UI.showToast('Time "' + reg.nome + '" aprovado e adicionado!', 'success');
     Renderers.inscricoes();
     Renderers.times();
   } finally {
@@ -717,6 +750,114 @@ async function rejectRegistration(id) {
 // ------------------------------------------------------------------
 // Reset Playoffs
 // ------------------------------------------------------------------
+
+// ------------------------------------------------------------------
+// Pairing Board — Duplas
+// ------------------------------------------------------------------
+
+function updatePairingSelection() {
+  const checked = document.querySelectorAll('.pairing-pool-check:checked').length;
+  const btn = document.getElementById('btnCriarDupla');
+  if (btn) btn.disabled = checked !== 2;
+}
+
+async function pairSelectedPlayers() {
+  if (!UI.checkAdmin()) return;
+  const checked = [...document.querySelectorAll('.pairing-pool-check:checked')];
+  if (checked.length !== 2) {
+    UI.showToast('Selecione exatamente 2 jogadores.', 'error');
+    return;
+  }
+  const [p1, p2] = checked.map(cb => cb.dataset.participante);
+  const [id1, id2] = checked.map(cb => cb.dataset.inscId);
+
+  const state = AppState.load();
+  const novoTime = AppState.pairPlayers(state, p1, p2);
+  AppState.save(state);
+
+  await Promise.all([
+    FirestoreService.updateRegistration(id1, { status: 'pareado', timeId: novoTime.id }),
+    FirestoreService.updateRegistration(id2, { status: 'pareado', timeId: novoTime.id })
+  ]);
+
+  AppState.addAuditLog(getAuditUser(), `Dupla criada: ${novoTime.nome}`, { participante: p1, participante2: p2 });
+  UI.showToast(`Dupla "${novoTime.nome}" criada!`, 'success');
+  if (Renderers.pairingBoard) Renderers.pairingBoard();
+  Renderers.times();
+}
+
+async function shuffleAllPairs() {
+  if (!UI.checkAdmin()) return;
+  const registrations = await FirestoreService.loadRegistrations();
+  const pending = registrations.filter(r => r.status === 'aprovado');
+
+  if (pending.length === 0) {
+    UI.showToast('Nenhum jogador dispon\u00edvel para sortear.', 'error');
+    return;
+  }
+  if (pending.length % 2 !== 0) {
+    UI.showToast('N\u00famero \u00edmpar de jogadores. Adicione ou remova um participante antes de sortear.', 'error');
+    return;
+  }
+
+  const shuffled = [...pending];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+
+  const state = AppState.load();
+  const updates = [];
+  for (let i = 0; i < shuffled.length; i += 2) {
+    const p1 = shuffled[i];
+    const p2 = shuffled[i + 1];
+    const novoTime = AppState.pairPlayers(state, p1.participante, p2.participante);
+    updates.push({ id: p1.id, timeId: novoTime.id });
+    updates.push({ id: p2.id, timeId: novoTime.id });
+  }
+  AppState.save(state);
+
+  await Promise.all(updates.map(u =>
+    FirestoreService.updateRegistration(u.id, { status: 'pareado', timeId: u.timeId })
+  ));
+
+  AppState.addAuditLog(getAuditUser(), `Sorteio de duplas: ${updates.length / 2} duplas criadas`);
+  UI.showToast(`${updates.length / 2} duplas sorteadas!`, 'success');
+  if (Renderers.pairingBoard) Renderers.pairingBoard();
+  Renderers.times();
+}
+
+async function unpairTeam(teamId) {
+  if (!UI.checkAdmin()) return;
+  const state = AppState.load();
+  const time = AppState.getTimeById(state, teamId);
+  if (!time) return;
+
+  if (state.campeonato.status !== 'configuracao') {
+    UI.showToast('N\u00e3o \u00e9 poss\u00edvel desfazer duplas ap\u00f3s o in\u00edcio do campeonato.', 'error');
+    return;
+  }
+
+  const registrations = await FirestoreService.loadRegistrations();
+  const paired = registrations.filter(r => r.timeId === teamId);
+
+  AppState.removeTime(state, teamId);
+  AppState.save(state);
+
+  await Promise.all(paired.map(r =>
+    FirestoreService.updateRegistration(r.id, { status: 'aprovado', timeId: null })
+  ));
+
+  AppState.addAuditLog(getAuditUser(), `Dupla desfeita: ${time.nome}`);
+  UI.showToast(`Dupla "${time.nome}" desfeita.`, 'info');
+  if (Renderers.pairingBoard) Renderers.pairingBoard();
+  Renderers.times();
+}
+
+window.updatePairingSelection = updatePairingSelection;
+window.pairSelectedPlayers = pairSelectedPlayers;
+window.shuffleAllPairs = shuffleAllPairs;
+window.unpairTeam = unpairTeam;
 
 function resetPlayoffs() {
   if (!UI.checkAdmin()) {

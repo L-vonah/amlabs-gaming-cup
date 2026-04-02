@@ -222,7 +222,7 @@ const FirestoreService = {
   /**
    * Create a new tournament document in Firestore.
    */
-  async createTournament({ nome, gameType }) {
+  async createTournament({ nome, gameType, teamMode = 'individual', drawMode = 'admin' }) {
     if (!FIREBASE_CONFIGURED || !UI.checkAdmin()) return null;
 
     const gt = getGameType(gameType);
@@ -231,10 +231,12 @@ const FirestoreService = {
 
     const doc = {
       id: uuid,
-      _schemaVersion: 2,
+      _schemaVersion: 3,
       metadata: {
         nome,
         gameType: gt.id,
+        teamMode,
+        drawMode,
         status: 'configuracao',
         criadoEm: now,
         atualizadoEm: now
