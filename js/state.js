@@ -305,11 +305,11 @@ function generateDuplaAbrev(p1, p2) {
   return (i1 + i2).slice(0, 3);
 }
 
-function pairPlayers(state, p1Participante, p2Participante) {
+function pairPlayers(state, p1Participante, p2Participante, cor = null) {
   const nome = generateDuplaName(p1Participante, p2Participante);
   const abreviacao = generateDuplaAbrev(p1Participante, p2Participante);
-  const cor = typeof UI !== 'undefined' ? UI.getRandomColor() : '#6c5ce7';
-  return addTime(state, { nome, abreviacao, cor, participante: p1Participante, participante2: p2Participante });
+  const corFinal = cor || (typeof UI !== 'undefined' ? UI.getRandomColor() : '#6c5ce7');
+  return addTime(state, { nome, abreviacao, cor: corFinal, participante: p1Participante, participante2: p2Participante });
 }
 
 // ------------------------------------------------------------------

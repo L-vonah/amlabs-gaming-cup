@@ -177,6 +177,18 @@ const FirestoreService = {
     await firebase.firestore().collection(INSCRICOES_COLLECTION).doc(id).update(data);
   },
 
+  async clearAllRegistrations() {
+    if (!FIREBASE_CONFIGURED) return;
+    const snapshot = await firebase.firestore()
+      .collection(INSCRICOES_COLLECTION)
+      .where('torneiId', '==', getActiveTournamentId())
+      .get();
+    if (snapshot.empty) return;
+    const batch = firebase.firestore().batch();
+    snapshot.docs.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+  },
+
   async loadAuditLog() {
     if (!FIREBASE_CONFIGURED) return [];
 

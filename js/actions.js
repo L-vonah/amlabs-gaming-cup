@@ -94,12 +94,71 @@ function setLoading(btn, loading) {
 
 function submitAddTime() {
   if (!UI.checkAdmin()) { UI.showToast('Voc\u00ea precisa estar logado como admin para editar.', 'error'); return; }
+
+  const state = AppState.load();
+  const isDuplas = state.campeonato.teamMode === 'duplas';
+  const cor = document.getElementById('inputCorTimo')?.value || UI.getRandomColor();
+
+  if (state.campeonato.status !== 'configuracao' && state.campeonato.status !== 'grupos') {
+    UI.showToast('N\u00e3o \u00e9 poss\u00edvel adicionar times durante os playoffs.', 'error');
+    return;
+  }
+
+  if (isDuplas) {
+    const p1 = UI.getFormValue('inputPartTimo');
+    const p2 = UI.getFormValue('inputPart2Timo');
+    const elP1 = document.getElementById('inputPartTimo');
+    const elP2 = document.getElementById('inputPart2Timo');
+    if (elP1) elP1.style.borderColor = '';
+    if (elP2) elP2.style.borderColor = '';
+
+    if (!p1) {
+      if (elP1) elP1.style.borderColor = 'var(--color-loss)';
+      UI.showToast('Informe o nome do Participante 1.', 'error');
+      return;
+    }
+    if (!p2) {
+      if (elP2) elP2.style.borderColor = 'var(--color-loss)';
+      UI.showToast('Informe o nome do Participante 2.', 'error');
+      return;
+    }
+
+    const alreadyPaired = state.times.some(t =>
+      [t.participante, t.participante2].some(p =>
+        p && (p.toLowerCase() === p1.toLowerCase() || p.toLowerCase() === p2.toLowerCase())
+      )
+    );
+    if (alreadyPaired) {
+      UI.showToast('Um dos participantes j\u00e1 est\u00e1 em uma dupla.', 'error');
+      return;
+    }
+
+    const novoTime = AppState.pairPlayers(state, p1, p2, cor);
+    const partidasAntes = state.faseGrupos.partidas.length;
+    if (state.campeonato.status === 'grupos') AppState.regenerarFaseGrupos(state);
+    const novasPartidas = state.faseGrupos.partidas.length - partidasAntes;
+
+    AppState.save(state);
+    AppState.addAuditLog(getAuditUser(), `Dupla adicionada: "${novoTime.nome}"`, { participante: p1, participante2: p2 });
+
+    UI.clearForm('inputPartTimo', 'inputPart2Timo');
+    const colorInput = document.getElementById('inputCorTimo');
+    if (colorInput) colorInput.value = UI.getRandomColor();
+
+    const msg = novasPartidas > 0
+      ? `Dupla "${novoTime.nome}" adicionada! ${novasPartidas} partidas geradas.`
+      : `Dupla "${novoTime.nome}" adicionada!`;
+    UI.showToast(msg, 'success');
+    Renderers.times();
+    if (novasPartidas > 0) Renderers.partidas();
+    return;
+  }
+
+  // ── Individual flow ──────────────────────────────────────────
   const participante = UI.getFormValue('inputPartTimo');
   const nome = UI.getFormValue('inputNomeTimo');
   let abrev = UI.getFormValue('inputAbrevTimo').replace(/[^A-Za-z]/g, '');
-  const cor = document.getElementById('inputCorTimo') ? document.getElementById('inputCorTimo').value : UI.getRandomColor();
 
-  // Clear previous error highlights
   const elPart = document.getElementById('inputPartTimo');
   const elNome = document.getElementById('inputNomeTimo');
   if (elPart) elPart.style.borderColor = '';
@@ -110,43 +169,28 @@ function submitAddTime() {
     UI.showToast('Informe o nome do participante.', 'error');
     return;
   }
-
   if (!nome) {
     if (elNome) elNome.style.borderColor = 'var(--color-loss)';
     UI.showToast('Informe o nome do time.', 'error');
     return;
   }
-
   if (!abrev) {
     abrev = nome.replace(/[aeiouAEIOU\s]/g, '').slice(0, 3).toUpperCase() || nome.slice(0, 3).toUpperCase();
   }
-
-  const state = AppState.load();
-
-  if (state.campeonato.status !== 'configuracao' && state.campeonato.status !== 'grupos') {
-    UI.showToast('N\u00e3o \u00e9 poss\u00edvel adicionar times durante os playoffs.', 'error');
-    return;
-  }
-
   if (state.times.some(t => t.nome.toLowerCase() === nome.toLowerCase())) {
-    UI.showToast('Ja existe um time com esse nome.', 'error');
+    UI.showToast('J\u00e1 existe um time com esse nome.', 'error');
     return;
   }
 
   const novoTime = AppState.addTime(state, { nome, abreviacao: abrev, cor, participante });
-
-  // If tournament is in group stage, regenerate all matches preserving results
   const partidasAntes = state.faseGrupos.partidas.length;
-  if (state.campeonato.status === 'grupos') {
-    AppState.regenerarFaseGrupos(state);
-  }
+  if (state.campeonato.status === 'grupos') AppState.regenerarFaseGrupos(state);
   const novasPartidas = state.faseGrupos.partidas.length - partidasAntes;
 
   AppState.save(state);
   AppState.addAuditLog(getAuditUser(), `Adicionou o time "${nome}" (${participante})`, { abreviacao: abrev, cor, participante });
 
   UI.clearForm('inputPartTimo', 'inputNomeTimo', 'inputAbrevTimo');
-  // Reset color to a new random color
   const colorInput = document.getElementById('inputCorTimo');
   if (colorInput) colorInput.value = UI.getRandomColor();
 
@@ -558,12 +602,17 @@ function confirmReset() {
   UI.openModal('modalReset');
 }
 
-function executeReset() {
-  if (!UI.checkAdmin()) { UI.showToast('Voc\u00ea precisa estar logado como admin para editar.', 'error'); return; }
-  AppState.reset();
+async function executeReset() {
+  if (!UI.checkAdmin()) { UI.showToast('Você precisa estar logado como admin para editar.', 'error'); return; }
+  const current = AppState.load();
+  const fresh = AppState.reset();
+  fresh.campeonato.nome = current.campeonato.nome;
+  fresh.campeonato.gameType = current.campeonato.gameType;
+  fresh.campeonato.teamMode = current.campeonato.teamMode;
+  await FirestoreService.saveTournament(AppState.convertStateToFirestore(fresh));
+  await FirestoreService.clearAllRegistrations();
   UI.closeModal('modalReset');
-  UI.showToast('Campeonato resetado com sucesso.', 'info');
-  UI.navigateTo('home');
+  UI.showToast('Campeonato reiniciado com sucesso.', 'info');
   location.reload();
 }
 

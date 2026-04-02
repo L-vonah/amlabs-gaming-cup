@@ -16,6 +16,24 @@ function renderTimes() {
 
   if (!container) return;
 
+  // Adapt add-team form for duplas / individual (must run regardless of team count)
+  const isDuplas = state.campeonato.teamMode === 'duplas';
+  const cardTitle = document.getElementById('addTeamCardTitle');
+  const partLabel = document.getElementById('addTeamPartLabel');
+  const part2Group = document.getElementById('addTeamPart2Group');
+  const submitBtn = document.getElementById('addTeamSubmitBtn');
+  const footerNote = document.getElementById('addTeamFooterNote');
+  if (cardTitle) cardTitle.textContent = isDuplas ? 'Adicionar Dupla' : 'Adicionar Time';
+  if (partLabel) partLabel.textContent = isDuplas ? 'Participante 1 *' : 'Participante *';
+  if (part2Group) part2Group.style.display = isDuplas ? '' : 'none';
+  if (submitBtn) submitBtn.textContent = isDuplas ? 'Adicionar Dupla' : 'Adicionar Time';
+  if (footerNote) footerNote.textContent = isDuplas
+    ? 'Duplas só podem ser removidas antes do início da fase de grupos.'
+    : 'Times só podem ser removidos antes do início da fase de grupos.';
+  document.querySelectorAll('.add-team-individual-field').forEach(el => {
+    el.style.display = isDuplas ? 'none' : '';
+  });
+
   if (state.times.length === 0) {
     container.innerHTML = `
       <div class="empty-state" style="grid-column:1/-1">
@@ -23,6 +41,7 @@ function renderTimes() {
         <div class="empty-title">Nenhum time cadastrado</div>
         <div class="empty-desc">Adicione os times participantes usando o formulário ao lado.</div>
       </div>`;
+    if (typeof updateAdminUI === 'function') updateAdminUI();
     return;
   }
 
