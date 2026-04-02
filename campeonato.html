@@ -713,6 +713,23 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="modalPlayoffsPendentes">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Partidas pendentes</span>
+      <button class="btn-icon" onclick="UI.closeModal('modalPlayoffsPendentes')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--color-text-muted);font-size:.9rem">Ainda existem <strong id="modalPlayoffsPendentesCount"></strong> partidas n&atilde;o conclu&iacute;das na fase de grupos. Deseja gerar os playoffs mesmo assim? A classifica&ccedil;&atilde;o atual ser&aacute; usada.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="UI.closeModal('modalPlayoffsPendentes')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmPlayoffsPendentes()">Sim, gerar mesmo assim</button>
+    </div>
+    <input type="hidden" id="modalPlayoffsFormatId">
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalResetPartida">
   <div class="modal">
     <div class="modal-header">

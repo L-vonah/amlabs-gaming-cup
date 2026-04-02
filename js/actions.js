@@ -348,6 +348,17 @@ function iniciarPlayoffs() {
     return;
   }
 
+  // Warn if there are pending matches and game doesn't require all matches
+  if (!gt.requireAllMatches) {
+    const pending = state.faseGrupos.partidas.filter(p => p.status === 'pendente').length;
+    if (pending > 0) {
+      document.getElementById('modalPlayoffsPendentesCount').textContent = pending;
+      document.getElementById('modalPlayoffsFormatId').value = formatId;
+      UI.openModal('modalPlayoffsPendentes');
+      return;
+    }
+  }
+
   const format = PlayoffFormats.get(formatId);
   const tabela = AppState.calcularClassificacao(state);
 
@@ -478,6 +489,24 @@ function _executeIniciarPlayoffsWithTabela(state, formatId, tabela) {
 
 window.updateTiebreakerSelection = updateTiebreakerSelection;
 window.confirmTiebreaker = confirmTiebreaker;
+
+function confirmPlayoffsPendentes() {
+  UI.closeModal('modalPlayoffsPendentes');
+  const formatId = document.getElementById('modalPlayoffsFormatId').value;
+  const state = AppState.load();
+  const gt = getGameType(state.campeonato.gameType);
+  const tabela = AppState.calcularClassificacao(state);
+  const format = PlayoffFormats.get(formatId);
+  if (gt.tiebreakers.includes('admin')) {
+    const tiedGroups = _detectTiesAtCutoff(tabela, format.classified);
+    if (tiedGroups.length > 0) {
+      _showTiebreakerModal(tiedGroups, tabela, format.classified, formatId);
+      return;
+    }
+  }
+  _executeIniciarPlayoffs(state, formatId);
+}
+window.confirmPlayoffsPendentes = confirmPlayoffsPendentes;
 
 // ------------------------------------------------------------------
 // Group Stage Results — inline calendar form
