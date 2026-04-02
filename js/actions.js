@@ -618,6 +618,11 @@ function savePlayoffResult(matchId, scoreA, scoreB, penaltyWinner, winnerSide) {
 
 function resetMatchResult(matchId) {
   if (!UI.checkAdmin()) { UI.showToast('Você precisa estar logado como admin para editar.', 'error'); return; }
+  const state = AppState.loadReadOnly();
+  if (matchId.startsWith('rr_') && (state.campeonato.status === 'playoffs' || state.campeonato.status === 'encerrado')) {
+    UI.showToast('Não é possível resetar partidas de grupos após o início dos playoffs. Refaça os playoffs primeiro.', 'error');
+    return;
+  }
   document.getElementById('modalResetPartidaMatchId').value = matchId;
   UI.openModal('modalResetPartida');
 }
