@@ -1,0 +1,51 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="35%" r="62%">
+      <stop offset="0%" stop-color="#f26535"/>
+      <stop offset="40%" stop-color="#e84020"/>
+      <stop offset="75%" stop-color="#cc2082"/>
+      <stop offset="100%" stop-color="#8a1450"/>
+    </radialGradient>
+    <linearGradient id="star" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffcc44"/>
+      <stop offset="100%" stop-color="#ff8c1a"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#bg)" rx="80"/>
+
+  <!-- Handles -->
+  <path d="M 152 78 Q 88 106 86 154 Q 84 202 152 218"
+        fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="24" stroke-linecap="round"/>
+  <path d="M 360 78 Q 424 106 426 154 Q 428 202 360 218"
+        fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="24" stroke-linecap="round"/>
+
+  <!-- Cup body -->
+  <path d="M 142 36 L 370 36 L 300 206 Q 293 226 256 228 Q 219 226 212 206 Z"
+        fill="rgba(255,255,255,0.93)"/>
+
+  <!-- Center star -->
+  <polygon points="256,88 265,112 290,113 271,128 279,152 256,139 233,152 241,128 222,113 247,112"
+           fill="url(#star)"/>
+
+  <!-- Stem -->
+  <rect x="228" y="228" width="56" height="54" fill="rgba(255,255,255,0.88)"/>
+
+  <!-- Base -->
+  <rect x="152" y="282" width="208" height="32" rx="8" fill="rgba(255,255,255,0.88)"/>
+  <rect x="192" y="278" width="128" height="7" rx="3" fill="rgba(255,255,255,0.4)"/>
+
+  <!-- AMLabs -->
+  <text x="256" y="400"
+        text-anchor="middle"
+        font-family="'Arial Black', Impact, sans-serif"
+        font-size="66" font-weight="900"
+        fill="white" letter-spacing="-2">AMLabs</text>
+
+  <!-- Subtitle -->
+  <text x="256" y="450"
+        text-anchor="middle"
+        font-family="Arial, Helvetica, sans-serif"
+        font-size="24" font-weight="300"
+        fill="rgba(255,200,180,0.82)" letter-spacing="6">CAMPEONATOS</text>
+</svg>

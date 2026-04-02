@@ -161,6 +161,11 @@ function portalSelectTeamMode(teamModeId) {
   });
 }
 
+// Service Worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+
 // Boot
 document.addEventListener('DOMContentLoaded', () => {
   // Dev banner

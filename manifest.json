@@ -1,0 +1,18 @@
+{
+  "name": "Campeonatos AMLabs",
+  "short_name": "AMLabs",
+  "description": "Gerencie campeonatos de futebol e sinuca",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#181818",
+  "theme_color": "#e74c23",
+  "icons": [
+    {
+      "src": "assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
