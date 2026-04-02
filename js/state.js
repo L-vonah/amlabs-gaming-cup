@@ -291,7 +291,7 @@ function getTimeById(state, id) {
 
 function generateDuplaName(p1, p2) {
   const firstName = name => (name || '').trim().split(/\s+/)[0];
-  return firstName(p1) + ' & ' + firstName(p2);
+  return firstName(p1) + ' | ' + firstName(p2);
 }
 
 function generateDuplaAbrev(p1, p2) {
