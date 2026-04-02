@@ -569,16 +569,16 @@ async function renderInscricoes() {
 
     if (admin && isOpen) {
       // ── Admin pairing zone (two columns) ────────────────────
+      html += '<div class="pairing-hint">Clique em 2 jogadores para emparelhar automaticamente</div>';
       html += '<div class="pairing-layout">';
 
       // Left: available players
       html += '<div class="pairing-col">';
       html += `<div class="pairing-col-header">
-        <span class="pairing-col-title"><span class="section-title-icon icon-bg-blue">&#127919;</span> Dispon&iacute;veis (${aprovados.length})</span>
+        <span class="pairing-col-title"><span class="section-title-icon icon-bg-blue">&#127919;</span> Jogadores dispon&iacute;veis (${aprovados.length})</span>
         <button class="btn btn-sm btn-secondary" onclick="shuffleAllPairs()">&#128257; Sortear</button>
       </div>`;
       if (aprovados.length > 0) {
-        html += '<div class="pairing-hint">Clique em 2 jogadores para emparelhar</div>';
         html += '<div style="display:flex;flex-direction:column;gap:8px">';
         aprovados.forEach(r => {
           const av = { nome: r.participante, abreviacao: (r.participante || '?').substring(0, 2).toUpperCase(), cor: '#6c5ce7' };

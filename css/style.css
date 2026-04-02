@@ -3216,7 +3216,7 @@ body.has-dev-banner {
 
 /* Hint text */
 .pairing-hint {
-  padding: 0 0 12px;
+  padding: 0 0 16px;
   font-size: 0.78rem;
   color: var(--color-text-dim);
   display: flex;
