@@ -755,21 +755,48 @@ async function rejectRegistration(id) {
 // Pairing Board — Duplas
 // ------------------------------------------------------------------
 
-function updatePairingSelection() {
-  const checked = document.querySelectorAll('.pairing-pool-check:checked').length;
-  const btn = document.getElementById('btnCriarDupla');
-  if (btn) btn.disabled = checked !== 2;
+function updatePairingSelection() { /* no-op: selection now managed by selectPlayerForPairing */ }
+
+function selectPlayerForPairing(inscId) {
+  const card = document.querySelector(`.player-selectable[data-insc-id="${inscId}"]`);
+  if (!card) return;
+
+  if (card.classList.contains('selected')) {
+    card.classList.remove('selected');
+    _refreshPairingBadges();
+    return;
+  }
+
+  const already = document.querySelectorAll('.player-selectable.selected');
+  if (already.length >= 2) return;
+
+  card.classList.add('selected');
+  _refreshPairingBadges();
+
+  if (document.querySelectorAll('.player-selectable.selected').length === 2) {
+    document.querySelectorAll('.player-selectable').forEach(c => c.classList.add('pairing'));
+    setTimeout(() => pairSelectedPlayers(), 380);
+  }
+}
+
+function _refreshPairingBadges() {
+  const selected = [...document.querySelectorAll('.player-selectable.selected')];
+  document.querySelectorAll('.player-select-badge').forEach(b => { b.textContent = ''; });
+  selected.forEach((card, i) => {
+    const badge = card.querySelector('.player-select-badge');
+    if (badge) badge.textContent = i + 1;
+  });
 }
 
 async function pairSelectedPlayers() {
   if (!UI.checkAdmin()) return;
-  const checked = [...document.querySelectorAll('.pairing-pool-check:checked')];
-  if (checked.length !== 2) {
+  const selected = [...document.querySelectorAll('.player-selectable.selected')];
+  if (selected.length !== 2) {
     UI.showToast('Selecione exatamente 2 jogadores.', 'error');
     return;
   }
-  const [p1, p2] = checked.map(cb => cb.dataset.participante);
-  const [id1, id2] = checked.map(cb => cb.dataset.inscId);
+  const [p1, p2] = selected.map(c => c.dataset.participante);
+  const [id1, id2] = selected.map(c => c.dataset.inscId);
 
   const state = AppState.load();
   const novoTime = AppState.pairPlayers(state, p1, p2);
@@ -782,7 +809,7 @@ async function pairSelectedPlayers() {
 
   AppState.addAuditLog(getAuditUser(), `Dupla criada: ${novoTime.nome}`, { participante: p1, participante2: p2 });
   UI.showToast(`Dupla "${novoTime.nome}" criada!`, 'success');
-  if (Renderers.pairingBoard) Renderers.pairingBoard();
+  Renderers.inscricoes();
   Renderers.times();
 }
 
@@ -823,7 +850,7 @@ async function shuffleAllPairs() {
 
   AppState.addAuditLog(getAuditUser(), `Sorteio de duplas: ${updates.length / 2} duplas criadas`);
   UI.showToast(`${updates.length / 2} duplas sorteadas!`, 'success');
-  if (Renderers.pairingBoard) Renderers.pairingBoard();
+  Renderers.inscricoes();
   Renderers.times();
 }
 
@@ -850,11 +877,12 @@ async function unpairTeam(teamId) {
 
   AppState.addAuditLog(getAuditUser(), `Dupla desfeita: ${time.nome}`);
   UI.showToast(`Dupla "${time.nome}" desfeita.`, 'info');
-  if (Renderers.pairingBoard) Renderers.pairingBoard();
+  Renderers.inscricoes();
   Renderers.times();
 }
 
 window.updatePairingSelection = updatePairingSelection;
+window.selectPlayerForPairing = selectPlayerForPairing;
 window.pairSelectedPlayers = pairSelectedPlayers;
 window.shuffleAllPairs = shuffleAllPairs;
 window.unpairTeam = unpairTeam;

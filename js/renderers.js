@@ -558,23 +558,98 @@ async function renderInscricoes() {
   }
 
   if (isDuplas) {
-    // Duplas: approved players go to pool; show pairing board for admin
-    if (aprovados.length > 0 || state.times.filter(t => t.participante2).length > 0) {
-      const pairingContainer = document.getElementById('pairingBoardContainer');
-      if (pairingContainer) pairingContainer.style.display = admin && isOpen ? '' : 'none';
-    }
-    // Show formed duplas (from state.times)
     const duplas = state.times.filter(t => t.participante2 !== null);
-    if (duplas.length > 0) {
-      html += '<div class="section-header"><h3 class="section-title"><span class="section-title-icon icon-bg-green">&#9989;</span> Duplas Formadas (' + duplas.length + ')</h3></div>';
-      html += '<div class="teams-grid mb-24">';
-      html += duplas.map(t => {
-        const nomes = UI.escapeHtml(t.participante) + ' &amp; ' + UI.escapeHtml(t.participante2);
-        return '<div class="team-card"><div style="display:flex;align-items:center;gap:12px">' + UI.renderAvatar(t, 36) + '<div><div class="team-card-name">' + UI.escapeHtml(t.nome) + '</div><div class="team-card-abbr">' + nomes + '</div></div></div></div>';
-      }).join('');
-      html += '</div>';
-    } else if (pendentes.length === 0) {
-      html += '<div class="empty-state"><div class="empty-icon">&#128101;</div><div class="empty-title">Nenhuma dupla formada ainda</div><div class="empty-desc">Aguarde o sorteio ou contate o administrador.</div></div>';
+
+    // Keep pairingBoardContainer as a data-signal for renderTimes (hidden from view)
+    const pairSignalEl = document.getElementById('pairingBoardContainer');
+    if (pairSignalEl) {
+      pairSignalEl.style.display = 'none';
+      pairSignalEl.dataset.hasUnpaired = aprovados.length > 0 ? '1' : '0';
+    }
+
+    if (admin && isOpen) {
+      // ── Admin pairing zone ──────────────────────────────────
+
+      if (aprovados.length > 0) {
+        html += `<div class="section-header">
+          <h3 class="section-title"><span class="section-title-icon icon-bg-blue">&#127919;</span> Dispon&iacute;veis (${aprovados.length})</h3>
+          <button class="btn btn-sm btn-secondary" onclick="shuffleAllPairs()">&#128257; Sortear Todos</button>
+        </div>`;
+        html += '<div class="pairing-hint">Clique em 2 jogadores para formar uma dupla automaticamente</div>';
+        html += '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px">';
+        aprovados.forEach(r => {
+          const av = { nome: r.participante, abreviacao: (r.participante || '?').substring(0, 2).toUpperCase(), cor: '#6c5ce7' };
+          const date = new Date(r.criadoEm).toLocaleDateString('pt-BR');
+          html += `<div class="registration-card player-selectable"
+            data-insc-id="${UI.escapeHtml(r.id)}"
+            data-participante="${UI.escapeHtml(r.participante)}"
+            onclick="selectPlayerForPairing('${UI.escapeHtml(r.id)}')">
+            ${UI.renderAvatar(av, 36)}
+            <div class="registration-card-info">
+              <div class="registration-card-name">${UI.escapeHtml(r.participante)}</div>
+              <div class="registration-card-meta">${date}</div>
+            </div>
+            <span class="player-select-badge"></span>
+            <button class="btn-icon" type="button" style="color:var(--color-text-dim);opacity:.5"
+              onclick="event.stopPropagation();rejectRegistration('${UI.escapeHtml(r.id)}')"
+              title="Remover jogador">&#x2715;</button>
+          </div>`;
+        });
+        html += '</div>';
+      }
+
+      html += `<div class="section-header" style="margin-top:4px">
+        <h3 class="section-title"><span class="section-title-icon icon-bg-green">&#127942;</span> Duplas formadas (${duplas.length})</h3>
+      </div>`;
+
+      if (duplas.length === 0) {
+        html += `<div class="pairing-empty">
+          <span>&#128101;</span>
+          ${aprovados.length > 0
+            ? 'Clique em 2 jogadores acima para formar a primeira dupla'
+            : 'Nenhum jogador dispon&iacute;vel ainda &mdash; aprove inscri&ccedil;&otilde;es acima'}
+        </div>`;
+      } else {
+        duplas.forEach(t => {
+          html += `<div class="dupla-card">
+            ${UI.renderAvatar(t, 44)}
+            <div class="dupla-card-info">
+              <div class="dupla-card-name">${UI.escapeHtml(t.nome)}</div>
+              <div class="dupla-card-players">${UI.escapeHtml(t.participante)} &bull; ${UI.escapeHtml(t.participante2)}</div>
+            </div>
+            <button class="btn-icon dupla-card-undo" onclick="unpairTeam('${t.id}')" title="Desfazer dupla">&#x2715;</button>
+          </div>`;
+        });
+        html += '<div style="margin-bottom:24px"></div>';
+      }
+
+    } else {
+      // ── Public / closed view ─────────────────────────────────
+
+      if (aprovados.length > 0) {
+        html += `<div class="pairing-pending-banner">
+          <span>&#9203;</span>
+          ${aprovados.length} jogador${aprovados.length !== 1 ? 'es' : ''} confirmado${aprovados.length !== 1 ? 's' : ''} &mdash; aguardando sorteio de duplas
+        </div>`;
+      }
+
+      if (duplas.length > 0) {
+        html += `<div class="section-header">
+          <h3 class="section-title"><span class="section-title-icon icon-bg-green">&#127942;</span> Duplas formadas (${duplas.length})</h3>
+        </div>`;
+        duplas.forEach(t => {
+          html += `<div class="dupla-card">
+            ${UI.renderAvatar(t, 44)}
+            <div class="dupla-card-info">
+              <div class="dupla-card-name">${UI.escapeHtml(t.nome)}</div>
+              <div class="dupla-card-players">${UI.escapeHtml(t.participante)} &bull; ${UI.escapeHtml(t.participante2)}</div>
+            </div>
+          </div>`;
+        });
+        html += '<div style="margin-bottom:24px"></div>';
+      } else if (pendentes.length === 0 && aprovados.length === 0) {
+        html += '<div class="empty-state"><div class="empty-icon">&#128101;</div><div class="empty-title">Nenhuma dupla formada ainda</div><div class="empty-desc">Aguarde o sorteio ou contate o administrador.</div></div>';
+      }
     }
   } else {
     // Individual: show enrolled teams as today
@@ -609,79 +684,11 @@ async function renderInscricoes() {
     if (titleEl) titleEl.textContent = isDuplas ? 'Inscrever-se' : 'Inscrever meu Time';
   }
 
-  // Render pairing board (admin only, duplas only, configuracao only)
-  if (isDuplas && admin && isOpen) {
-    renderPairingBoard(registrations);
-  }
 }
 
-async function renderPairingBoard(registrations) {
-  const container = document.getElementById('pairingBoardContainer');
-  if (!container) return;
-  container.style.display = '';
-
-  // Load registrations internally if not passed (e.g. called from actions)
-  if (!registrations) registrations = await FirestoreService.loadRegistrations();
-
-  const state = AppState.loadReadOnly();
-  const pool = registrations.filter(r => r.status === 'aprovado');
-  const duplas = state.times.filter(t => t.participante2 !== null);
-
-  // Signal to renderTimes whether unpaired players exist
-  container.dataset.hasUnpaired = pool.length > 0 ? '1' : '0';
-
-  let html = `<div class="pairing-board">
-    <div class="pairing-section">
-      <div class="pairing-section-header">
-        <h3 class="pairing-section-title">Jogadores dispon&iacute;veis (${pool.length})</h3>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn btn-sm btn-primary" id="btnCriarDupla"
-            onclick="pairSelectedPlayers()" disabled>Criar Dupla</button>
-          <button class="btn btn-sm btn-secondary"
-            onclick="shuffleAllPairs()">Sortear Todos</button>
-        </div>
-      </div>
-      <div class="pairing-pool">`;
-
-  if (pool.length === 0) {
-    html += '<div class="empty-state" style="padding:16px"><div class="empty-title" style="font-size:.85rem">Nenhum jogador dispon&iacute;vel</div></div>';
-  } else {
-    pool.forEach(r => {
-      html += `<label class="pairing-pool-item">
-        <input type="checkbox" class="pairing-pool-check"
-          data-participante="${UI.escapeHtml(r.participante)}"
-          data-insc-id="${UI.escapeHtml(r.id)}"
-          onchange="updatePairingSelection()">
-        <span class="pairing-pool-name">${UI.escapeHtml(r.participante)}</span>
-        <button class="btn-icon pairing-undo-btn" type="button" onclick="event.preventDefault();rejectRegistration('${r.id}')" title="Remover jogador">&#x2715;</button>
-      </label>`;
-    });
-  }
-
-  html += `</div></div>
-    <div class="pairing-section">
-      <div class="pairing-section-header">
-        <h3 class="pairing-section-title">Duplas formadas (${duplas.length})</h3>
-      </div>
-      <div class="pairing-formed">`;
-
-  if (duplas.length === 0) {
-    html += '<div class="empty-state" style="padding:16px"><div class="empty-title" style="font-size:.85rem">Nenhuma dupla formada ainda</div></div>';
-  } else {
-    duplas.forEach(t => {
-      html += `<div class="pairing-formed-item">
-        ${UI.renderAvatar(t, 32)}
-        <div class="pairing-formed-names">
-          <span class="pairing-formed-team">${UI.escapeHtml(t.nome)}</span>
-          <span class="pairing-formed-participants">${UI.escapeHtml(t.participante)} &amp; ${UI.escapeHtml(t.participante2)}</span>
-        </div>
-        <button class="btn-icon pairing-undo-btn" onclick="unpairTeam('${t.id}')" title="Desfazer dupla">&#x2715;</button>
-      </div>`;
-    });
-  }
-
-  html += `</div></div></div>`;
-  container.innerHTML = html;
+// Backward-compat: pairing UI now lives inside renderInscricoes
+async function renderPairingBoard() {
+  await renderInscricoes();
 }
 
 function renderRegistrationCard(r, status, showActions, isDuplas = false) {
