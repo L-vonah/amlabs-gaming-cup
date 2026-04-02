@@ -378,6 +378,7 @@ function _renderFormatSelector(state) {
   }
 
   const selectedFormat = PlayoffFormats.get(sel.value);
+  const gt = getActiveGameType();
   const teamCount = state.times.length;
   const groupsDone = state.faseGrupos.partidas.length > 0 &&
     state.faseGrupos.partidas.filter(p => p.status === 'pendente').length === 0;
@@ -388,7 +389,7 @@ function _renderFormatSelector(state) {
   if (teamCount < selectedFormat.classified) {
     canGenerate = false;
     warningMsg = `Este formato classifica ${selectedFormat.classified} times, mas apenas ${teamCount} est&atilde;o cadastrados. Cadastre pelo menos ${selectedFormat.classified} times.`;
-  } else if (!groupsDone) {
+  } else if (gt.requireAllMatches && !groupsDone) {
     canGenerate = false;
     warningMsg = 'Conclua todas as partidas da fase de grupos antes de gerar os playoffs.';
   } else {
