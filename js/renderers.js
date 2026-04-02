@@ -28,8 +28,8 @@ function renderTimes() {
   if (part2Group) part2Group.style.display = isDuplas ? '' : 'none';
   if (submitBtn) submitBtn.textContent = isDuplas ? 'Adicionar Dupla' : 'Adicionar Time';
   if (footerNote) footerNote.textContent = isDuplas
-    ? 'Duplas só podem ser removidas antes do início da fase de grupos.'
-    : 'Times só podem ser removidos antes do início da fase de grupos.';
+    ? 'Duplas sem partidas disputadas podem ser removidas durante a fase de grupos.'
+    : 'Times sem partidas disputadas podem ser removidos durante a fase de grupos.';
   document.querySelectorAll('.add-team-individual-field').forEach(el => {
     el.style.display = isDuplas ? 'none' : '';
   });

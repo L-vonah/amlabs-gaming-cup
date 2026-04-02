@@ -208,16 +208,34 @@ function deleteTime(id) {
   const time = AppState.getTimeById(state, id);
   if (!time) return;
 
-  if (state.campeonato.status !== 'configuracao') {
-    UI.showToast('Não é possível remover times após o início do campeonato.', 'error');
+  if (state.campeonato.status === 'playoffs' || state.campeonato.status === 'encerrado') {
+    UI.showToast('Não é possível remover times durante os playoffs.', 'error');
     return;
   }
 
+  if (state.campeonato.status === 'grupos') {
+    const jogou = state.faseGrupos.partidas.some(
+      p => (p.timeA === id || p.timeB === id) && p.status === 'concluida'
+    );
+    if (jogou) {
+      UI.showToast('Não é possível remover um time que já disputou partidas.', 'error');
+      return;
+    }
+  }
+
+  const partidasAntes = state.faseGrupos.partidas.length;
   AppState.removeTime(state, id);
+  if (state.campeonato.status === 'grupos') AppState.regenerarFaseGrupos(state);
+  const novasPartidas = state.faseGrupos.partidas.length - partidasAntes;
+
   AppState.save(state);
   AppState.addAuditLog(getAuditUser(), `Removeu o time "${time.nome}"`);
-  UI.showToast(`Time "${time.nome}" removido.`, 'info');
+  const msg = novasPartidas < 0
+    ? `Time "${time.nome}" removido. ${Math.abs(novasPartidas)} partidas removidas.`
+    : `Time "${time.nome}" removido.`;
+  UI.showToast(msg, 'info');
   Renderers.times();
+  if (state.campeonato.status === 'grupos') Renderers.partidas();
 }
 
 // ------------------------------------------------------------------
