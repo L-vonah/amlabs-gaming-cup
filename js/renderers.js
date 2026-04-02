@@ -568,15 +568,18 @@ async function renderInscricoes() {
     }
 
     if (admin && isOpen) {
-      // ── Admin pairing zone ──────────────────────────────────
+      // ── Admin pairing zone (two columns) ────────────────────
+      html += '<div class="pairing-layout">';
 
+      // Left: available players
+      html += '<div class="pairing-col">';
+      html += `<div class="pairing-col-header">
+        <span class="pairing-col-title"><span class="section-title-icon icon-bg-blue">&#127919;</span> Dispon&iacute;veis (${aprovados.length})</span>
+        <button class="btn btn-sm btn-secondary" onclick="shuffleAllPairs()">&#128257; Sortear</button>
+      </div>`;
       if (aprovados.length > 0) {
-        html += `<div class="section-header">
-          <h3 class="section-title"><span class="section-title-icon icon-bg-blue">&#127919;</span> Dispon&iacute;veis (${aprovados.length})</h3>
-          <button class="btn btn-sm btn-secondary" onclick="shuffleAllPairs()">&#128257; Sortear Todos</button>
-        </div>`;
-        html += '<div class="pairing-hint">Clique em 2 jogadores para formar uma dupla automaticamente</div>';
-        html += '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px">';
+        html += '<div class="pairing-hint">Clique em 2 jogadores para emparelhar</div>';
+        html += '<div style="display:flex;flex-direction:column;gap:8px">';
         aprovados.forEach(r => {
           const av = { nome: r.participante, abreviacao: (r.participante || '?').substring(0, 2).toUpperCase(), cor: '#6c5ce7' };
           const date = new Date(r.criadoEm).toLocaleDateString('pt-BR');
@@ -590,26 +593,26 @@ async function renderInscricoes() {
               <div class="registration-card-meta">${date}</div>
             </div>
             <span class="player-select-badge"></span>
-            <button class="btn-icon" type="button" style="color:var(--color-text-dim);opacity:.5"
+            <button class="btn-icon player-card-remove" type="button"
               onclick="event.stopPropagation();rejectRegistration('${UI.escapeHtml(r.id)}')"
               title="Remover jogador">&#x2715;</button>
           </div>`;
         });
         html += '</div>';
-      }
-
-      html += `<div class="section-header" style="margin-top:4px">
-        <h3 class="section-title"><span class="section-title-icon icon-bg-green">&#127942;</span> Duplas formadas (${duplas.length})</h3>
-      </div>`;
-
-      if (duplas.length === 0) {
-        html += `<div class="pairing-empty">
-          <span>&#128101;</span>
-          ${aprovados.length > 0
-            ? 'Clique em 2 jogadores acima para formar a primeira dupla'
-            : 'Nenhum jogador dispon&iacute;vel ainda &mdash; aprove inscri&ccedil;&otilde;es acima'}
-        </div>`;
       } else {
+        html += `<div class="pairing-empty"><span>&#128101;</span> Aprove inscri&ccedil;&otilde;es acima para liberar jogadores</div>`;
+      }
+      html += '</div>'; // end left col
+
+      // Right: formed duplas
+      html += '<div class="pairing-col">';
+      html += `<div class="pairing-col-header">
+        <span class="pairing-col-title"><span class="section-title-icon icon-bg-green">&#127942;</span> Duplas formadas (${duplas.length})</span>
+      </div>`;
+      if (duplas.length === 0) {
+        html += `<div class="pairing-empty"><span>&#128101;</span> ${aprovados.length > 0 ? 'Clique em 2 jogadores ao lado para formar a primeira dupla' : 'Nenhuma dupla formada ainda'}</div>`;
+      } else {
+        html += '<div style="display:flex;flex-direction:column;gap:8px">';
         duplas.forEach(t => {
           html += `<div class="dupla-card">
             ${UI.renderAvatar(t, 44)}
@@ -617,11 +620,14 @@ async function renderInscricoes() {
               <div class="dupla-card-name">${UI.escapeHtml(t.nome)}</div>
               <div class="dupla-card-players">${UI.escapeHtml(t.participante)} &bull; ${UI.escapeHtml(t.participante2)}</div>
             </div>
-            <button class="btn-icon dupla-card-undo" onclick="unpairTeam('${t.id}')" title="Desfazer dupla">&#x2715;</button>
+            <button class="dupla-card-undo" onclick="unpairTeam('${t.id}')">Desfazer</button>
           </div>`;
         });
-        html += '<div style="margin-bottom:24px"></div>';
+        html += '</div>';
       }
+      html += '</div>'; // end right col
+
+      html += '</div>'; // end pairing-layout
 
     } else {
       // ── Public / closed view ─────────────────────────────────
