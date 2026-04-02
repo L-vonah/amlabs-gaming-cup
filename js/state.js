@@ -10,7 +10,6 @@ const DEFAULT_STATE = {
     nome: '',
     gameType: 'futebol-virtual',
     teamMode: 'individual', // individual | duplas
-    drawMode: 'admin',      // admin | sorteio (só relevante quando teamMode = 'duplas')
     status: 'configuracao' // configuracao | grupos | playoffs | encerrado
   },
   config: {
@@ -104,7 +103,6 @@ function migrateState(state) {
       });
     }
     if (!state.campeonato.teamMode) state.campeonato.teamMode = 'individual';
-    if (!state.campeonato.drawMode)  state.campeonato.drawMode  = 'admin';
   }
 
   state._schemaVersion = CURRENT_SCHEMA_VERSION;
@@ -187,7 +185,6 @@ function convertStateToFirestore(state) {
       nome: state.campeonato.nome,
       gameType: state.campeonato.gameType || 'futebol-virtual',
       teamMode: state.campeonato.teamMode || 'individual',
-      drawMode: state.campeonato.drawMode || 'admin',
       status: state.campeonato.status,
       criadoEm: state._criadoEm || new Date().toISOString(),
       atualizadoEm: new Date().toISOString()
@@ -213,7 +210,6 @@ function convertFirestoreToState(data) {
       nome: data.metadata.nome,
       gameType: data.metadata.gameType || 'futebol-virtual',
       teamMode: data.metadata.teamMode || 'individual',
-      drawMode: data.metadata.drawMode || 'admin',
       // Legacy: if jogo field exists but no gameType, keep it for migration
       ...(data.metadata.jogo && !data.metadata.gameType ? { jogo: data.metadata.jogo } : {}),
       status: data.metadata.status
