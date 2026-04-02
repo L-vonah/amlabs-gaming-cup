@@ -402,12 +402,16 @@ function _renderFormatSelector(state) {
 }
 
 function onFormatChange() {
-  const state = AppState.loadReadOnly();
+  const selectedId = _getSelectedFormatId();
+  const state = AppState.load();
+  if (state.playoffs.status === 'aguardando' && state.playoffs.formato !== selectedId) {
+    state.playoffs.formato = selectedId;
+    AppState.save(state);
+  }
   _renderFormatSelector(state);
   // Re-render preview + info cards
   const container = document.getElementById('bracketContainer');
   const infoContainer = document.getElementById('bracketInfoCards');
-  const selectedId = _getSelectedFormatId();
   const previewFormat = PlayoffFormats.get(selectedId);
   if (container) container.innerHTML = previewFormat.renderBracketHTML(null);
   if (infoContainer) infoContainer.innerHTML = _renderInfoCards(previewFormat);
