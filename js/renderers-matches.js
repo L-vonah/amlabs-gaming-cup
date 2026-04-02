@@ -159,8 +159,8 @@ function renderPartidasPlayoffs(state, admin) {
       mobileBtn = desktopBtn;
     }
 
-    const partA = tA && tA.participante ? `<span class="team-participant">${UI.escapeHtml(tA.participante)}</span>` : '';
-    const partB = tB && tB.participante ? `<span class="team-participant">${UI.escapeHtml(tB.participante)}</span>` : '';
+    const partA = tA && tA.participante && !tA.participante2 ? `<span class="team-participant">${UI.escapeHtml(tA.participante)}</span>` : '';
+    const partB = tB && tB.participante && !tB.participante2 ? `<span class="team-participant">${UI.escapeHtml(tB.participante)}</span>` : '';
 
     // Winner-only score display
     const winA = concluded && m.vencedor === m.timeA;
@@ -231,8 +231,8 @@ function renderMatchCardWithAction(p, state, admin) {
   const isWinnerOnly = gt.scoreType !== 'numeric';
   const sc = concluded && !isWinnerOnly ? UI.scoreClass(p.scoreA, p.scoreB) : '';
 
-  const partA = tA && tA.participante ? `<span class="team-participant">${UI.escapeHtml(tA.participante)}</span>` : '';
-  const partB = tB && tB.participante ? `<span class="team-participant">${UI.escapeHtml(tB.participante)}</span>` : '';
+  const partA = tA && tA.participante && !tA.participante2 ? `<span class="team-participant">${UI.escapeHtml(tA.participante)}</span>` : '';
+  const partB = tB && tB.participante && !tB.participante2 ? `<span class="team-participant">${UI.escapeHtml(tB.participante)}</span>` : '';
 
   let desktopBtn = '';
   let mobileBtn = '';

@@ -49,7 +49,7 @@ function renderHome() {
             </div>
             <div class="champion-label">CAMPE&Atilde;O</div>
             <div class="champion-name">${winner ? UI.escapeHtml(winner.nome) : '?'}</div>
-            ${winner && winner.participante ? `<div class="champion-label" style="margin-top:4px;letter-spacing:.12em;font-size:.85rem">${winner.participante2 ? UI.escapeHtml(winner.participante) + ' &amp; ' + UI.escapeHtml(winner.participante2) : UI.escapeHtml(winner.participante)}</div>` : ''}
+            ${winner && winner.participante && !winner.participante2 ? `<div class="champion-label" style="margin-top:4px;letter-spacing:.12em;font-size:.85rem">${UI.escapeHtml(winner.participante)}</div>` : ''}
             ${winner ? `<div class="champion-avatar-wrapper">${UI.renderAvatar(winner, 80)}</div>` : ''}
             <div class="champion-score">${gf ? (gf.scoreA !== null && gf.scoreB !== null ? gf.scoreA + ' &times; ' + gf.scoreB : '<span class="winner-check">✓</span>') : ''} &mdash; ${UI.escapeHtml(gf ? gf.fase || 'Final' : 'Final')}</div>
             <div class="champion-badge">${UI.escapeHtml(state.campeonato.nome || 'Campeonato')}</div>
@@ -125,8 +125,8 @@ function renderHome() {
         const tB = AppState.getTimeById(state, m.timeB);
         const nameA = tA ? UI.escapeHtml(tA.nome) : '?';
         const nameB = tB ? UI.escapeHtml(tB.nome) : '?';
-        const npA = tA && tA.participante ? `<span class="team-participant">${tA.participante2 ? UI.escapeHtml(tA.participante) + ' &amp; ' + UI.escapeHtml(tA.participante2) : UI.escapeHtml(tA.participante)}</span>` : '';
-        const npB = tB && tB.participante ? `<span class="team-participant">${tB.participante2 ? UI.escapeHtml(tB.participante) + ' &amp; ' + UI.escapeHtml(tB.participante2) : UI.escapeHtml(tB.participante)}</span>` : '';
+        const npA = tA && tA.participante && !tA.participante2 ? `<span class="team-participant">${UI.escapeHtml(tA.participante)}</span>` : '';
+        const npB = tB && tB.participante && !tB.participante2 ? `<span class="team-participant">${UI.escapeHtml(tB.participante)}</span>` : '';
         return `<div class="match-card">
           <div class="match-round-badge" style="font-size:.6rem">${UI.escapeHtml(m.fase || '')}</div>
           <div class="match-desktop">
@@ -185,8 +185,8 @@ function renderHome() {
           rmScoreA = r.scoreA + (pA ? '<span class="penalty-tag">P</span>' : '');
           rmScoreB = r.scoreB + (pB ? '<span class="penalty-tag">P</span>' : '');
         }
-        const partA = tA && tA.participante ? `<span class="team-participant">${tA.participante2 ? UI.escapeHtml(tA.participante) + ' &amp; ' + UI.escapeHtml(tA.participante2) : UI.escapeHtml(tA.participante)}</span>` : '';
-        const partB = tB && tB.participante ? `<span class="team-participant">${tB.participante2 ? UI.escapeHtml(tB.participante) + ' &amp; ' + UI.escapeHtml(tB.participante2) : UI.escapeHtml(tB.participante)}</span>` : '';
+        const partA = tA && tA.participante && !tA.participante2 ? `<span class="team-participant">${UI.escapeHtml(tA.participante)}</span>` : '';
+        const partB = tB && tB.participante && !tB.participante2 ? `<span class="team-participant">${UI.escapeHtml(tB.participante)}</span>` : '';
         return `<div class="match-card">
           <div class="match-round-badge" style="font-size:.6rem">${UI.escapeHtml(badge)}</div>
           <div class="match-desktop">
@@ -246,8 +246,8 @@ function renderHome() {
         if (!m || !m.timeA || !m.timeB) return;
         const tA = m.timeA ? AppState.getTimeById(state, m.timeA) : null;
         const tB = m.timeB ? AppState.getTimeById(state, m.timeB) : null;
-        const nameA = tA ? UI.escapeHtml(tA.nome) + (tA.participante ? '<span class="team-participant-sub" style="display:block;font-size:.65rem">' + (tA.participante2 ? UI.escapeHtml(tA.participante) + ' &amp; ' + UI.escapeHtml(tA.participante2) : UI.escapeHtml(tA.participante)) + '</span>' : '') : 'A definir';
-        const nameB = tB ? UI.escapeHtml(tB.nome) + (tB.participante ? '<span class="team-participant-sub" style="display:block;font-size:.65rem">' + (tB.participante2 ? UI.escapeHtml(tB.participante) + ' &amp; ' + UI.escapeHtml(tB.participante2) : UI.escapeHtml(tB.participante)) + '</span>' : '') : 'A definir';
+        const nameA = tA ? UI.escapeHtml(tA.nome) + (tA.participante && !tA.participante2 ? '<span class="team-participant-sub" style="display:block;font-size:.65rem">' + UI.escapeHtml(tA.participante) + '</span>' : '') : 'A definir';
+        const nameB = tB ? UI.escapeHtml(tB.nome) + (tB.participante && !tB.participante2 ? '<span class="team-participant-sub" style="display:block;font-size:.65rem">' + UI.escapeHtml(tB.participante) + '</span>' : '') : 'A definir';
         const winnerA = m.vencedor === m.timeA;
         const winnerB = m.vencedor === m.timeB;
         const pA = m.penaltyWinner === m.timeA;
@@ -305,7 +305,7 @@ function renderHome() {
                   const sgColor = t.saldoScore > 0 ? 'var(--color-win)' : t.saldoScore < 0 ? 'var(--color-loss)' : 'var(--color-text-muted)';
                   return `<tr class="${tier ? tier.cssClass : ''}">
                     <td ${tier ? 'style="color:' + tier.color + '"' : ''}>${pos}</td>
-                    <td><div class="team-cell">${UI.renderAvatar(t, 22)}<div style="line-height:1.2"><span>${UI.escapeHtml(t.nome)}</span>${t.participante ? '<div class="team-participant-sub">' + (t.participante2 ? UI.escapeHtml(t.participante) + ' &amp; ' + UI.escapeHtml(t.participante2) : UI.escapeHtml(t.participante)) + '</div>' : ''}</div></div></td>
+                    <td><div class="team-cell">${UI.renderAvatar(t, 22)}<div style="line-height:1.2"><span>${UI.escapeHtml(t.nome)}</span>${t.participante && !t.participante2 ? '<div class="team-participant-sub">' + UI.escapeHtml(t.participante) + '</div>' : ''}</div></div></td>
                     <td style="color:var(--color-text-muted)">${t.jogos}</td>
                     <td style="color:var(--color-win);font-weight:700">${t.vitorias}</td>
                     ${showSG ? '<td style="font-weight:700;color:' + sgColor + '">' + UI.signedNumber(t.saldoScore) + '</td>' : ''}

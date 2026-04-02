@@ -31,7 +31,7 @@ function renderTimes() {
       ${UI.renderAvatar(t, 44, 'team-card-avatar')}
       <div class="team-card-info">
         <div class="team-card-name">${UI.escapeHtml(t.nome)}</div>
-        <div class="team-card-abbr">${t.participante2 ? UI.escapeHtml(t.participante) + ' &amp; ' + UI.escapeHtml(t.participante2) : UI.escapeHtml(t.participante || '')}</div>
+        <div class="team-card-abbr">${t.participante && !t.participante2 ? UI.escapeHtml(t.participante) : ''}</div>
       </div>
       <div class="team-card-actions admin-only">
         <button class="btn-icon" onclick="openEditTeamModal('${t.id}')" title="Editar time">&#9998;</button>
@@ -123,7 +123,7 @@ function renderClassificacao() {
                     ${UI.renderAvatar(t, 28)}
                     <div>
                       <div class="team-name-text">${UI.escapeHtml(t.nome)}</div>
-                      ${t.participante ? '<div class="team-participant-sub">' + (t.participante2 ? UI.escapeHtml(t.participante) + ' &amp; ' + UI.escapeHtml(t.participante2) : UI.escapeHtml(t.participante)) + '</div>' : ''}
+                      ${t.participante && !t.participante2 ? '<div class="team-participant-sub">' + UI.escapeHtml(t.participante) + '</div>' : ''}
                     </div>
                   </div>
                 </td>
@@ -198,7 +198,7 @@ function renderEstatisticas() {
           ${UI.renderAvatar(t, 36)}
           <div class="stat-rank-info">
             <div class="stat-rank-name">${UI.escapeHtml(t.nome)}</div>
-            ${t.participante ? '<div class="stat-rank-participant">' + (t.participante2 ? UI.escapeHtml(t.participante) + ' &amp; ' + UI.escapeHtml(t.participante2) : UI.escapeHtml(t.participante)) + '</div>' : ''}
+            ${t.participante && !t.participante2 ? '<div class="stat-rank-participant">' + UI.escapeHtml(t.participante) + '</div>' : ''}
           </div>
           <div class="stat-rank-numbers">
             <span class="stat-rank-value" style="color:var(--color-primary)">${t.scoreMarcados}</span>
@@ -220,7 +220,7 @@ function renderEstatisticas() {
           ${UI.renderAvatar(t, 36)}
           <div class="stat-rank-info">
             <div class="stat-rank-name">${UI.escapeHtml(t.nome)}</div>
-            ${t.participante ? '<div class="stat-rank-participant">' + (t.participante2 ? UI.escapeHtml(t.participante) + ' &amp; ' + UI.escapeHtml(t.participante2) : UI.escapeHtml(t.participante)) + '</div>' : ''}
+            ${t.participante && !t.participante2 ? '<div class="stat-rank-participant">' + UI.escapeHtml(t.participante) + '</div>' : ''}
           </div>
           <div class="stat-rank-numbers">
             <span class="stat-rank-value" style="color:var(--color-win)">${t.scoreSofridos}</span>
@@ -620,8 +620,11 @@ async function renderPairingBoard(registrations) {
   if (!container) return;
   container.style.display = '';
 
+  // Load registrations internally if not passed (e.g. called from actions)
+  if (!registrations) registrations = await FirestoreService.loadRegistrations();
+
   const state = AppState.loadReadOnly();
-  const pool = (registrations || []).filter(r => r.status === 'aprovado');
+  const pool = registrations.filter(r => r.status === 'aprovado');
   const duplas = state.times.filter(t => t.participante2 !== null);
 
   // Signal to renderTimes whether unpaired players exist
@@ -650,6 +653,7 @@ async function renderPairingBoard(registrations) {
           data-insc-id="${UI.escapeHtml(r.id)}"
           onchange="updatePairingSelection()">
         <span class="pairing-pool-name">${UI.escapeHtml(r.participante)}</span>
+        <button class="btn-icon pairing-undo-btn" type="button" onclick="event.preventDefault();rejectRegistration('${r.id}')" title="Remover jogador">&#x2715;</button>
       </label>`;
     });
   }
