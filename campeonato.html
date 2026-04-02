@@ -713,6 +713,23 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="modalResetPartida">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Resetar Resultado</span>
+      <button class="btn-icon" onclick="UI.closeModal('modalResetPartida')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--color-text-muted);font-size:.9rem">Tem certeza? O resultado ser&aacute; <strong style="color:var(--color-loss)">apagado</strong> e a partida voltar&aacute; para pendente. Em playoffs, partidas seguintes tamb&eacute;m ser&atilde;o resetadas.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="UI.closeModal('modalResetPartida')">Cancelar</button>
+      <button class="btn btn-danger" onclick="executeResetPartida()">Sim, resetar</button>
+    </div>
+    <input type="hidden" id="modalResetPartidaMatchId">
+  </div>
+</div>
+
 <!-- ===============================================================
      TOAST CONTAINER
      =============================================================== -->

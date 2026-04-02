@@ -618,7 +618,14 @@ function savePlayoffResult(matchId, scoreA, scoreB, penaltyWinner, winnerSide) {
 
 function resetMatchResult(matchId) {
   if (!UI.checkAdmin()) { UI.showToast('Você precisa estar logado como admin para editar.', 'error'); return; }
-  if (!confirm('Resetar o resultado desta partida? Ela voltará para pendente.')) return;
+  document.getElementById('modalResetPartidaMatchId').value = matchId;
+  UI.openModal('modalResetPartida');
+}
+
+function executeResetPartida() {
+  const matchId = document.getElementById('modalResetPartidaMatchId').value;
+  if (!matchId) return;
+  UI.closeModal('modalResetPartida');
 
   const state = AppState.load();
 
@@ -654,6 +661,7 @@ function resetMatchResult(matchId) {
   }
 }
 window.resetMatchResult = resetMatchResult;
+window.executeResetPartida = executeResetPartida;
 
 // ------------------------------------------------------------------
 // Reset
