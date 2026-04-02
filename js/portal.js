@@ -130,13 +130,14 @@ async function portalCreateTournament(event) {
 
   const nome = document.getElementById('inputTournamentNome').value.trim();
   const gameType = document.getElementById('inputTournamentGameType').value;
+  const teamMode = document.getElementById('inputTournamentTeamMode').value || 'individual';
 
   if (!nome) {
     UI.showToast('Preencha o nome do campeonato.', 'error');
     return;
   }
 
-  const uuid = await FirestoreService.createTournament({ nome, gameType });
+  const uuid = await FirestoreService.createTournament({ nome, gameType, teamMode });
   if (!uuid) {
     UI.showToast('Erro ao criar campeonato. Tente novamente.', 'error');
     return;
@@ -148,8 +149,15 @@ async function portalCreateTournament(event) {
 
 function portalSelectGameType(gameTypeId) {
   document.getElementById('inputTournamentGameType').value = gameTypeId;
-  document.querySelectorAll('.game-type-card').forEach(card => {
+  document.querySelectorAll('#gameTypeSelector .game-type-card').forEach(card => {
     card.classList.toggle('selected', card.dataset.gameType === gameTypeId);
+  });
+}
+
+function portalSelectTeamMode(teamModeId) {
+  document.getElementById('inputTournamentTeamMode').value = teamModeId;
+  document.querySelectorAll('#teamModeSelector .game-type-card').forEach(card => {
+    card.classList.toggle('selected', card.dataset.teamMode === teamModeId);
   });
 }
 
@@ -187,3 +195,4 @@ window.portalCreateTournament = portalCreateTournament;
 window.portalRequestDelete = portalRequestDelete;
 window.portalExecuteDelete = portalExecuteDelete;
 window.portalSelectGameType = portalSelectGameType;
+window.portalSelectTeamMode = portalSelectTeamMode;

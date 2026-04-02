@@ -151,16 +151,20 @@ function renderPartidasPlayoffs(state, admin) {
 
     let desktopBtn = '';
     let mobileBtn = '';
+    let desktopResetBtn = '';
+    let mobileResetBtn = '';
     if (admin && !concluded) {
       desktopBtn = `<button class="btn btn-sm btn-success admin-only btn-score-action" data-match-id="${m.id}" data-gf="${gfAttr}">Registrar</button>`;
       mobileBtn = desktopBtn;
     } else if (admin && concluded) {
       desktopBtn = `<button class="btn btn-sm btn-secondary admin-only btn-score-action" data-match-id="${m.id}" data-gf="${gfAttr}">Editar</button>`;
       mobileBtn = desktopBtn;
+      desktopResetBtn = `<button class="btn-ghost-danger admin-only" onclick="resetMatchResult('${m.id}')">Resetar</button>`;
+      mobileResetBtn = `<button class="btn btn-sm admin-only" style="color:var(--color-loss);border-color:var(--color-border)" onclick="resetMatchResult('${m.id}')">Resetar</button>`;
     }
 
-    const partA = tA && tA.participante ? `<span class="team-participant">${UI.escapeHtml(tA.participante)}</span>` : '';
-    const partB = tB && tB.participante ? `<span class="team-participant">${UI.escapeHtml(tB.participante)}</span>` : '';
+    const partA = tA && tA.participante && !tA.participante2 ? `<span class="team-participant">${UI.escapeHtml(tA.participante)}</span>` : '';
+    const partB = tB && tB.participante && !tB.participante2 ? `<span class="team-participant">${UI.escapeHtml(tB.participante)}</span>` : '';
 
     // Winner-only score display
     const winA = concluded && m.vencedor === m.timeA;
@@ -198,7 +202,7 @@ function renderPartidasPlayoffs(state, admin) {
             <div class="match-team-info"><span class="team-name-text">${nameB}</span>${partB}</div>
           </div>
         </div>
-        <div class="match-action-slot">${desktopBtn}</div>
+        <div class="match-action-slot">${desktopBtn}${desktopResetBtn}</div>
       </div>
       <div class="match-mobile">
         <div class="match-mobile-row">
@@ -211,7 +215,7 @@ function renderPartidasPlayoffs(state, admin) {
           <span class="match-mobile-name">${nameB}</span>
           <span class="match-mobile-score ${winB ? 'win' : winA ? 'loss' : ''}">${mobileScoreB}</span>
         </div>
-        ${mobileBtn ? '<div class="match-mobile-action">' + mobileBtn + '</div>' : ''}
+        ${(mobileBtn || mobileResetBtn) ? '<div class="match-mobile-action">' + mobileBtn + mobileResetBtn + '</div>' : ''}
       </div>
     </div>`;
 
@@ -231,17 +235,21 @@ function renderMatchCardWithAction(p, state, admin) {
   const isWinnerOnly = gt.scoreType !== 'numeric';
   const sc = concluded && !isWinnerOnly ? UI.scoreClass(p.scoreA, p.scoreB) : '';
 
-  const partA = tA && tA.participante ? `<span class="team-participant">${UI.escapeHtml(tA.participante)}</span>` : '';
-  const partB = tB && tB.participante ? `<span class="team-participant">${UI.escapeHtml(tB.participante)}</span>` : '';
+  const partA = tA && tA.participante && !tA.participante2 ? `<span class="team-participant">${UI.escapeHtml(tA.participante)}</span>` : '';
+  const partB = tB && tB.participante && !tB.participante2 ? `<span class="team-participant">${UI.escapeHtml(tB.participante)}</span>` : '';
 
   let desktopBtn = '';
   let mobileBtn = '';
+  let desktopResetBtn = '';
+  let mobileResetBtn = '';
   if (admin && !concluded) {
     desktopBtn = `<button class="btn btn-sm btn-success admin-only btn-score-action" data-match-id="${p.id}" data-gf="0">Registrar</button>`;
     mobileBtn = desktopBtn;
   } else if (admin && concluded) {
     desktopBtn = `<button class="btn btn-sm btn-secondary admin-only btn-score-action" data-match-id="${p.id}" data-gf="0">Editar</button>`;
     mobileBtn = desktopBtn;
+    desktopResetBtn = `<button class="btn-ghost-danger admin-only" onclick="resetMatchResult('${p.id}')">Resetar</button>`;
+    mobileResetBtn = `<button class="btn btn-sm admin-only" style="color:var(--color-loss);border-color:var(--color-border)" onclick="resetMatchResult('${p.id}')">Resetar</button>`;
   }
 
   // Winner-only score display
@@ -278,7 +286,7 @@ function renderMatchCardWithAction(p, state, admin) {
             <div class="match-team-info"><span class="team-name-text">${nameB}</span>${partB}</div>
           </div>
         </div>
-        <div class="match-action-slot">${desktopBtn}</div>
+        <div class="match-action-slot">${desktopBtn}${desktopResetBtn}</div>
       </div>
       <div class="match-mobile">
         <div class="match-mobile-row">
@@ -291,7 +299,7 @@ function renderMatchCardWithAction(p, state, admin) {
           <span class="match-mobile-name">${nameB}${partB ? ' <span class="team-participant">' + UI.escapeHtml(tB.participante) + '</span>' : ''}</span>
           <span class="match-mobile-score ${pWinB ? 'win' : pWinA ? 'loss' : ''}">${mScoreB}</span>
         </div>
-        ${mobileBtn ? '<div class="match-mobile-action">' + mobileBtn + '</div>' : ''}
+        ${(mobileBtn || mobileResetBtn) ? '<div class="match-mobile-action">' + mobileBtn + mobileResetBtn + '</div>' : ''}
       </div>
     </div>`;
 }
@@ -370,6 +378,7 @@ function _renderFormatSelector(state) {
   }
 
   const selectedFormat = PlayoffFormats.get(sel.value);
+  const gt = getActiveGameType();
   const teamCount = state.times.length;
   const groupsDone = state.faseGrupos.partidas.length > 0 &&
     state.faseGrupos.partidas.filter(p => p.status === 'pendente').length === 0;
@@ -380,7 +389,7 @@ function _renderFormatSelector(state) {
   if (teamCount < selectedFormat.classified) {
     canGenerate = false;
     warningMsg = `Este formato classifica ${selectedFormat.classified} times, mas apenas ${teamCount} est&atilde;o cadastrados. Cadastre pelo menos ${selectedFormat.classified} times.`;
-  } else if (!groupsDone) {
+  } else if (gt.requireAllMatches && !groupsDone) {
     canGenerate = false;
     warningMsg = 'Conclua todas as partidas da fase de grupos antes de gerar os playoffs.';
   } else {
@@ -402,12 +411,16 @@ function _renderFormatSelector(state) {
 }
 
 function onFormatChange() {
-  const state = AppState.loadReadOnly();
+  const selectedId = _getSelectedFormatId();
+  const state = AppState.load();
+  if (state.playoffs.status === 'aguardando' && state.playoffs.formato !== selectedId) {
+    state.playoffs.formato = selectedId;
+    AppState.save(state);
+  }
   _renderFormatSelector(state);
   // Re-render preview + info cards
   const container = document.getElementById('bracketContainer');
   const infoContainer = document.getElementById('bracketInfoCards');
-  const selectedId = _getSelectedFormatId();
   const previewFormat = PlayoffFormats.get(selectedId);
   if (container) container.innerHTML = previewFormat.renderBracketHTML(null);
   if (infoContainer) infoContainer.innerHTML = _renderInfoCards(previewFormat);

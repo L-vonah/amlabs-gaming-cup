@@ -94,12 +94,71 @@ function setLoading(btn, loading) {
 
 function submitAddTime() {
   if (!UI.checkAdmin()) { UI.showToast('Voc\u00ea precisa estar logado como admin para editar.', 'error'); return; }
+
+  const state = AppState.load();
+  const isDuplas = state.campeonato.teamMode === 'duplas';
+  const cor = document.getElementById('inputCorTimo')?.value || UI.getRandomColor();
+
+  if (state.campeonato.status !== 'configuracao' && state.campeonato.status !== 'grupos') {
+    UI.showToast('N\u00e3o \u00e9 poss\u00edvel adicionar times durante os playoffs.', 'error');
+    return;
+  }
+
+  if (isDuplas) {
+    const p1 = UI.getFormValue('inputPartTimo');
+    const p2 = UI.getFormValue('inputPart2Timo');
+    const elP1 = document.getElementById('inputPartTimo');
+    const elP2 = document.getElementById('inputPart2Timo');
+    if (elP1) elP1.style.borderColor = '';
+    if (elP2) elP2.style.borderColor = '';
+
+    if (!p1) {
+      if (elP1) elP1.style.borderColor = 'var(--color-loss)';
+      UI.showToast('Informe o nome do Participante 1.', 'error');
+      return;
+    }
+    if (!p2) {
+      if (elP2) elP2.style.borderColor = 'var(--color-loss)';
+      UI.showToast('Informe o nome do Participante 2.', 'error');
+      return;
+    }
+
+    const alreadyPaired = state.times.some(t =>
+      [t.participante, t.participante2].some(p =>
+        p && (p.toLowerCase() === p1.toLowerCase() || p.toLowerCase() === p2.toLowerCase())
+      )
+    );
+    if (alreadyPaired) {
+      UI.showToast('Um dos participantes j\u00e1 est\u00e1 em uma dupla.', 'error');
+      return;
+    }
+
+    const novoTime = AppState.pairPlayers(state, p1, p2, cor);
+    const partidasAntes = state.faseGrupos.partidas.length;
+    if (state.campeonato.status === 'grupos') AppState.regenerarFaseGrupos(state);
+    const novasPartidas = state.faseGrupos.partidas.length - partidasAntes;
+
+    AppState.save(state);
+    AppState.addAuditLog(getAuditUser(), `Dupla adicionada: "${novoTime.nome}"`, { participante: p1, participante2: p2 });
+
+    UI.clearForm('inputPartTimo', 'inputPart2Timo');
+    const colorInput = document.getElementById('inputCorTimo');
+    if (colorInput) colorInput.value = UI.getRandomColor();
+
+    const msg = novasPartidas > 0
+      ? `Dupla "${novoTime.nome}" adicionada! ${novasPartidas} partidas geradas.`
+      : `Dupla "${novoTime.nome}" adicionada!`;
+    UI.showToast(msg, 'success');
+    Renderers.times();
+    if (novasPartidas > 0) Renderers.partidas();
+    return;
+  }
+
+  // ── Individual flow ──────────────────────────────────────────
   const participante = UI.getFormValue('inputPartTimo');
   const nome = UI.getFormValue('inputNomeTimo');
   let abrev = UI.getFormValue('inputAbrevTimo').replace(/[^A-Za-z]/g, '');
-  const cor = document.getElementById('inputCorTimo') ? document.getElementById('inputCorTimo').value : UI.getRandomColor();
 
-  // Clear previous error highlights
   const elPart = document.getElementById('inputPartTimo');
   const elNome = document.getElementById('inputNomeTimo');
   if (elPart) elPart.style.borderColor = '';
@@ -110,43 +169,28 @@ function submitAddTime() {
     UI.showToast('Informe o nome do participante.', 'error');
     return;
   }
-
   if (!nome) {
     if (elNome) elNome.style.borderColor = 'var(--color-loss)';
     UI.showToast('Informe o nome do time.', 'error');
     return;
   }
-
   if (!abrev) {
     abrev = nome.replace(/[aeiouAEIOU\s]/g, '').slice(0, 3).toUpperCase() || nome.slice(0, 3).toUpperCase();
   }
-
-  const state = AppState.load();
-
-  if (state.campeonato.status !== 'configuracao' && state.campeonato.status !== 'grupos') {
-    UI.showToast('N\u00e3o \u00e9 poss\u00edvel adicionar times durante os playoffs.', 'error');
-    return;
-  }
-
   if (state.times.some(t => t.nome.toLowerCase() === nome.toLowerCase())) {
-    UI.showToast('Ja existe um time com esse nome.', 'error');
+    UI.showToast('J\u00e1 existe um time com esse nome.', 'error');
     return;
   }
 
   const novoTime = AppState.addTime(state, { nome, abreviacao: abrev, cor, participante });
-
-  // If tournament is in group stage, regenerate all matches preserving results
   const partidasAntes = state.faseGrupos.partidas.length;
-  if (state.campeonato.status === 'grupos') {
-    AppState.regenerarFaseGrupos(state);
-  }
+  if (state.campeonato.status === 'grupos') AppState.regenerarFaseGrupos(state);
   const novasPartidas = state.faseGrupos.partidas.length - partidasAntes;
 
   AppState.save(state);
   AppState.addAuditLog(getAuditUser(), `Adicionou o time "${nome}" (${participante})`, { abreviacao: abrev, cor, participante });
 
   UI.clearForm('inputPartTimo', 'inputNomeTimo', 'inputAbrevTimo');
-  // Reset color to a new random color
   const colorInput = document.getElementById('inputCorTimo');
   if (colorInput) colorInput.value = UI.getRandomColor();
 
@@ -164,16 +208,34 @@ function deleteTime(id) {
   const time = AppState.getTimeById(state, id);
   if (!time) return;
 
-  if (state.campeonato.status !== 'configuracao') {
-    UI.showToast('Não é possível remover times após o início do campeonato.', 'error');
+  if (state.campeonato.status === 'playoffs' || state.campeonato.status === 'encerrado') {
+    UI.showToast('Não é possível remover times durante os playoffs.', 'error');
     return;
   }
 
+  if (state.campeonato.status === 'grupos') {
+    const jogou = state.faseGrupos.partidas.some(
+      p => (p.timeA === id || p.timeB === id) && p.status === 'concluida'
+    );
+    if (jogou) {
+      UI.showToast('Não é possível remover um time que já disputou partidas.', 'error');
+      return;
+    }
+  }
+
+  const partidasAntes = state.faseGrupos.partidas.length;
   AppState.removeTime(state, id);
+  if (state.campeonato.status === 'grupos') AppState.regenerarFaseGrupos(state);
+  const novasPartidas = state.faseGrupos.partidas.length - partidasAntes;
+
   AppState.save(state);
   AppState.addAuditLog(getAuditUser(), `Removeu o time "${time.nome}"`);
-  UI.showToast(`Time "${time.nome}" removido.`, 'info');
+  const msg = novasPartidas < 0
+    ? `Time "${time.nome}" removido. ${Math.abs(novasPartidas)} partidas removidas.`
+    : `Time "${time.nome}" removido.`;
+  UI.showToast(msg, 'info');
   Renderers.times();
+  if (state.campeonato.status === 'grupos') Renderers.partidas();
 }
 
 // ------------------------------------------------------------------
@@ -191,6 +253,18 @@ function openEditTeamModal(id) {
   document.getElementById('editTeamNome').value = time.nome;
   document.getElementById('editTeamAbrev').value = time.abreviacao;
   document.getElementById('editTeamCor').value = time.cor || '#6c5ce7';
+
+  const p2Group = document.getElementById('editTeamParticipante2Group');
+  const p2Input = document.getElementById('editTeamParticipante2');
+  if (p2Group && p2Input) {
+    if (time.participante2) {
+      p2Input.value = time.participante2;
+      p2Group.style.display = '';
+    } else {
+      p2Group.style.display = 'none';
+    }
+  }
+
   UI.openModal('modalEditTeam');
 }
 window.openEditTeamModal = openEditTeamModal;
@@ -272,6 +346,17 @@ function iniciarPlayoffs() {
       : 'Verifique se há pelo menos 4 times cadastrados.';
     UI.showToast(msg, 'error');
     return;
+  }
+
+  // Warn if there are pending matches and game doesn't require all matches
+  if (!gt.requireAllMatches) {
+    const pending = state.faseGrupos.partidas.filter(p => p.status === 'pendente').length;
+    if (pending > 0) {
+      document.getElementById('modalPlayoffsPendentesCount').textContent = pending;
+      document.getElementById('modalPlayoffsFormatId').value = formatId;
+      UI.openModal('modalPlayoffsPendentes');
+      return;
+    }
   }
 
   const format = PlayoffFormats.get(formatId);
@@ -404,6 +489,24 @@ function _executeIniciarPlayoffsWithTabela(state, formatId, tabela) {
 
 window.updateTiebreakerSelection = updateTiebreakerSelection;
 window.confirmTiebreaker = confirmTiebreaker;
+
+function confirmPlayoffsPendentes() {
+  UI.closeModal('modalPlayoffsPendentes');
+  const formatId = document.getElementById('modalPlayoffsFormatId').value;
+  const state = AppState.load();
+  const gt = getGameType(state.campeonato.gameType);
+  const tabela = AppState.calcularClassificacao(state);
+  const format = PlayoffFormats.get(formatId);
+  if (gt.tiebreakers.includes('admin')) {
+    const tiedGroups = _detectTiesAtCutoff(tabela, format.classified);
+    if (tiedGroups.length > 0) {
+      _showTiebreakerModal(tiedGroups, tabela, format.classified, formatId);
+      return;
+    }
+  }
+  _executeIniciarPlayoffs(state, formatId);
+}
+window.confirmPlayoffsPendentes = confirmPlayoffsPendentes;
 
 // ------------------------------------------------------------------
 // Group Stage Results — inline calendar form
@@ -539,6 +642,62 @@ function savePlayoffResult(matchId, scoreA, scoreB, penaltyWinner, winnerSide) {
 }
 
 // ------------------------------------------------------------------
+// Reset Match Result
+// ------------------------------------------------------------------
+
+function resetMatchResult(matchId) {
+  if (!UI.checkAdmin()) { UI.showToast('Você precisa estar logado como admin para editar.', 'error'); return; }
+  const state = AppState.loadReadOnly();
+  if (matchId.startsWith('rr_') && (state.campeonato.status === 'playoffs' || state.campeonato.status === 'encerrado')) {
+    UI.showToast('Não é possível resetar partidas de grupos após o início dos playoffs. Refaça os playoffs primeiro.', 'error');
+    return;
+  }
+  document.getElementById('modalResetPartidaMatchId').value = matchId;
+  UI.openModal('modalResetPartida');
+}
+
+function executeResetPartida() {
+  const matchId = document.getElementById('modalResetPartidaMatchId').value;
+  if (!matchId) return;
+  UI.closeModal('modalResetPartida');
+
+  const state = AppState.load();
+
+  if (matchId.startsWith('rr_')) {
+    const partida = state.faseGrupos.partidas.find(p => p.id === matchId);
+    if (!partida) return;
+    partida.scoreA = null;
+    partida.scoreB = null;
+    partida.vencedor = null;
+    partida.status = 'pendente';
+    AppState.save(state);
+    AppState.addAuditLog(getAuditUser(), 'Resetou resultado de partida', { matchId });
+    UI.showToast('Resultado resetado.', 'info');
+    Renderers.classificacao();
+    Renderers.partidas();
+  } else {
+    const format = PlayoffFormats.getSelected(state);
+    const match = state.playoffs.matches && state.playoffs.matches[matchId];
+    if (!match) return;
+    format.resetDownstream(state.playoffs.matches, matchId);
+    match.scoreA = null;
+    match.scoreB = null;
+    match.vencedor = null;
+    match.perdedor = null;
+    match.penaltyWinner = null;
+    if (state.campeonato.status === 'encerrado') state.campeonato.status = 'playoffs';
+    AppState.save(state);
+    AppState.addAuditLog(getAuditUser(), 'Resetou resultado de playoff', { matchId });
+    UI.showToast('Resultado resetado.', 'info');
+    Renderers.bracket();
+    Renderers.home();
+    Renderers.partidas();
+  }
+}
+window.resetMatchResult = resetMatchResult;
+window.executeResetPartida = executeResetPartida;
+
+// ------------------------------------------------------------------
 // Reset
 // ------------------------------------------------------------------
 
@@ -546,12 +705,17 @@ function confirmReset() {
   UI.openModal('modalReset');
 }
 
-function executeReset() {
-  if (!UI.checkAdmin()) { UI.showToast('Voc\u00ea precisa estar logado como admin para editar.', 'error'); return; }
-  AppState.reset();
+async function executeReset() {
+  if (!UI.checkAdmin()) { UI.showToast('Você precisa estar logado como admin para editar.', 'error'); return; }
+  const current = AppState.load();
+  const fresh = AppState.reset();
+  fresh.campeonato.nome = current.campeonato.nome;
+  fresh.campeonato.gameType = current.campeonato.gameType;
+  fresh.campeonato.teamMode = current.campeonato.teamMode;
+  await FirestoreService.saveTournament(AppState.convertStateToFirestore(fresh));
+  await FirestoreService.clearAllRegistrations();
   UI.closeModal('modalReset');
-  UI.showToast('Campeonato resetado com sucesso.', 'info');
-  UI.navigateTo('home');
+  UI.showToast('Campeonato reiniciado com sucesso.', 'info');
   location.reload();
 }
 
@@ -580,24 +744,10 @@ async function exportData() {
 
 async function submitPublicRegistration() {
   const participante = UI.getFormValue('inputInscParticipante');
-  const nome = UI.getFormValue('inputInscNome');
-  let abrev = UI.getFormValue('inputInscAbrev').replace(/[^A-Za-z]/g, '');
-  const cor = document.getElementById('inputInscCor')
-    ? document.getElementById('inputInscCor').value
-    : UI.getRandomColor();
 
   if (!participante) {
     UI.showToast('Informe seu nome para identifica\u00e7\u00e3o.', 'error');
     return;
-  }
-
-  if (!nome) {
-    UI.showToast('Informe o nome do time.', 'error');
-    return;
-  }
-  if (!abrev) {
-    abrev = nome.replace(/[aeiouAEIOU\s]/g, '').slice(0, 3).toUpperCase()
-      || nome.slice(0, 3).toUpperCase();
   }
 
   const state = AppState.load();
@@ -606,32 +756,63 @@ async function submitPublicRegistration() {
     return;
   }
 
+  const isDuplas = state.campeonato.teamMode === 'duplas';
+
   const submitBtn = document.querySelector('#inscricaoFormCard .btn-primary');
   setLoading(submitBtn, true);
 
   try {
     const registrations = await FirestoreService.loadRegistrations();
-    const allNames = [
-      ...state.times.map(t => t.nome.toLowerCase()),
-      ...registrations.filter(r => r.status === 'pendente').map(r => r.nome.toLowerCase())
-    ];
-    if (allNames.includes(nome.toLowerCase())) {
-      UI.showToast('Ja existe um time ou solicitacao com esse nome.', 'error');
-      return;
+
+    if (isDuplas) {
+      // Duplas: inscrição individual — só verifica nome do participante
+      const allParticipantes = registrations
+        .filter(r => r.status === 'pendente' || r.status === 'aprovado')
+        .map(r => r.participante.toLowerCase());
+      if (allParticipantes.includes(participante.toLowerCase())) {
+        UI.showToast('Ja existe uma inscricao com esse nome.', 'error');
+        return;
+      }
+      await FirestoreService.submitRegistration({ participante });
+      AppState.addAuditLog(getAuditUser(), 'Solicitou inscri\u00e7\u00e3o: ' + participante, { participante });
+      UI.clearForm('inputInscParticipante');
+    } else {
+      // Individual: fluxo completo com nome de time, abreviação e cor
+      const nome = UI.getFormValue('inputInscNome');
+      let abrev = UI.getFormValue('inputInscAbrev').replace(/[^A-Za-z]/g, '');
+      const cor = document.getElementById('inputInscCor')
+        ? document.getElementById('inputInscCor').value
+        : UI.getRandomColor();
+
+      if (!nome) {
+        UI.showToast('Informe o nome do time.', 'error');
+        return;
+      }
+      if (!abrev) {
+        abrev = nome.replace(/[aeiouAEIOU\s]/g, '').slice(0, 3).toUpperCase()
+          || nome.slice(0, 3).toUpperCase();
+      }
+
+      const allNames = [
+        ...state.times.map(t => t.nome.toLowerCase()),
+        ...registrations.filter(r => r.status === 'pendente').map(r => (r.nome || '').toLowerCase())
+      ];
+      if (allNames.includes(nome.toLowerCase())) {
+        UI.showToast('Ja existe um time ou solicitacao com esse nome.', 'error');
+        return;
+      }
+
+      await FirestoreService.submitRegistration({
+        participante,
+        nome,
+        abreviacao: abrev.toUpperCase().slice(0, 3),
+        cor
+      });
+      AppState.addAuditLog(getAuditUser(), 'Solicitou inscri\u00e7\u00e3o: ' + nome + ' (' + participante + ')', { abreviacao: abrev, participante });
+      UI.clearForm('inputInscParticipante', 'inputInscNome', 'inputInscAbrev');
+      const colorInput = document.getElementById('inputInscCor');
+      if (colorInput) colorInput.value = UI.getRandomColor();
     }
-
-    await FirestoreService.submitRegistration({
-      participante,
-      nome,
-      abreviacao: abrev.toUpperCase().slice(0, 3),
-      cor
-    });
-
-    AppState.addAuditLog(getAuditUser(), 'Solicitou inscri\u00e7\u00e3o:' + nome + ' (' + participante + ')', { abreviacao: abrev, participante });
-
-    UI.clearForm('inputInscParticipante', 'inputInscNome', 'inputInscAbrev');
-    const colorInput = document.getElementById('inputInscCor');
-    if (colorInput) colorInput.value = UI.getRandomColor();
 
     UI.showToast('Solicita\u00e7\u00e3o enviada! Aguarde aprova\u00e7\u00e3o do administrador.', 'success');
     Renderers.inscricoes();
@@ -655,26 +836,30 @@ async function approveRegistration(id) {
     if (!reg) return;
 
     const state = AppState.load();
-    AppState.addTime(state, { nome: reg.nome, abreviacao: reg.abreviacao, cor: reg.cor, participante: reg.participante || '' });
+    const isDuplas = state.campeonato.teamMode === 'duplas';
 
-    if (state.campeonato.status === 'grupos') {
-      AppState.regenerarFaseGrupos(state);
+    if (isDuplas) {
+      // Duplas: apenas admite o jogador ao pool — time será criado no pairing
+      await FirestoreService.updateRegistration(id, {
+        status: 'aprovado',
+        resolvidoEm: new Date().toISOString(),
+        resolvidoPor: currentUser ? currentUser.email : 'admin'
+      });
+      AppState.addAuditLog(getAuditUser(), 'Aprovou jogador: ' + reg.participante);
+      UI.showToast('Jogador "' + reg.participante + '" aprovado e adicionado ao pool!', 'success');
+    } else {
+      AppState.addTime(state, { nome: reg.nome, abreviacao: reg.abreviacao, cor: reg.cor, participante: reg.participante || '' });
+      if (state.campeonato.status === 'grupos') AppState.regenerarFaseGrupos(state);
+      AppState.save(state);
+      await FirestoreService.updateRegistration(id, {
+        status: 'aprovado',
+        resolvidoEm: new Date().toISOString(),
+        resolvidoPor: currentUser ? currentUser.email : 'admin'
+      });
+      AppState.addAuditLog(getAuditUser(), 'Aprovou inscri\u00e7\u00e3o: ' + reg.nome);
+      UI.showToast('Time "' + reg.nome + '" aprovado e adicionado!', 'success');
     }
 
-    AppState.save(state);
-
-    await FirestoreService.updateRegistration(id, {
-      status: 'aprovado',
-      resolvidoEm: new Date().toISOString(),
-      resolvidoPor: currentUser ? currentUser.email : 'admin'
-    });
-
-    AppState.addAuditLog(
-      currentUser ? currentUser.email : getDeviceId(),
-      'Aprovou inscri\u00e7\u00e3o:' + reg.nome
-    );
-
-    UI.showToast('Time "' + reg.nome + '" aprovado e adicionado!', 'success');
     Renderers.inscricoes();
     Renderers.times();
   } finally {
@@ -717,6 +902,142 @@ async function rejectRegistration(id) {
 // ------------------------------------------------------------------
 // Reset Playoffs
 // ------------------------------------------------------------------
+
+// ------------------------------------------------------------------
+// Pairing Board — Duplas
+// ------------------------------------------------------------------
+
+function updatePairingSelection() { /* no-op: selection now managed by selectPlayerForPairing */ }
+
+function selectPlayerForPairing(inscId) {
+  const card = document.querySelector(`.player-selectable[data-insc-id="${inscId}"]`);
+  if (!card) return;
+
+  if (card.classList.contains('selected')) {
+    card.classList.remove('selected');
+    _refreshPairingBadges();
+    return;
+  }
+
+  const already = document.querySelectorAll('.player-selectable.selected');
+  if (already.length >= 2) return;
+
+  card.classList.add('selected');
+  _refreshPairingBadges();
+
+  if (document.querySelectorAll('.player-selectable.selected').length === 2) {
+    document.querySelectorAll('.player-selectable').forEach(c => c.classList.add('pairing'));
+    setTimeout(() => pairSelectedPlayers(), 380);
+  }
+}
+
+function _refreshPairingBadges() {
+  const selected = [...document.querySelectorAll('.player-selectable.selected')];
+  document.querySelectorAll('.player-select-badge').forEach(b => { b.textContent = ''; });
+  selected.forEach((card, i) => {
+    const badge = card.querySelector('.player-select-badge');
+    if (badge) badge.textContent = i + 1;
+  });
+}
+
+async function pairSelectedPlayers() {
+  if (!UI.checkAdmin()) return;
+  const selected = [...document.querySelectorAll('.player-selectable.selected')];
+  if (selected.length !== 2) {
+    UI.showToast('Selecione exatamente 2 jogadores.', 'error');
+    return;
+  }
+  const [p1, p2] = selected.map(c => c.dataset.participante);
+  const [id1, id2] = selected.map(c => c.dataset.inscId);
+
+  const state = AppState.load();
+  const novoTime = AppState.pairPlayers(state, p1, p2);
+  AppState.save(state);
+
+  await Promise.all([
+    FirestoreService.updateRegistration(id1, { status: 'pareado', timeId: novoTime.id }),
+    FirestoreService.updateRegistration(id2, { status: 'pareado', timeId: novoTime.id })
+  ]);
+
+  AppState.addAuditLog(getAuditUser(), `Dupla criada: ${novoTime.nome}`, { participante: p1, participante2: p2 });
+  UI.showToast(`Dupla "${novoTime.nome}" criada!`, 'success');
+  Renderers.inscricoes();
+  Renderers.times();
+}
+
+async function shuffleAllPairs() {
+  if (!UI.checkAdmin()) return;
+  const registrations = await FirestoreService.loadRegistrations();
+  const pending = registrations.filter(r => r.status === 'aprovado');
+
+  if (pending.length === 0) {
+    UI.showToast('Nenhum jogador dispon\u00edvel para sortear.', 'error');
+    return;
+  }
+  if (pending.length % 2 !== 0) {
+    UI.showToast('N\u00famero \u00edmpar de jogadores. Adicione ou remova um participante antes de sortear.', 'error');
+    return;
+  }
+
+  const shuffled = [...pending];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+
+  const state = AppState.load();
+  const updates = [];
+  for (let i = 0; i < shuffled.length; i += 2) {
+    const p1 = shuffled[i];
+    const p2 = shuffled[i + 1];
+    const novoTime = AppState.pairPlayers(state, p1.participante, p2.participante);
+    updates.push({ id: p1.id, timeId: novoTime.id });
+    updates.push({ id: p2.id, timeId: novoTime.id });
+  }
+  AppState.save(state);
+
+  await Promise.all(updates.map(u =>
+    FirestoreService.updateRegistration(u.id, { status: 'pareado', timeId: u.timeId })
+  ));
+
+  AppState.addAuditLog(getAuditUser(), `Sorteio de duplas: ${updates.length / 2} duplas criadas`);
+  UI.showToast(`${updates.length / 2} duplas sorteadas!`, 'success');
+  Renderers.inscricoes();
+  Renderers.times();
+}
+
+async function unpairTeam(teamId) {
+  if (!UI.checkAdmin()) return;
+  const state = AppState.load();
+  const time = AppState.getTimeById(state, teamId);
+  if (!time) return;
+
+  if (state.campeonato.status !== 'configuracao') {
+    UI.showToast('N\u00e3o \u00e9 poss\u00edvel desfazer duplas ap\u00f3s o in\u00edcio do campeonato.', 'error');
+    return;
+  }
+
+  const registrations = await FirestoreService.loadRegistrations();
+  const paired = registrations.filter(r => r.timeId === teamId);
+
+  AppState.removeTime(state, teamId);
+  AppState.save(state);
+
+  await Promise.all(paired.map(r =>
+    FirestoreService.updateRegistration(r.id, { status: 'aprovado', timeId: null })
+  ));
+
+  AppState.addAuditLog(getAuditUser(), `Dupla desfeita: ${time.nome}`);
+  UI.showToast(`Dupla "${time.nome}" desfeita.`, 'info');
+  Renderers.inscricoes();
+  Renderers.times();
+}
+
+window.updatePairingSelection = updatePairingSelection;
+window.selectPlayerForPairing = selectPlayerForPairing;
+window.pairSelectedPlayers = pairSelectedPlayers;
+window.shuffleAllPairs = shuffleAllPairs;
+window.unpairTeam = unpairTeam;
 
 function resetPlayoffs() {
   if (!UI.checkAdmin()) {

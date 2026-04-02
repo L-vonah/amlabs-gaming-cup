@@ -177,6 +177,18 @@ const FirestoreService = {
     await firebase.firestore().collection(INSCRICOES_COLLECTION).doc(id).update(data);
   },
 
+  async clearAllRegistrations() {
+    if (!FIREBASE_CONFIGURED) return;
+    const snapshot = await firebase.firestore()
+      .collection(INSCRICOES_COLLECTION)
+      .where('torneiId', '==', getActiveTournamentId())
+      .get();
+    if (snapshot.empty) return;
+    const batch = firebase.firestore().batch();
+    snapshot.docs.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+  },
+
   async loadAuditLog() {
     if (!FIREBASE_CONFIGURED) return [];
 
@@ -222,7 +234,7 @@ const FirestoreService = {
   /**
    * Create a new tournament document in Firestore.
    */
-  async createTournament({ nome, gameType }) {
+  async createTournament({ nome, gameType, teamMode = 'individual' }) {
     if (!FIREBASE_CONFIGURED || !UI.checkAdmin()) return null;
 
     const gt = getGameType(gameType);
@@ -231,10 +243,11 @@ const FirestoreService = {
 
     const doc = {
       id: uuid,
-      _schemaVersion: 2,
+      _schemaVersion: 3,
       metadata: {
         nome,
         gameType: gt.id,
+        teamMode,
         status: 'configuracao',
         criadoEm: now,
         atualizadoEm: now

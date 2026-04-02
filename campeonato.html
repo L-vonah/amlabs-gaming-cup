@@ -178,32 +178,34 @@
 
       <div class="card" id="inscricaoFormCard" style="position:sticky;top:80px">
         <div class="card-header">
-          <span class="card-title">Inscrever meu Time</span>
+          <span class="card-title" id="inscricaoFormTitle">Inscrever meu Time</span>
         </div>
         <div class="card-body">
           <div style="display:flex;flex-direction:column;gap:16px">
             <div class="form-group">
-              <label class="form-label" for="inputInscParticipante">Participante *</label>
+              <label class="form-label" for="inputInscParticipante">Seu nome *</label>
               <input class="form-input" type="text" id="inputInscParticipante" placeholder="Ex: Jo&atilde;o"
                 onkeydown="if(event.key==='Enter')submitPublicRegistration()">
             </div>
-            <div class="form-group">
-              <label class="form-label" for="inputInscNome">Nome do Time *</label>
-              <input class="form-input" type="text" id="inputInscNome" placeholder="Ex: S&atilde;o Paulo FC"
-                onkeydown="if(event.key==='Enter')submitPublicRegistration()">
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="inputInscAbrev">Abrevia&ccedil;&atilde;o (1 a 3 letras)</label>
-              <input class="form-input" type="text" id="inputInscAbrev" placeholder="Ex: SPF" maxlength="3"
-                pattern="[A-Za-z]{1,3}" style="text-transform:uppercase"
-                oninput="this.value=this.value.replace(/[^A-Za-z]/g,'')"
-                onkeydown="if(event.key==='Enter')submitPublicRegistration()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Cor do Time</label>
-              <div class="color-picker-wrapper">
-                <input type="color" id="inputInscCor" value="#6c5ce7">
-                <span style="font-size:.8rem;color:var(--color-text-muted)">Escolha a cor do escudo</span>
+            <div class="duplas-hide">
+              <div class="form-group">
+                <label class="form-label" for="inputInscNome">Nome do Time *</label>
+                <input class="form-input" type="text" id="inputInscNome" placeholder="Ex: S&atilde;o Paulo FC"
+                  onkeydown="if(event.key==='Enter')submitPublicRegistration()">
+              </div>
+              <div class="form-group" style="margin-top:16px">
+                <label class="form-label" for="inputInscAbrev">Abrevia&ccedil;&atilde;o (1 a 3 letras)</label>
+                <input class="form-input" type="text" id="inputInscAbrev" placeholder="Ex: SPF" maxlength="3"
+                  pattern="[A-Za-z]{1,3}" style="text-transform:uppercase"
+                  oninput="this.value=this.value.replace(/[^A-Za-z]/g,'')"
+                  onkeydown="if(event.key==='Enter')submitPublicRegistration()">
+              </div>
+              <div class="form-group" style="margin-top:16px">
+                <label class="form-label">Cor do Time</label>
+                <div class="color-picker-wrapper">
+                  <input type="color" id="inputInscCor" value="#6c5ce7">
+                  <span style="font-size:.8rem;color:var(--color-text-muted)">Escolha a cor do escudo</span>
+                </div>
               </div>
             </div>
             <button class="btn btn-primary w-full" onclick="submitPublicRegistration()">Enviar Inscri&ccedil;&atilde;o</button>
@@ -211,6 +213,8 @@
           </div>
         </div>
       </div>
+      <!-- Pairing board: visible only in duplas tournaments, admin only -->
+      <div id="pairingBoardContainer" style="display:none"></div>
     </div>
   </section>
 
@@ -241,42 +245,44 @@
       <!-- Add team form (admin only) -->
       <div class="card admin-only" style="position:sticky;top:80px">
         <div class="card-header">
-          <span class="card-title">Adicionar Time</span>
+          <span class="card-title" id="addTeamCardTitle">Adicionar Time</span>
         </div>
         <div class="card-body">
           <div style="display:flex;flex-direction:column;gap:16px">
             <div class="form-group">
-              <label class="form-label" for="inputPartTimo">Participante *</label>
+              <label class="form-label" id="addTeamPartLabel" for="inputPartTimo">Participante *</label>
               <input class="form-input" type="text" id="inputPartTimo" placeholder="Ex: Jo&atilde;o"
                 onkeydown="if(event.key==='Enter')submitAddTime()">
             </div>
-            <div class="form-group">
+            <div class="form-group" id="addTeamPart2Group" style="display:none">
+              <label class="form-label" for="inputPart2Timo">Participante 2 *</label>
+              <input class="form-input" type="text" id="inputPart2Timo" placeholder="Ex: Maria"
+                onkeydown="if(event.key==='Enter')submitAddTime()">
+            </div>
+            <div class="form-group add-team-individual-field">
               <label class="form-label" for="inputNomeTimo">Nome do Time *</label>
               <input class="form-input" type="text" id="inputNomeTimo" placeholder="Ex: S&atilde;o Paulo FC"
                 onkeydown="if(event.key==='Enter')submitAddTime()">
             </div>
-
-            <div class="form-group">
+            <div class="form-group add-team-individual-field">
               <label class="form-label" for="inputAbrevTimo">Abrevia&ccedil;&atilde;o (1 a 3 letras)</label>
               <input class="form-input" type="text" id="inputAbrevTimo" placeholder="Ex: SPF" maxlength="3"
                 pattern="[A-Za-z]{1,3}" style="text-transform:uppercase"
                 oninput="this.value=this.value.replace(/[^A-Za-z]/g,'')"
                 onkeydown="if(event.key==='Enter')submitAddTime()">
             </div>
-
             <div class="form-group">
-              <label class="form-label">Cor do Time</label>
+              <label class="form-label">Cor</label>
               <div class="color-picker-wrapper">
                 <input type="color" id="inputCorTimo" value="#6c5ce7">
                 <span style="font-size:.8rem;color:var(--color-text-muted)">Escolha a cor do escudo</span>
               </div>
             </div>
-
-            <button class="btn btn-primary w-full" onclick="submitAddTime()">Adicionar Time</button>
+            <button class="btn btn-primary w-full" id="addTeamSubmitBtn" onclick="submitAddTime()">Adicionar Time</button>
           </div>
         </div>
         <div class="card-footer">
-          <div class="text-dim text-xs">Times s&oacute; podem ser removidos antes do in&iacute;cio da fase de grupos.</div>
+          <div class="text-dim text-xs" id="addTeamFooterNote">Times s&oacute; podem ser removidos antes do in&iacute;cio da fase de grupos.</div>
         </div>
       </div>
     </div>
@@ -551,8 +557,13 @@
       <input type="hidden" id="editTeamId">
       <div style="display:flex;flex-direction:column;gap:14px">
         <div class="form-group">
-          <label class="form-label">Participante *</label>
+          <label class="form-label">Participante 1 *</label>
           <input class="form-input" type="text" id="editTeamParticipante" placeholder="Nome do participante">
+        </div>
+        <div class="form-group" id="editTeamParticipante2Group" style="display:none">
+          <label class="form-label">Participante 2</label>
+          <input class="form-input" type="text" id="editTeamParticipante2" readonly
+            style="color:var(--color-text-muted);cursor:default" placeholder="">
         </div>
         <div class="form-group">
           <label class="form-label">Nome do Time *</label>
@@ -699,6 +710,40 @@
       <button class="btn btn-secondary" onclick="UI.closeModal('modalReset')">Cancelar</button>
       <button class="btn btn-danger" onclick="executeReset()">Sim, reiniciar</button>
     </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalPlayoffsPendentes">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Partidas pendentes</span>
+      <button class="btn-icon" onclick="UI.closeModal('modalPlayoffsPendentes')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--color-text-muted);font-size:.9rem">Ainda existem <strong id="modalPlayoffsPendentesCount"></strong> partidas n&atilde;o conclu&iacute;das na fase de grupos. Deseja gerar os playoffs mesmo assim? A classifica&ccedil;&atilde;o atual ser&aacute; usada.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="UI.closeModal('modalPlayoffsPendentes')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmPlayoffsPendentes()">Sim, gerar mesmo assim</button>
+    </div>
+    <input type="hidden" id="modalPlayoffsFormatId">
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalResetPartida">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Resetar Resultado</span>
+      <button class="btn-icon" onclick="UI.closeModal('modalResetPartida')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--color-text-muted);font-size:.9rem">Tem certeza? O resultado ser&aacute; <strong style="color:var(--color-loss)">apagado</strong> e a partida voltar&aacute; para pendente. Em playoffs, partidas seguintes tamb&eacute;m ser&atilde;o resetadas.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="UI.closeModal('modalResetPartida')">Cancelar</button>
+      <button class="btn btn-danger" onclick="executeResetPartida()">Sim, resetar</button>
+    </div>
+    <input type="hidden" id="modalResetPartidaMatchId">
   </div>
 </div>
 
