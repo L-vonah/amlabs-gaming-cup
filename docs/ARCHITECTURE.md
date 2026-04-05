@@ -2,7 +2,7 @@
 
 > **Objetivo:** Referência completa para qualquer desenvolvedor ou agente que precise entender, modificar ou estender o projeto. Leia este documento ANTES de propor qualquer mudança.
 >
-> **Última atualização:** 2026-04-01
+> **Última atualização:** 2026-04-05
 
 ---
 
@@ -79,7 +79,10 @@ campeonato-amlabs/
 │   ├── app.js                     # Bootstrap, score modal, mobile nav
 │   └── portal.js                  # Landing page: listar/criar/deletar torneios
 ├── assets/
-│   └── logo-amlabs.png            # Logo da empresa
+│   ├── logo-amlabs.png            # Logo da empresa
+│   └── icon.svg                   # Ícone PWA (512×512, gradiente laranja→vinho, troféu)
+├── manifest.json                  # Web App Manifest (PWA)
+├── sw.js                          # Service Worker — cache-first, ignora Firebase URLs
 ├── firestore.rules                # Regras de segurança Firestore
 ├── .netlify/
 │   └── netlify.toml               # Config deploy
@@ -111,11 +114,12 @@ O `uuid` é o ID do campeonato ativo (lido de `sessionStorage` via `getActiveTou
 
 ```javascript
 {
-  _schemaVersion: 2,        // versão atual — migrateState() converte versões antigas automaticamente
+  _schemaVersion: 3,        // versão atual — migrateState() converte versões antigas automaticamente
   campeonato: {
     nome: '',               // preenchido pelo Firestore
     gameType: '',           // 'futebol-virtual' | 'sinuca' — preenchido pelo Firestore
-    status: 'configuracao'  // configuracao | grupos | playoffs | encerrado
+    status: 'configuracao', // configuracao | grupos | playoffs | encerrado
+    teamMode: 'individual'  // 'individual' | 'duplas'
   },
   config: {
     pontosPorVitoria: 3,
@@ -146,7 +150,8 @@ O `uuid` é o ID do campeonato ativo (lido de `sessionStorage` via `getActiveTou
   nome: 'São Paulo FC',
   abreviacao: 'SPF',               // 1-3 letras, uppercase, só [A-Za-z]
   cor: '#6c5ce7',                   // hex color
-  participante: 'João'             // nome do jogador real
+  participante: 'João',            // nome do jogador real
+  participante2: null              // null em 'individual'; nome do 2º jogador em 'duplas'
 }
 ```
 
@@ -383,7 +388,7 @@ O sistema suporta múltiplos tipos de jogo via `GAME_TYPES` em `js/game-types.js
 | `renderers.js` | Demais renderers + monta objeto `Renderers` | `Renderers` |
 | `actions.js` | Handlers: `submitAddTime()`, `deleteTime()`, `saveInlineResult()`, etc. | Funções globais + `getDeviceId()`, `getAuditUser()` |
 | `app.js` | Bootstrap, score modal, mobile nav, wrappers | Funções globais |
-| `portal.js` | Landing page: listar torneios, criar, deletar, paginação | `portalShowMore`, `portalEnterTournament`, `portalCreateTournament`, `portalRequestDelete`, `portalExecuteDelete` |
+| `portal.js` | Landing page: listar torneios, criar, deletar, paginação, histórico de campeões | `portalShowMore`, `portalEnterTournament`, `portalCreateTournament`, `portalRequestDelete`, `portalExecuteDelete`, `portalSelectGameType`, `portalSelectTeamMode` |
 
 ### 7.3 Objeto `Renderers`
 
@@ -723,7 +728,7 @@ Usar `sessionStorage` garante que cada aba pode ter um campeonato diferente aber
 4. **Admin único hardcoded** — não suporta múltiplos admins
 5. **CSS monolítico** — ~2648 linhas sem pré-processador ou módulos
 6. **Sem minificação** — JS e CSS servidos sem build step
-7. **Sem PWA** — não funciona como app instalável (sem manifest/service worker)
+7. ~~**Sem PWA**~~ — implementado: `manifest.json` + `sw.js` (cache-first service worker). Instalável como app no mobile/desktop.
 8. **Inscrição pública sem rate limiting** — Firestore rules permitem `create: if true` sem throttle
 9. **Texto na classificação hardcoded** — diz "Os 4 primeiros" mesmo quando o formato classifica 6
 
@@ -797,10 +802,11 @@ O `sessionStorage` mantém o torneio ativo por aba. Abrir uma nova aba volta ao 
 
 ### 16.3 Schema Versioning
 
-`DEFAULT_STATE` tem `_schemaVersion: 2` (versão atual). Em todo `_ensureCache()`, o state carregado passa por `migrateState()` antes de ser retornado.
+`DEFAULT_STATE` tem `_schemaVersion: 3` (versão atual). Em todo `_ensureCache()`, o state carregado passa por `migrateState()` antes de ser retornado.
 
 **Migrações implementadas:**
 - **v1 → v2:** `golsA/golsB` → `scoreA/scoreB` em partidas e matches; `vencedor` derivado do resultado; campo `jogo` removido (substituído por `gameType`)
+- **v2 → v3:** suporte a duplas — `participante2: null` adicionado a todos os times existentes; `campeonato.teamMode: 'individual'` adicionado se ausente
 
 **Convenção para futuras mudanças de schema:**
 1. Incremente `CURRENT_SCHEMA_VERSION` em `state.js`
