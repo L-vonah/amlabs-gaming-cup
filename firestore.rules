@@ -1,6 +1,77 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email == "vonah.dev@gmail.com";
+    }
+
+    function isRequiredText(value, min, max) {
+      return value is string
+        && value.size() >= min
+        && value.size() <= max;
+    }
+
+    function isOptionalText(value, max) {
+      return value == null || (value is string && value.size() <= max);
+    }
+
+    function isOptionalAbbreviation(value) {
+      return value == null
+        || (value is string && value.matches('^[A-Za-z]{1,3}$'));
+    }
+
+    function isOptionalHexColor(value) {
+      return value == null
+        || (value is string && value.matches('^#[0-9A-Fa-f]{6}$'));
+    }
+
+    function isIsoDateString(value) {
+      return value is string
+        && value.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}T.*Z$');
+    }
+
+    function isValidRegistrationShape() {
+      return request.resource.data.keys().hasOnly([
+        'torneiId',
+        'participante',
+        'nome',
+        'abreviacao',
+        'cor',
+        'status',
+        'criadoEm',
+        'device',
+        'resolvidoEm',
+        'resolvidoPor'
+      ]);
+    }
+
+    function isValidRegistrationCreate() {
+      return isValidRegistrationShape()
+        && isRequiredText(request.resource.data.torneiId, 1, 80)
+        && isRequiredText(request.resource.data.participante, 2, 60)
+        && isOptionalText(request.resource.data.nome, 80)
+        && isOptionalAbbreviation(request.resource.data.abreviacao)
+        && isOptionalHexColor(request.resource.data.cor)
+        && request.resource.data.status == 'pendente'
+        && isIsoDateString(request.resource.data.criadoEm)
+        && request.resource.data.device is string
+        && request.resource.data.device.matches('^PC-[A-Z0-9]{6,12}$')
+        && request.resource.data.resolvidoEm == null
+        && request.resource.data.resolvidoPor == null
+        && (
+          (
+            request.resource.data.nome == null
+            && request.resource.data.abreviacao == null
+            && request.resource.data.cor == null
+          ) || (
+            isRequiredText(request.resource.data.nome, 2, 80)
+            && isOptionalAbbreviation(request.resource.data.abreviacao)
+            && isOptionalHexColor(request.resource.data.cor)
+          )
+        );
+    }
+
     // Anyone can read all data (public tournament)
     match /{document=**} {
       allow read: if true;
@@ -8,22 +79,19 @@ service cloud.firestore {
 
     // Only admin can write tournament data
     match /campeonatos/{id} {
-      allow write: if request.auth != null
-                   && request.auth.token.email == "vonah.dev@gmail.com";
+      allow write: if isAdmin();
     }
 
     // Only admin can write audit log
     match /auditLog/{entry} {
-      allow write: if request.auth != null
-                   && request.auth.token.email == "vonah.dev@gmail.com";
+      allow write: if isAdmin();
     }
 
     // Public registration: anyone can create/read, only admin can update/delete
     match /inscricoes/{entry} {
-      allow create: if true;
+      allow create: if isValidRegistrationCreate();
       allow read: if true;
-      allow update, delete: if request.auth != null
-                            && request.auth.token.email == "vonah.dev@gmail.com";
+      allow update, delete: if isAdmin();
     }
   }
 }

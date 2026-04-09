@@ -3,6 +3,11 @@
  * All user-triggered event handlers
  */
 
+const REGISTRATION_COOLDOWN_MS = 30000;
+const REGISTRATION_MIN_FILL_MS = 2500;
+const REGISTRATION_FORM_READY_AT = Date.now();
+const REGISTRATION_COOLDOWN_KEY_PREFIX = 'amlabs_reg_last_submit';
+
 // ------------------------------------------------------------------
 // Tournament Selection
 // ------------------------------------------------------------------
@@ -86,6 +91,55 @@ function setLoading(btn, loading) {
     btn.classList.remove('btn-loading');
     btn.disabled = false;
   }
+}
+
+function normalizeRegistrationText(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+function normalizeLookupKey(value) {
+  return normalizeRegistrationText(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+function getRegistrationCooldownKey() {
+  return REGISTRATION_COOLDOWN_KEY_PREFIX + '_' + (getActiveTournamentId() || 'global') + '_' + getDeviceId();
+}
+
+function getRemainingRegistrationCooldownMs() {
+  try {
+    const lastSubmitAt = parseInt(localStorage.getItem(getRegistrationCooldownKey()) || '0', 10);
+    if (!lastSubmitAt) return 0;
+    return Math.max(0, REGISTRATION_COOLDOWN_MS - (Date.now() - lastSubmitAt));
+  } catch (_) {
+    return 0;
+  }
+}
+
+function markRegistrationSubmitted() {
+  try {
+    localStorage.setItem(getRegistrationCooldownKey(), String(Date.now()));
+  } catch (_) {}
+}
+
+function getRegistrationSpamBlockReason() {
+  const honeypotValue = UI.getFormValue('inputInscWebsite');
+  if (honeypotValue) {
+    return 'Não foi possível enviar sua inscrição. Recarregue a página e tente novamente.';
+  }
+
+  if ((Date.now() - REGISTRATION_FORM_READY_AT) < REGISTRATION_MIN_FILL_MS) {
+    return 'Aguarde alguns segundos antes de enviar a inscrição.';
+  }
+
+  const cooldownRemaining = getRemainingRegistrationCooldownMs();
+  if (cooldownRemaining > 0) {
+    return 'Aguarde ' + Math.ceil(cooldownRemaining / 1000) + 's antes de enviar outra inscrição.';
+  }
+
+  return '';
 }
 
 // ------------------------------------------------------------------
@@ -743,10 +797,14 @@ async function exportData() {
 // ------------------------------------------------------------------
 
 async function submitPublicRegistration() {
-  const participante = UI.getFormValue('inputInscParticipante');
+  const participante = normalizeRegistrationText(UI.getFormValue('inputInscParticipante'));
 
   if (!participante) {
     UI.showToast('Informe seu nome para identifica\u00e7\u00e3o.', 'error');
+    return;
+  }
+  if (participante.length < 2 || participante.length > 60) {
+    UI.showToast('Seu nome deve ter entre 2 e 60 caracteres.', 'error');
     return;
   }
 
@@ -757,6 +815,11 @@ async function submitPublicRegistration() {
   }
 
   const isDuplas = state.campeonato.teamMode === 'duplas';
+  const spamBlockReason = getRegistrationSpamBlockReason();
+  if (spamBlockReason) {
+    UI.showToast(spamBlockReason, 'error');
+    return;
+  }
 
   const submitBtn = document.querySelector('#inscricaoFormCard .btn-primary');
   setLoading(submitBtn, true);
@@ -768,18 +831,23 @@ async function submitPublicRegistration() {
       // Duplas: inscrição individual — só verifica nome do participante
       const allParticipantes = registrations
         .filter(r => r.status === 'pendente' || r.status === 'aprovado')
-        .map(r => r.participante.toLowerCase());
-      if (allParticipantes.includes(participante.toLowerCase())) {
+        .map(r => normalizeLookupKey(r.participante));
+      if (allParticipantes.includes(normalizeLookupKey(participante))) {
         UI.showToast('Ja existe uma inscricao com esse nome.', 'error');
         return;
       }
-      await FirestoreService.submitRegistration({ participante });
+      await FirestoreService.submitRegistration({
+        participante,
+        nome: null,
+        abreviacao: null,
+        cor: null
+      });
       AppState.addAuditLog(getAuditUser(), 'Solicitou inscri\u00e7\u00e3o: ' + participante, { participante });
-      UI.clearForm('inputInscParticipante');
+      UI.clearForm('inputInscParticipante', 'inputInscWebsite');
     } else {
       // Individual: fluxo completo com nome de time, abreviação e cor
-      const nome = UI.getFormValue('inputInscNome');
-      let abrev = UI.getFormValue('inputInscAbrev').replace(/[^A-Za-z]/g, '');
+      const nome = normalizeRegistrationText(UI.getFormValue('inputInscNome'));
+      let abrev = normalizeRegistrationText(UI.getFormValue('inputInscAbrev')).replace(/[^A-Za-z]/g, '');
       const cor = document.getElementById('inputInscCor')
         ? document.getElementById('inputInscCor').value
         : UI.getRandomColor();
@@ -788,16 +856,26 @@ async function submitPublicRegistration() {
         UI.showToast('Informe o nome do time.', 'error');
         return;
       }
+      if (nome.length < 2 || nome.length > 80) {
+        UI.showToast('O nome do time deve ter entre 2 e 80 caracteres.', 'error');
+        return;
+      }
       if (!abrev) {
         abrev = nome.replace(/[aeiouAEIOU\s]/g, '').slice(0, 3).toUpperCase()
           || nome.slice(0, 3).toUpperCase();
       }
+      if (!/^#[0-9A-Fa-f]{6}$/.test(cor)) {
+        UI.showToast('Cor do time inválida.', 'error');
+        return;
+      }
 
       const allNames = [
-        ...state.times.map(t => t.nome.toLowerCase()),
-        ...registrations.filter(r => r.status === 'pendente').map(r => (r.nome || '').toLowerCase())
+        ...state.times.map(t => normalizeLookupKey(t.nome)),
+        ...registrations
+          .filter(r => r.status === 'pendente')
+          .map(r => normalizeLookupKey(r.nome || ''))
       ];
-      if (allNames.includes(nome.toLowerCase())) {
+      if (allNames.includes(normalizeLookupKey(nome))) {
         UI.showToast('Ja existe um time ou solicitacao com esse nome.', 'error');
         return;
       }
@@ -809,11 +887,12 @@ async function submitPublicRegistration() {
         cor
       });
       AppState.addAuditLog(getAuditUser(), 'Solicitou inscri\u00e7\u00e3o: ' + nome + ' (' + participante + ')', { abreviacao: abrev, participante });
-      UI.clearForm('inputInscParticipante', 'inputInscNome', 'inputInscAbrev');
+      UI.clearForm('inputInscParticipante', 'inputInscNome', 'inputInscAbrev', 'inputInscWebsite');
       const colorInput = document.getElementById('inputInscCor');
       if (colorInput) colorInput.value = UI.getRandomColor();
     }
 
+    markRegistrationSubmitted();
     UI.showToast('Solicita\u00e7\u00e3o enviada! Aguarde aprova\u00e7\u00e3o do administrador.', 'success');
     Renderers.inscricoes();
   } finally {

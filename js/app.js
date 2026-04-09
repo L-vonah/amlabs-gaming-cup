@@ -547,8 +547,12 @@ document.addEventListener('click', (e) => {
 
 // ------------------------------------------------------------------
 // Service Worker
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').catch(() => {});
+if ('serviceWorker' in navigator && typeof getServiceWorkerPath === 'function') {
+  const swPath = getServiceWorkerPath();
+  const swScope = getServiceWorkerScope();
+  if (swPath && swScope) {
+    navigator.serviceWorker.register(swPath, { scope: swScope }).catch(() => {});
+  }
 }
 
 // DOMContentLoaded (campeonato.html only)
