@@ -7,6 +7,8 @@ const PORTAL_PAGE_SIZE = 3;
 let _allTournaments = [];
 let _visibleCount = PORTAL_PAGE_SIZE;
 let _pendingDeleteUuid = null;
+let _pendingDeleteName = '';
+let _deleteInFlight = false;
 
 async function portalRenderList() {
   const container = document.getElementById('portalTorneioList');
@@ -119,6 +121,7 @@ function portalRenderHistorico() {
 function portalRequestDelete(uuid, nome, timesCount) {
   if (!UI.checkAdmin()) return;
   _pendingDeleteUuid = uuid;
+  _pendingDeleteName = nome;
 
   const msg = document.getElementById('deleteModalMessage');
   if (timesCount > 0) {
@@ -132,19 +135,60 @@ function portalRequestDelete(uuid, nome, timesCount) {
 }
 
 async function portalExecuteDelete() {
-  if (!_pendingDeleteUuid || !UI.checkAdmin()) return;
+  if (!_pendingDeleteUuid || !UI.checkAdmin() || _deleteInFlight) return;
 
   const uuid = _pendingDeleteUuid;
-  _pendingDeleteUuid = null;
-  UI.closeModal('modalDeleteTournament');
+  const nome = _pendingDeleteName;
+  const confirmBtn = document.querySelector('#modalDeleteTournament .btn-danger');
+  const cancelBtn = document.querySelector('#modalDeleteTournament .btn-secondary');
+  const msg = document.getElementById('deleteModalMessage');
 
-  const ok = await FirestoreService.deleteTournament(uuid);
-  if (ok) {
-    UI.showToast('Campeonato deletado.', 'success');
-    _allTournaments = _allTournaments.filter(t => t.id !== uuid);
-    portalRenderCards();
-  } else {
-    UI.showToast('Erro ao deletar campeonato. Tente novamente.', 'error');
+  _deleteInFlight = true;
+  if (confirmBtn) {
+    confirmBtn.disabled = true;
+    confirmBtn.dataset.originalText = confirmBtn.textContent;
+    confirmBtn.textContent = 'Deletando...';
+  }
+  if (cancelBtn) cancelBtn.disabled = true;
+  if (msg) {
+    msg.innerHTML = `Deletando <strong>${UI.escapeHtml(nome)}</strong> e os dados relacionados. Isso pode levar alguns segundos.`;
+  }
+
+  try {
+    const ok = await FirestoreService.deleteTournament(uuid, ({ stage, deletedCount }) => {
+      if (!msg) return;
+
+      const stageLabel = {
+        inscricoes: 'inscrições',
+        auditLog: 'entradas do histórico',
+        campeonato: 'campeonato'
+      };
+
+      if (stage === 'campeonato') {
+        msg.innerHTML = `Finalizando a remoção de <strong>${UI.escapeHtml(nome)}</strong>.`;
+        return;
+      }
+
+      msg.innerHTML = `Deletando <strong>${UI.escapeHtml(nome)}</strong>: ${deletedCount} ${stageLabel[stage] || 'registros'} removidos até agora.`;
+    });
+    if (ok) {
+      UI.closeModal('modalDeleteTournament');
+      UI.showToast('Campeonato deletado.', 'success');
+      _allTournaments = _allTournaments.filter(t => t.id !== uuid);
+      portalRenderCards();
+      portalRenderHistorico();
+      _pendingDeleteUuid = null;
+      _pendingDeleteName = '';
+    } else {
+      UI.showToast('Erro ao deletar campeonato. Tente novamente.', 'error');
+    }
+  } finally {
+    _deleteInFlight = false;
+    if (confirmBtn) {
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = confirmBtn.dataset.originalText || 'Deletar';
+    }
+    if (cancelBtn) cancelBtn.disabled = false;
   }
 }
 
@@ -191,8 +235,12 @@ function portalSelectTeamMode(teamModeId) {
 }
 
 // Service Worker
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').catch(() => {});
+if ('serviceWorker' in navigator && typeof getServiceWorkerPath === 'function') {
+  const swPath = getServiceWorkerPath();
+  const swScope = getServiceWorkerScope();
+  if (swPath && swScope) {
+    navigator.serviceWorker.register(swPath, { scope: swScope }).catch(() => {});
+  }
 }
 
 // Boot

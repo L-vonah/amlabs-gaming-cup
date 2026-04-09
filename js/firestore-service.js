@@ -6,10 +6,29 @@
 const CAMPEONATOS_COLLECTION = 'campeonatos';
 const AUDIT_COLLECTION = 'auditLog';
 const INSCRICOES_COLLECTION = 'inscricoes';
+const DELETE_BATCH_SIZE = 200;
 
 // Cached tournament data from Firestore listener
 let _firestoreCache = null;
 let _firestoreListenerUnsubscribe = null;
+
+async function deleteQueryInChunks(query, onProgress) {
+  let deleted = 0;
+
+  while (true) {
+    const snapshot = await query.limit(DELETE_BATCH_SIZE).get();
+    if (snapshot.empty) break;
+
+    const batch = firebase.firestore().batch();
+    snapshot.docs.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+
+    deleted += snapshot.size;
+    if (onProgress) onProgress(deleted);
+  }
+
+  return deleted;
+}
 
 const FirestoreService = {
   isActive() {
@@ -142,12 +161,28 @@ const FirestoreService = {
   async submitRegistration(data) {
     if (!FIREBASE_CONFIGURED) return null;
 
+    const participant = typeof data.participante === 'string'
+      ? data.participante.trim().replace(/\s+/g, ' ')
+      : '';
+    const nome = typeof data.nome === 'string'
+      ? data.nome.trim().replace(/\s+/g, ' ')
+      : null;
+    const abreviacao = typeof data.abreviacao === 'string'
+      ? data.abreviacao.replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 3)
+      : null;
+    const cor = typeof data.cor === 'string' && /^#[0-9A-Fa-f]{6}$/.test(data.cor)
+      ? data.cor
+      : null;
+
     const entry = {
       torneiId: getActiveTournamentId(),
-      ...data,
+      participante: participant,
+      nome,
+      abreviacao,
+      cor,
       status: 'pendente',
       criadoEm: new Date().toISOString(),
-      device: typeof getDeviceId === 'function' ? getDeviceId() : 'unknown',
+      device: typeof getDeviceId === 'function' ? getDeviceId() : 'PC-UNKNOWN',
       resolvidoEm: null,
       resolvidoPor: null
     };
@@ -179,14 +214,10 @@ const FirestoreService = {
 
   async clearAllRegistrations() {
     if (!FIREBASE_CONFIGURED) return;
-    const snapshot = await firebase.firestore()
+    const query = firebase.firestore()
       .collection(INSCRICOES_COLLECTION)
-      .where('torneiId', '==', getActiveTournamentId())
-      .get();
-    if (snapshot.empty) return;
-    const batch = firebase.firestore().batch();
-    snapshot.docs.forEach(doc => batch.delete(doc.ref));
-    await batch.commit();
+      .where('torneiId', '==', getActiveTournamentId());
+    await deleteQueryInChunks(query);
   },
 
   async loadAuditLog() {
@@ -287,29 +318,31 @@ const FirestoreService = {
    * Permanently delete a tournament and all its related data.
    * Cleans: campeonatos/{uuid}, inscricoes (by torneiId), auditLog (by torneiId).
    */
-  async deleteTournament(uuid) {
+  async deleteTournament(uuid, onProgress) {
     if (!FIREBASE_CONFIGURED || !UI.checkAdmin()) return false;
 
     try {
       const db = firebase.firestore();
-      const batch = db.batch();
+      const report = (stage, deletedCount) => {
+        if (typeof onProgress === 'function') {
+          onProgress({ stage, deletedCount });
+        }
+      };
 
-      // Delete tournament document
-      batch.delete(db.collection(CAMPEONATOS_COLLECTION).doc(uuid));
+      report('inscricoes', 0);
+      await deleteQueryInChunks(
+        db.collection(INSCRICOES_COLLECTION).where('torneiId', '==', uuid),
+        count => report('inscricoes', count)
+      );
 
-      // Delete related inscricoes
-      const inscricoes = await db.collection(INSCRICOES_COLLECTION)
-        .where('torneiId', '==', uuid)
-        .get();
-      inscricoes.docs.forEach(doc => batch.delete(doc.ref));
+      report('auditLog', 0);
+      await deleteQueryInChunks(
+        db.collection(AUDIT_COLLECTION).where('torneiId', '==', uuid),
+        count => report('auditLog', count)
+      );
 
-      // Delete related auditLog entries
-      const auditEntries = await db.collection(AUDIT_COLLECTION)
-        .where('torneiId', '==', uuid)
-        .get();
-      auditEntries.docs.forEach(doc => batch.delete(doc.ref));
-
-      await batch.commit();
+      await db.collection(CAMPEONATOS_COLLECTION).doc(uuid).delete();
+      report('campeonato', 1);
       return true;
     } catch (error) {
       console.error('Error deleting tournament:', error);
