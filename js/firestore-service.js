@@ -182,7 +182,7 @@ const FirestoreService = {
       cor,
       status: 'pendente',
       criadoEm: new Date().toISOString(),
-      device: typeof getDeviceId === 'function' ? getDeviceId() : 'unknown',
+      device: typeof getDeviceId === 'function' ? getDeviceId() : 'PC-UNKNOWN',
       resolvidoEm: null,
       resolvidoPor: null
     };

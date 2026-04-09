@@ -46,6 +46,17 @@ service cloud.firestore {
       ]);
     }
 
+    function getTournamentDoc() {
+      return get(/databases/$(database)/documents/campeonatos/$(request.resource.data.torneiId));
+    }
+
+    function isOpenTournamentRegistration() {
+      let tournament = getTournamentDoc();
+      return tournament.data != null
+        && tournament.data.metadata is map
+        && tournament.data.metadata.status == 'configuracao';
+    }
+
     function isValidRegistrationCreate() {
       return isValidRegistrationShape()
         && isRequiredText(request.resource.data.torneiId, 1, 80)
@@ -56,9 +67,10 @@ service cloud.firestore {
         && request.resource.data.status == 'pendente'
         && isIsoDateString(request.resource.data.criadoEm)
         && request.resource.data.device is string
-        && request.resource.data.device.matches('^PC-[A-Z0-9]{6,12}$')
+        && request.resource.data.device.matches('^PC-[A-Z0-9]{1,12}$')
         && request.resource.data.resolvidoEm == null
         && request.resource.data.resolvidoPor == null
+        && isOpenTournamentRegistration()
         && (
           (
             request.resource.data.nome == null

@@ -55,7 +55,8 @@ function getBrowserFingerprint() {
     hash = ((hash << 5) - hash) + char;
     hash |= 0;
   }
-  return 'PC-' + Math.abs(hash).toString(16).toUpperCase().slice(0, 8);
+  const fingerprint = Math.abs(hash).toString(16).toUpperCase().padStart(8, '0').slice(0, 8);
+  return 'PC-' + fingerprint;
 }
 
 // Cache fingerprint so it's computed only once per session

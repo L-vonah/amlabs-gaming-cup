@@ -26,6 +26,12 @@ const APP_SHELL = [
   'assets/logo-amlabs.png'
 ];
 
+const FIREBASE_SDK_ASSETS = [
+  'https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js',
+  'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js',
+  'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js'
+];
+
 function buildScopedUrl(path) {
   return new URL(path, self.registration.scope).toString();
 }
@@ -48,6 +54,16 @@ function isRuntimeAsset(url) {
 async function precacheAppShell() {
   const cache = await caches.open(STATIC_CACHE);
   await cache.addAll(APP_SHELL.map(buildScopedUrl));
+}
+
+async function precacheExternalAssets(urls, cacheName) {
+  const cache = await caches.open(cacheName);
+
+  await Promise.all(urls.map(async (url) => {
+    const request = new Request(url, { mode: 'no-cors', cache: 'reload' });
+    const response = await fetch(request);
+    await cache.put(request, response);
+  }));
 }
 
 async function staleWhileRevalidate(request, cacheName) {
@@ -82,7 +98,10 @@ async function networkFirst(request, cacheName) {
 }
 
 self.addEventListener('install', event => {
-  event.waitUntil(precacheAppShell());
+  event.waitUntil(Promise.all([
+    precacheAppShell(),
+    precacheExternalAssets(FIREBASE_SDK_ASSETS, FIREBASE_SDK_CACHE)
+  ]));
   self.skipWaiting();
 });
 
