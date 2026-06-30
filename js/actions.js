@@ -3,8 +3,8 @@
  * All user-triggered event handlers
  */
 
-const REGISTRATION_COOLDOWN_MS = 15000;
-const REGISTRATION_MIN_FILL_MS = 2500;
+const REGISTRATION_COOLDOWN_MS = 5000;
+const REGISTRATION_MIN_FILL_MS = 1000;
 const REGISTRATION_FORM_READY_AT = Date.now();
 const REGISTRATION_COOLDOWN_KEY_PREFIX = 'amlabs_reg_last_submit';
 
