@@ -3,7 +3,7 @@
  * Google Login via Firebase Auth. Only admin can edit.
  */
 
-const ADMIN_EMAILS = ['vonah.dev@gmail.com', 'andre.silva@amlabs.com.br'];
+const ADMIN_EMAILS = ['vonah.dev@gmail.com', 'putumuju93@gmail.com'];
 let currentUser = null;
 
 function isAdmin() {
