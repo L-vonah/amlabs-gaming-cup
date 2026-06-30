@@ -36,9 +36,10 @@ function renderHome() {
   if (championBanner) {
     const campeaoId = AppState.getCampeao(state);
     if (state.campeonato.status === 'encerrado' && campeaoId) {
-      const winner = AppState.getTimeById(state, campeaoId);
       const format = PlayoffFormats.getSelected(state);
       const gf = format.getGrandFinal(state.playoffs.matches);
+      const winner = gf && gf.vencedor ? AppState.getTimeById(state, gf.vencedor) : null;
+      const winnerOnly = getGameType(state.campeonato.gameType).scoreType !== 'numeric';
       championBanner.style.display = 'block';
       championBanner.innerHTML = `
         <div class="champion-banner">
@@ -51,7 +52,7 @@ function renderHome() {
             <div class="champion-name">${winner ? UI.escapeHtml(winner.nome) : '?'}</div>
             ${winner && winner.participante && !winner.participante2 ? `<div class="champion-label" style="margin-top:4px;letter-spacing:.12em;font-size:.85rem">${UI.escapeHtml(winner.participante)}</div>` : ''}
             ${winner ? `<div class="champion-avatar-wrapper">${UI.renderAvatar(winner, 80)}</div>` : ''}
-            <div class="champion-score">${gf ? (gf.scoreA !== null && gf.scoreB !== null ? gf.scoreA + ' &times; ' + gf.scoreB : '<span class="winner-check">✓</span>') : ''} &mdash; ${UI.escapeHtml(gf ? gf.fase || 'Final' : 'Final')}</div>
+            ${!winnerOnly && gf ? `<div class="champion-score">${gf.scoreA !== null && gf.scoreB !== null ? gf.scoreA + ' &times; ' + gf.scoreB : '<span class="winner-check">✓</span>'} &mdash; ${UI.escapeHtml(gf.fase || 'Final')}</div>` : ''}
             <div class="champion-badge">${UI.escapeHtml(state.campeonato.nome || 'Campeonato')}</div>
           </div>
         </div>`;
