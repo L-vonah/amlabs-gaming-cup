@@ -3,17 +3,17 @@
  * Google Login via Firebase Auth. Only admin can edit.
  */
 
-const ADMIN_EMAIL = 'vonah.dev@gmail.com';
+const ADMIN_EMAILS = ['vonah.dev@gmail.com', 'andre.silva@amlabs.com.br'];
 let currentUser = null;
 
 function isAdmin() {
-  return currentUser && currentUser.email === ADMIN_EMAIL;
+  return currentUser && ADMIN_EMAILS.includes(currentUser.email);
 }
 
 function initAuth() {
   if (!FIREBASE_CONFIGURED) {
     // Without Firebase, show admin controls by default (local dev)
-    currentUser = { email: ADMIN_EMAIL, displayName: 'Admin Local' };
+    currentUser = { email: ADMIN_EMAILS[0], displayName: 'Admin Local' };
     updateAdminUI();
     return;
   }
@@ -38,7 +38,7 @@ async function loginAdmin() {
     provider.setCustomParameters({ prompt: 'select_account' });
     const result = await firebase.auth().signInWithPopup(provider);
 
-    if (result.user.email !== ADMIN_EMAIL) {
+    if (!ADMIN_EMAILS.includes(result.user.email)) {
       UI.showToast('Sem permiss\u00e3o de edi\u00e7\u00e3o. Apenas o administrador pode editar.', 'error');
       await firebase.auth().signOut();
       return false;
