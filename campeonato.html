@@ -356,8 +356,9 @@
           <select id="playoffFormatSelect" class="form-input format-select" onchange="onFormatChange()"></select>
         </div>
         <div id="formatWarning" class="format-warning" style="display:none"></div>
-        <div style="margin-top:12px">
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn btn-primary admin-only" id="btnGerarPlayoffs" onclick="iniciarPlayoffs()">Gerar Playoffs</button>
+          <button class="btn btn-secondary admin-only" id="btnForcarPlayoffs" onclick="forcarIniciarPlayoffs()" style="display:none">Forçar início mesmo assim</button>
         </div>
       </div>
     </div>
