@@ -2,7 +2,7 @@
 
 > **Objetivo:** Referência completa para qualquer desenvolvedor ou agente que precise entender, modificar ou estender o projeto. Leia este documento ANTES de propor qualquer mudança.
 >
-> **Última atualização:** 2026-04-05
+> **Última atualização:** 2026-07-01
 
 ---
 
@@ -236,7 +236,7 @@ configuracao ──→ grupos ──→ playoffs ──→ encerrado
 | De → Para | Gatilho | Validação |
 |-----------|---------|-----------|
 | `configuracao` → `grupos` | `gerarFaseGrupos()` | Mínimo 5 times |
-| `grupos` → `playoffs` | `iniciarPlayoffs()` | Todos os jogos de grupos concluídos + mínimo N times para o formato |
+| `grupos` → `playoffs` | `iniciarPlayoffs()` / `forcarIniciarPlayoffs()` | Mínimo N times classificados. Jogos pendentes: bloqueados no futebol (`requireAllMatches`), permitidos na sinuca. No futebol, `forcarIniciarPlayoffs()` permite iniciar com pendências mediante confirmação |
 | `playoffs` → `encerrado` | Grande Final concluída | Automático ao registrar resultado da GF |
 | `playoffs` → `grupos` | `resetPlayoffs()` | Admin manual (limpa todos os playoffs) |
 | Qualquer → `configuracao` | `executeReset()` | Admin manual (apaga TUDO) |
@@ -325,7 +325,7 @@ O sistema suporta múltiplos tipos de jogo via `GAME_TYPES` em `js/game-types.js
 | `scoreType` | `'numeric'` (placar numérico) ou `'winner-only'` (apenas vencedor) |
 | `scoring` | Pontos por vitória, empate, derrota |
 | `tiebreakers` | Critérios de desempate (array ordenado). `'admin'` = seleção manual |
-| `requireAllMatches` | Se todos os jogos precisam ser concluídos antes dos playoffs |
+| `requireAllMatches` | Se todos os jogos precisam ser concluídos antes dos playoffs. No futebol (`true`), o admin pode **forçar início** com pendências via `forcarIniciarPlayoffs()` + modal de confirmação |
 | `hasStatistics` | Se a aba de estatísticas é exibida |
 | `penaltyResolution` | Se empates em playoffs são resolvidos por pênaltis |
 | `columns` | Quais colunas exibir na classificação (empates, GP, GC, SG) |
@@ -378,7 +378,7 @@ O sistema suporta múltiplos tipos de jogo via `GAME_TYPES` em `js/game-types.js
 |--------|------------------|-------------------|
 | `firebase-config.js` | Inicializa Firebase, define `FIREBASE_CONFIGURED` | `FIREBASE_CONFIGURED` (global) |
 | `game-types.js` | Perfis de game type (EA Sports FC, Sinuca), helpers | `GAME_TYPES`, `getGameType()`, `getAllGameTypes()` |
-| `auth.js` | Login/logout Google, `isAdmin()`, `updateAdminUI()` | `ADMIN_EMAIL`, `currentUser`, `isAdmin()`, `loginAdmin()`, `logoutAdmin()`, `initAuth()`, `updateAdminUI()` |
+| `auth.js` | Login/logout Google, `isAdmin()`, `updateAdminUI()` | `ADMIN_EMAILS`, `currentUser`, `isAdmin()`, `loginAdmin()`, `logoutAdmin()`, `initAuth()`, `updateAdminUI()` |
 | `firestore-service.js` | CRUD Firestore, real-time listener, inscrições, deleção de campeonato | `FirestoreService` (inclui `deleteTournament(uuid)`) |
 | `state.js` | Estado centralizado, todas as operações de domínio | `AppState` |
 | `ui.js` | Helpers de UI compartilhados | `UI` |
@@ -627,7 +627,7 @@ window.PlayoffFormats = {
 
 ### 10.1 Modelo
 
-- **Admin único:** `vonah.dev@gmail.com` (hardcoded em `auth.js` e `firestore.rules`)
+- **Admins (múltiplos):** lista `ADMIN_EMAILS` em `auth.js` e helper `isAdmin()` (operador `in`) nas `firestore.rules`. Atualmente: `vonah.dev@gmail.com` e `putumuju93@gmail.com`
 - **Visitante:** qualquer pessoa que acessar o site (sem login)
 - **Modo local:** se Firebase não estiver configurado, auto-admin é ativado
 
@@ -725,11 +725,11 @@ Usar `sessionStorage` garante que cada aba pode ter um campeonato diferente aber
 1. **Confronto direto não resolve empates de 3+ times** — apenas entre 2 times empatados em todos os outros critérios
 2. **Zero testes automatizados** — sem cobertura de unit ou integration tests
 3. ~~**Sem versionamento de schema**~~ — implementado: `_schemaVersion` + `migrateState()` em `state.js`. Versão atual: v2 (migração v1→v2: `golsA/golsB` → `scoreA/scoreB`, derivação de `vencedor`, remoção de `jogo`)
-4. **Admin único hardcoded** — não suporta múltiplos admins
+4. ~~**Admin único hardcoded**~~ — resolvido: `ADMIN_EMAILS` (array) em `auth.js` + helper `isAdmin()` com operador `in` nas `firestore.rules`. Lembrar de publicar as rules (`firebase deploy --only firestore:rules`) após alterar
 5. **CSS monolítico** — ~2648 linhas sem pré-processador ou módulos
 6. **Sem minificação** — JS e CSS servidos sem build step
 7. ~~**Sem PWA**~~ — implementado: `manifest.json` + `sw.js` (cache-first service worker). Instalável como app no mobile/desktop.
-8. **Inscrição pública sem rate limiting** — Firestore rules permitem `create: if true` sem throttle
+8. **Rate limiting da inscrição é apenas client-side** — há throttle no cliente (cooldown 5s entre envios + tempo mínimo de preenchimento 1s + honeypot, em `actions.js`) e validação de formato nas rules (`isValidRegistrationCreate`), mas não há rate limit real no servidor — o Firestore não impõe throttle por origem
 9. **Texto na classificação hardcoded** — diz "Os 4 primeiros" mesmo quando o formato classifica 6
 
 ---
