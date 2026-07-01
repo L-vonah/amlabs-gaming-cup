@@ -408,6 +408,17 @@ function _renderFormatSelector(state) {
     btnGerar.disabled = !canGenerate;
     btnGerar.title = canGenerate ? '' : 'N\u00e3o \u00e9 poss\u00edvel gerar playoffs neste momento';
   }
+
+  // Option B: games that require all matches (futebol) keep the hard block,
+  // but an explicit "force start" is offered when the ONLY blocker is
+  // pending group matches and there are already enough classified teams.
+  const btnForcar = document.getElementById('btnForcarPlayoffs');
+  if (btnForcar) {
+    const classifiedCount = AppState.calcularClassificacao(state).length;
+    const showForce = gt.requireAllMatches && !groupsDone &&
+      classifiedCount >= selectedFormat.classified;
+    btnForcar.style.display = showForce ? '' : 'none';
+  }
 }
 
 function onFormatChange() {

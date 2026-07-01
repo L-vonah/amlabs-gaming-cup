@@ -20,7 +20,7 @@ Site estatico hospedado no Netlify com autenticacao via Firebase (Google Login) 
 | Pontuacao | V=3, E=1, D=0 | V=2, D=1 |
 | Desempate | Pontos > Vitorias > Saldo > Gols > Confronto | Pontos > Vitorias > Admin seleciona |
 | Estatisticas | Artilheiros, goleadas, defesa | Nenhuma |
-| Jogos pendentes | Todos obrigatorios para playoffs | Pode iniciar com pendentes |
+| Jogos pendentes | Obrigatorios (admin pode forcar inicio) | Pode iniciar com pendentes |
 | Penaltis (playoff) | Sim | Nao |
 
 ### Formato do Campeonato
@@ -145,12 +145,12 @@ git push origin master
 ### Administrador
 
 1. Clica no botao **Admin** no rodape
-2. Faz login com Google (vonah.dev@gmail.com)
+2. Faz login com Google (conta de admin autorizada)
 3. Botoes de edicao aparecem:
    - Cadastrar/editar/remover times
    - Gerar fase de grupos
    - Registrar/editar resultados
-   - Escolher formato de playoff e iniciar
+   - Escolher formato de playoff e iniciar (no futebol, pode forcar inicio com jogos pendentes)
    - Refazer playoffs
 4. Todas as alteracoes sao registradas no historico de auditoria
 

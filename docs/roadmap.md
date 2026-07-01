@@ -2,7 +2,7 @@
 
 > **Objetivo:** Registro das features planejadas, com escopo, decisões de design e implicações técnicas já definidas. Leia antes de iniciar qualquer implementação dos módulos abaixo.
 >
-> **Última atualização:** 2026-04-01
+> **Última atualização:** 2026-07-01
 
 ---
 
@@ -17,6 +17,8 @@
 ---
 
 ## M1 — Suporte a Duplas
+
+> **Status:** ✅ Concluído (PR #17).
 
 ### Motivação
 
@@ -167,6 +169,8 @@ if (version < 3) {
 
 ## M2 — PWA + Histórico de Campeões
 
+> **Status:** ✅ Concluído (PR #18).
+
 ### Motivação
 
 - **PWA:** Participantes acessam o site pelo celular. Instalar como app melhora a experiência e permite visualização offline do bracket.
@@ -210,6 +214,8 @@ Sinuca 2024/2    ⚫ Sinuca    Maria & Pedro
 ---
 
 ## M3 — Múltiplos Admins
+
+> **Status:** ✅ Concluído (PR #20, 2026-06-30). Emails autorizados: `vonah.dev@gmail.com` e `putumuju93@gmail.com`. ⚠️ Requer deploy manual das `firestore.rules` (`firebase deploy --only firestore:rules`).
 
 ### Motivação
 
@@ -257,6 +263,8 @@ allow write: if request.auth.token.email in [
 ---
 
 ## M4 — Perfil do Participante
+
+> **Status:** 🔜 Planejado — depende do M1 (concluído).
 
 ### Motivação
 
@@ -310,11 +318,11 @@ Itens deliberadamente excluídos do roadmap:
 ## Ordem de Implementação Recomendada
 
 ```
-M3 (Multi-admin)     ← pequeno, sem dependências, pode ir junto com qualquer módulo
+M3 (Multi-admin)     ✅ concluído (PR #20)
         ↓
-M1 (Duplas)          ← crítico para o próximo torneio de sinuca
+M1 (Duplas)          ✅ concluído (PR #17)
         ↓
-M2 (PWA + Histórico) ← baixo esforço, sem dependências
+M2 (PWA + Histórico) ✅ concluído (PR #18)
         ↓
-M4 (Perfil)          ← depende de M1 (campo email no time)
+M4 (Perfil)          🔜 próximo — depende de M1 (concluído)
 ```

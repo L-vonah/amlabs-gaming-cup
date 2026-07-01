@@ -429,6 +429,34 @@ function iniciarPlayoffs() {
   _executeIniciarPlayoffs(state, formatId);
 }
 
+// Option B: explicit "force start" for games that require all group matches
+// (futebol). Bypasses the pending-matches hard block, but still requires
+// enough classified teams and always routes through the confirmation modal.
+function forcarIniciarPlayoffs() {
+  if (!UI.checkAdmin()) { UI.showToast('Você precisa estar logado como admin para editar.', 'error'); return; }
+  const state = AppState.load();
+  const formatId = typeof getSelectedPlayoffFormatId === 'function' ? getSelectedPlayoffFormatId() : PlayoffFormats.DEFAULT;
+  const format = PlayoffFormats.get(formatId);
+  const tabela = AppState.calcularClassificacao(state);
+
+  if (tabela.length < format.classified) {
+    UI.showToast('Necessário pelo menos ' + format.classified + ' times na classificação.', 'error');
+    return;
+  }
+
+  const pending = state.faseGrupos.partidas.filter(p => p.status === 'pendente').length;
+  if (pending === 0) {
+    // Nada a forçar — segue o fluxo normal.
+    iniciarPlayoffs();
+    return;
+  }
+
+  document.getElementById('modalPlayoffsPendentesCount').textContent = pending;
+  document.getElementById('modalPlayoffsFormatId').value = formatId;
+  UI.openModal('modalPlayoffsPendentes');
+}
+window.forcarIniciarPlayoffs = forcarIniciarPlayoffs;
+
 function _detectTiesAtCutoff(tabela, classified) {
   const groups = [];
   let i = 0;
